@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Guess the Sorted Number Game</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            text-align: center;
+            padding: 40px;
+        }
+
+        #start-btn {
+            font-size: 18px;
+            padding: 10px 20px;
+            cursor: pointer;
+        }
+
+        #target-display {
+            font-size: 22px;
+            margin: 20px 0;
+            min-height: 30px;
+        }
+
+        #guess-count {
+            font-size: 16px;
+            margin-bottom: 20px;
+            min-height: 22px;
+        }
+
+        #message {
+            font-size: 20px;
+            font-weight: bold;
+            min-height: 30px;
+            margin-bottom: 10px;
+        }
+
+        #box-container {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .box {
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: bold;
+            background-color: #444;
+            color: white;
+            border-radius: 6px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .box.too-low {
+            background-color: #3b82f6; /* target is further right */
+            color: white;
+            cursor: default;
+        }
+
+        .box.too-high {
+            background-color: #f97316; /* target is further left */
+            color: white;
+            cursor: default;
+        }
+
+        .box.correct {
+            background-color: #22c55e;
+            color: white;
+            cursor: default;
+        }
+
+        .box.disabled {
+            cursor: default;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Guess the Sorted Number Game</h1>
+<p>Click Start. Ten numbers (1-100) are hidden in boxes, already arranged smallest to largest, left to right.<br>
+   Try to find the target number by clicking boxes.<br>
+   Blue = target is further right, orange = target is further left, green = found it.<br>
+   Think about how few clicks you can find it in &mdash; the numbers are sorted, so you don't have to guess one at a time!</p>
+
+<button id="start-btn">Start</button>
+
+<div id="target-display"></div>
+<div id="guess-count"></div>
+<div id="message"></div>
+
+<div id="box-container">
+    <!-- 10 boxes will be created here by JavaScript -->
+</div>
+
+<script>
+    var boxContainer = document.getElementById("box-container");
+    var startBtn = document.getElementById("start-btn");
+    var targetDisplay = document.getElementById("target-display");
+    var guessCountDisplay = document.getElementById("guess-count");
+    var messageDisplay = document.getElementById("message");
+
+    var target = null;
+    var guessCount = 0;
+    var found = false;
+
+    function getRandomSortedNumbers(count, min, max) {
+        var numbers = new Set();
+        while (numbers.size < count) {
+            var n = Math.floor(Math.random() * (max - min + 1)) + min;
+            numbers.add(n);
+        }
+        return Array.from(numbers).sort(function (a, b) {
+            return a - b;
+        });
+    }
+
+    function updateGuessCount() {
+        guessCountDisplay.textContent = "Guesses: " + guessCount;
+    }
+
+    function handleBoxClick(box, number) {
+        if (found) {
+            return;
+        }
+
+        guessCount++;
+        updateGuessCount();
+
+        box.textContent = number;
+        box.classList.remove("too-low", "too-high");
+
+        if (number === target) {
+            box.classList.add("correct", "disabled");
+            found = true;
+            var optimal = Math.ceil(Math.log2(10));
+            messageDisplay.textContent = "Found it in " + guessCount + " guess" +
+                (guessCount === 1 ? "" : "es") + "! (Best possible: " + optimal + ")";
+        } else if (number < target) {
+            box.classList.add("too-low", "disabled");
+        } else {
+            box.classList.add("too-high", "disabled");
+        }
+    }
+
+    function startGame() {
+        boxContainer.innerHTML = "";
+        messageDisplay.textContent = "";
+        guessCount = 0;
+        found = false;
+        updateGuessCount();
+
+        var numbers = getRandomSortedNumbers(10, 1, 100);
+        target = numbers[Math.floor(Math.random() * numbers.length)];
+        targetDisplay.textContent = "Find the number: " + target;
+
+        numbers.forEach(function (number) {
+            var box = document.createElement("div");
+            box.className = "box";
+            box.textContent = "?";
+
+            box.addEventListener("click", function () {
+                handleBoxClick(box, number);
+            });
+
+            boxContainer.appendChild(box);
+        });
+    }
+
+    startBtn.addEventListener("click", startGame);
+</script>
+
+</body>
+</html>
