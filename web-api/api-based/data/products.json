@@ -1,0 +1,38 @@
+[
+  {
+    "id": 1,
+    "title": "Wireless Mouse",
+    "description": "A comfortable wireless mouse with ergonomic design and long battery life.",
+    "price": 19.99
+  },
+  {
+    "id": 2,
+    "title": "Mechanical Keyboard",
+    "description": "A tactile mechanical keyboard with RGB backlighting and durable switches.",
+    "price": 59.99
+  },
+  {
+    "id": 3,
+    "title": "USB-C Hub",
+    "description": "A 7-in-1 USB-C hub with HDMI, USB 3.0, and SD card reader support.",
+    "price": 34.5
+  },
+  {
+    "id": 4,
+    "title": "Noise-Cancelling Headphones",
+    "description": "Over-ear headphones with active noise cancellation and 30-hour battery life.",
+    "price": 129.99
+  },
+  {
+    "id": 5,
+    "title": "Portable SSD 1TB",
+    "description": "A fast, compact external SSD with USB 3.2 Gen 2 speeds up to 1050MB/s.",
+    "price": 89.99
+  },
+  {
+    "id": 6,
+    "title": "Webcam 1080p",
+    "description": "A full HD webcam with built-in microphone, perfect for video calls.",
+    "price": 24.99
+  }
+]

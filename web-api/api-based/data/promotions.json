@@ -1,0 +1,23 @@
+[
+  {
+    "title": "Summer Sale",
+    "text": "Save up to 30% on select accessories this week only.",
+    "backgroundColor": "#e67e22",
+    "buttonText": "Shop Now",
+    "buttonLink": "product.html?id=1"
+  },
+  {
+    "title": "New Arrival",
+    "text": "Check out the Noise-Cancelling Headphones, just added to the catalog.",
+    "backgroundColor": "#2980b9",
+    "buttonText": "View Product",
+    "buttonLink": "product.html?id=4"
+  },
+  {
+    "title": "Bundle & Save",
+    "text": "Buy the Keyboard and Mouse together and save on your order.",
+    "backgroundColor": "#27ae60",
+    "buttonText": "See Bundle",
+    "buttonLink": "product.html?id=2"
+  }
+]
