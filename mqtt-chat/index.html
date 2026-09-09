@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MQTT Chat Room</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <h1>MQTT Chat Room</h1>
+
+  <div id="connect-panel">
+    <p class="hint">
+      Connects directly from your browser to an MQTT broker over WebSocket.
+      No account needed here &mdash; just pick a nickname and connect.
+    </p>
+
+    <label>Broker WebSocket URL
+      <input id="broker-url" type="text" value="wss://3c276c9ff48e408ebaa4acc8d9439339.s1.eu.hivemq.cloud:8884/mqtt">
+    </label>
+
+    <label>Username <span class="optional">(leave blank if not required)</span>
+      <input id="broker-username" type="text">
+    </label>
+
+    <label>Password <span class="optional">(leave blank if not required)</span>
+      <input id="broker-password" type="password">
+    </label>
+
+    <label>Nickname
+      <input id="nickname" type="text" placeholder="Guest">
+    </label>
+
+    <button id="btn-connect">Connect</button>
+    <p id="connect-error" class="error"></p>
+  </div>
+
+  <div id="chat-panel" hidden>
+    <div id="messages"></div>
+
+    <form id="send-form">
+      <input id="message-input" type="text" placeholder="Type a message..." autocomplete="off">
+      <button type="submit">Send</button>
+    </form>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/mqtt@5.10.1/dist/mqtt.min.js"></script>
+  <script src="chat.js"></script>
+</body>
+</html>

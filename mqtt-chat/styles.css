@@ -1,0 +1,113 @@
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  background-color: #f5f5f5;
+  color: #222;
+  max-width: 480px;
+  margin: 40px auto;
+}
+
+h1 {
+  text-align: center;
+  font-size: 22px;
+}
+
+.hint {
+  font-size: 13px;
+  color: #666;
+}
+
+label {
+  display: block;
+  font-size: 13px;
+  font-weight: bold;
+  margin-top: 12px;
+}
+
+.optional {
+  font-weight: normal;
+  color: #888;
+}
+
+input[type="text"],
+input[type="password"] {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px;
+  margin-top: 4px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+button {
+  margin-top: 16px;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: bold;
+  color: #fff;
+  background-color: #2c7be5;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #1a5fb8;
+}
+
+.error {
+  color: #c0392b;
+  font-size: 13px;
+  margin-top: 8px;
+}
+
+#chat-panel {
+  display: flex;
+  flex-direction: column;
+  height: 70vh;
+}
+
+#messages {
+  flex: 1;
+  overflow-y: auto;
+  background-color: #fff;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 10px;
+  margin-bottom: 10px;
+}
+
+.message {
+  margin: 4px 0;
+  font-size: 14px;
+}
+
+.message .meta {
+  font-weight: bold;
+  color: #2c7be5;
+}
+
+.message.mine .meta {
+  color: #c0392b;
+}
+
+.presence {
+  font-size: 12px;
+  color: #888;
+  font-style: italic;
+  margin: 4px 0;
+}
+
+#send-form {
+  display: flex;
+  gap: 8px;
+}
+
+#send-form input {
+  flex: 1;
+  margin-top: 0;
+}
+
+#send-form button {
+  margin-top: 0;
+}
