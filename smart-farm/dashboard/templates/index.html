@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Smart Farm Dashboard</title>
+  <style>
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      background-color: #f5f5f5;
+      color: #222;
+      max-width: 500px;
+      margin: 40px auto;
+      text-align: center;
+    }
+
+    .temperature {
+      font-size: 64px;
+      font-weight: bold;
+      margin: 16px 0;
+    }
+
+    .heater-status {
+      font-size: 20px;
+      margin-bottom: 24px;
+    }
+
+    .heater-status.on {
+      color: #c0392b;
+    }
+
+    .heater-status.off {
+      color: #555;
+    }
+
+    button {
+      font-size: 16px;
+      font-weight: bold;
+      padding: 12px 24px;
+      margin: 0 8px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      color: #fff;
+    }
+
+    #btn-on {
+      background-color: #c0392b;
+    }
+
+    #btn-off {
+      background-color: #555;
+    }
+  </style>
+</head>
+<body>
+  <h1>Smart Farm Dashboard</h1>
+
+  <div class="temperature" id="temperature">--°C</div>
+  <div class="heater-status" id="heater-status">Heater: UNKNOWN</div>
+
+  <div>
+    <button id="btn-on" onclick="setHeater('ON')">Turn Heater ON</button>
+    <button id="btn-off" onclick="setHeater('OFF')">Turn Heater OFF</button>
+  </div>
+
+  <script>
+    const temperatureEl = document.getElementById("temperature");
+    const heaterStatusEl = document.getElementById("heater-status");
+
+    function updateDisplay(state) {
+      temperatureEl.textContent = state.temperature === null
+        ? "--°C"
+        : `${state.temperature}°C`;
+
+      heaterStatusEl.textContent = `Heater: ${state.heater}`;
+      heaterStatusEl.className = "heater-status " + (state.heater === "ON" ? "on" : "off");
+    }
+
+    function setHeater(state) {
+      fetch(`/api/heater/${state}`, { method: "POST" });
+    }
+
+    const ws = new WebSocket(`ws://${location.host}/ws`);
+    ws.onmessage = (event) => {
+      updateDisplay(JSON.parse(event.data));
+    };
+  </script>
+</body>
+</html>
