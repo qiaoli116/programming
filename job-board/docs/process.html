@@ -121,13 +121,16 @@
   .stages li a::after { content: ""; position: absolute; inset: 0; border-radius: 10px; }
   .stages li:hover { border-color: var(--accent); }
   .stages li.multi a::after { display: none; }
-  .stages .links { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+  .stages.has-summary { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+  .stages li.summary { border-style: dashed; }
+  .stages li.summary .state { color: var(--accent); font-weight: 600; }
+  .stages .links { display: flex; flex-direction: column; gap: 4px; margin-top: 4px; }
   .stages .links a { position: relative; z-index: 1; flex: 1; text-align: center; padding: 2px 6px; border: 1px solid var(--line); border-radius: 6px; font-size: .78rem; font-weight: 600; background: var(--bg); }
   .stages .links a:hover { border-color: var(--accent); color: var(--accent); }
   html { scroll-behavior: smooth; }
   .stages li.current .state { color: var(--accent); font-weight: 600; }
   .stages li.done .state { color: var(--done); }
-  @media (max-width: 760px) { .stages { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 760px) { .stages, .stages.has-summary { grid-template-columns: repeat(2, 1fr); } }
 
   /* ---- tables ---- */
   table { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; font-size: .92rem; }
@@ -178,7 +181,7 @@
   <div class="group-label">Guide</div>
   <a class="tab" href="#overview"><b>Process overview</b><span>The six stages</span></a>
   <div class="group-label">Iterations</div>
-  <a class="tab" href="#iteration-1"><b>Iteration 1</b><span>Minimal prototype · Stage 4 Testing</span></a>
+  <a class="tab" href="#iteration-1"><b>Iteration 1</b><span>Minimal prototype · Complete (all six stages)</span></a>
   <div class="group-label">Reuse</div>
   <a class="tab" href="#template"><b>Template</b><span>Blank skeleton for new iterations</span></a>
 </nav>
@@ -211,17 +214,17 @@
 <div class="card stage-card">
   <h3>Stage 4 – Testing</h3>
   <p><b>Question answered:</b> <i>Does it do what the requirements said?</i></p>
-  <p><b>Output:</b> for each use case, a check that its main flow and alternative flows actually work.</p>
+  <p><b>Output:</b> for each use case, a check that its main flow and alternative flows actually work. Every run of the whole test plan is saved as a dated test result. Each failure, or each item that needs a person to judge it, becomes a <b>ticket</b> (report, investigation, solution, verification) that is closed only when a later run proves it. See the Testing section of an iteration.</p>
 </div>
 <div class="card stage-card">
   <h3>Stage 5 – Deployment</h3>
   <p><b>Question answered:</b> <i>How do real users get it?</i></p>
-  <p><b>Output:</b> the prototype published at a URL (for example GitHub Pages).</p>
+  <p><b>Output:</b> the prototype published at a URL (for example GitHub Pages), or, when the iteration is only for the class, run on local host. Either way, write down where it runs and how to start it.</p>
 </div>
 <div class="card stage-card">
   <h3>Stage 6 – Review &amp; Maintenance</h3>
   <p><b>Question answered:</b> <i>What did we learn, and what comes next?</i></p>
-  <p><b>Output:</b> a retrospective, and the deferred ideas that become the next cycle's requirements.</p>
+  <p><b>Output:</b> a retrospective, the deferred ideas that become the next cycle's requirements, a decision on whether the product is maintained or retired, and a one-page <b>summary report</b> of the whole iteration.</p>
 </div>
 
 <div class="note">
@@ -234,13 +237,15 @@
 <section class="panel" id="iteration-1">
 <h1>Iteration 1 – Minimal job board prototype</h1>
 <p class="sub"><b>Goal:</b> the smallest complete loop – an employer posts a job, a seeker finds it and applies, and both can see the result.</p>
-<ol class="stages" aria-label="Development stages">
+<p class="sub"><b>Summary report:</b> <a href="iteration-1/summary-report.html">read the one-page report of this iteration</a> · <a href="iteration-1/tickets/index.html">tickets</a> · <a href="iteration-1/test-result/index.html">test results</a></p>
+<ol class="stages has-summary" aria-label="Development stages">
     <li class="done"><span class="n">Stage 1</span><b><a href="#i1-requirements">Requirements</a></b><span class="state">✓ Done</span></li>
     <li class="done multi"><span class="n">Stage 2</span><b>Design</b><span class="links"><a href="#i1-design-graphic" data-bar="Graphic design" data-state="done">Graphic</a><a href="#i1-design-software" data-bar="Software design" data-state="done">Software</a><a href="#i1-design-testplan" data-bar="Test plan" data-state="done">Test plan</a></span><span class="state">✓ Done</span></li>
-    <li class="done"><span class="n">Stage 3</span><b><a href="#i1-stage3">Implementation</a></b><span class="state">✓ Built</span></li>
-    <li class="current"><span class="n">Stage 4</span><b><a href="#i1-stage4">Testing</a></b><span class="state">● We are here</span></li>
-    <li><span class="n">Stage 5</span><b><a href="#i1-stage5">Deployment</a></b><span class="state">Planned</span></li>
-    <li><span class="n">Stage 6</span><b><a href="#i1-stage6">Review &amp; Maintenance</a></b><span class="state">Planned</span></li>
+    <li class="done"><span class="n">Stage 3</span><b><a href="#i1-stage3">Implementation</a></b><span class="state">✓ Done</span></li>
+    <li class="done"><span class="n">Stage 4</span><b><a href="#i1-stage4">Testing</a></b><span class="state">✓ Done</span></li>
+    <li class="done"><span class="n">Stage 5</span><b><a href="#i1-stage5">Deployment</a></b><span class="state">✓ Done</span></li>
+    <li class="done"><span class="n">Stage 6</span><b><a href="#i1-stage6">Review &amp; Maintenance</a></b><span class="state">✓ Done</span></li>
+    <li class="summary"><span class="n">Report</span><b><a href="iteration-1/summary-report.html">Summary</a></b><span class="state">Open report →</span></li>
   </ol>
 
 <!-- ============================ REQUIREMENTS ============================ -->
@@ -570,6 +575,12 @@
     <tr><td>27</td><td>Implementation</td><td>Job requirements are stored as one text, one requirement per line, and shown as a bullet list.</td><td>Matches the single textarea in the mockup and avoids a second table for a small feature.</td></tr>
     <tr><td>28</td><td>Implementation</td><td>The employer pages show the company name in the header; a job card's summary is the first paragraph of the description, shortened.</td><td>The mockups show a company name for employers and a short summary on cards; no extra field is needed for either.</td></tr>
     <tr><td>29</td><td>Implementation</td><td>One Docker image runs everything (Express serves the API and the built React files). <code>SEED_ON_START=true</code> loads the demo data when the database is empty.</td><td>Keeps decision T-8 (configuration from the environment) and makes Stage 5 a single command. The setting is off by default, so a real database is never touched.</td></tr>
+    <tr><td>30</td><td>Implementation</td><td><b>Stage 3 Implementation signed off.</b> The app was run locally and tried by hand with the demo accounts. Work moves to Stage 4 – Testing.</td><td>All nine use cases are built and their tests pass. Further code changes now come from Stage 4 findings and go through the decision log.</td></tr>
+    <tr><td>31</td><td>Testing</td><td>Problems found in Stage 4 are recorded as <b>tickets</b> in <code>iteration-1/tickets/</code> (a report, an investigation, a solution and a verification), and a ticket is closed only when a later test run proves it. <b>JB-001</b>: the data tables get a scroll box (<code>TableScroll</code>) so employer pages no longer scroll sideways on a phone. <b>JB-002</b>: the "Find jobs" header link stays highlighted on the job and apply pages, as in the mockups.</td><td>A failed test is only useful if the cause, the fix and the proof are written down. A scroll box is the smallest fix that keeps every column; stacked cards would need a new design. Both tickets are small fixes to match the signed-off design, so they do not reopen Stage 2.</td></tr>
+    <tr><td>32</td><td>Testing</td><td>The verification run has a <code>--no-images</code> option: tests run the same, but no screenshots are saved in the result.</td><td>A result with screenshots is 5 to 7 MB. The screenshots are only needed the first time, to show a failure or a review.</td></tr>
+    <tr><td>33</td><td>Testing</td><td><b>Stage 4 Testing signed off.</b> All 43 plan items pass in the final run (<a href="iteration-1/test-result/test-result-20261030-134400.html">20261030-134400</a>), and tickets JB-001 and JB-002 are closed.</td><td>Every exit criterion in the test plan is met, and the two findings were fixed and proved by a later run.</td></tr>
+    <tr><td>34</td><td>Deployment</td><td>Iteration 1 is <b>deployed to local host only</b> (<code>http://localhost:3000</code>), so <b>Stage 5 Deployment is done</b>. It is not published online.</td><td>This is a teaching prototype and nobody outside the class needs it. Publishing (for example the Docker image on a host) can be a later iteration.</td></tr>
+    <tr><td>35</td><td>Review</td><td><b>Stage 6 Review &amp; Maintenance signed off, and iteration 1 is closed.</b> The prototype reaches the end of its life here: no maintenance is planned. The project moves on to the next iteration.</td><td>The prototype did its job (a full loop from posting a job to seeing the application, tested and shown). Keeping it alive would cost effort without teaching anything new. Deferred items are listed in Stage 6.</td></tr>
     <tr><td class="dash" colspan="4"><i>Add rows as the class makes decisions…</i></td></tr>
   </tbody>
 </table>
@@ -1231,6 +1242,7 @@ BROWSER     localStorage                           keys: jb.jobs, jb.application
 <p>Stage 4 results are saved in <code>iteration-1/test-result/</code>, one file per run: date, build, pass or fail for each test case id, bugs found and their fix status.</p>
 
 <h2 id="i1-stage3">Stage 3 – Implementation <span class="tag done">done</span></h2>
+<div class="note"><b>Stage 3 signed off</b> (decision 30). The code is frozen for this cycle; changes from now on come from Stage 4 findings and go through the decision log.</div>
 <p><b>Question answered:</b> <i>Can we build it?</i></p>
 <table>
   <thead><tr><th>Use case</th><th>Status</th><th>Main files</th></tr></thead>
@@ -1255,30 +1267,64 @@ BROWSER     localStorage                           keys: jb.jobs, jb.application
     <tr><td>End-to-end (Playwright, Chrome)</td><td>30</td><td><code>app/e2e/tests/</code></td><td>30 passed</td></tr>
   </tbody>
 </table>
-<p class="sub">Every test name starts with its id from the test plan (<span class="id">TC-01-1</span> … <span class="id">TC-09-2</span>, <span class="id">SEC-1</span> … <span class="id">SEC-6</span>), so each of the 32 test cases and 6 security checks can be found in the code. Decisions made while coding are decisions 23 to 29 in the decision log.</p>
-<h2 id="i1-stage4">Stage 4 – Testing <span class="tag could">current</span></h2>
+<p class="sub">Every test name starts with its id from the test plan (<span class="id">TC-01-1</span> … <span class="id">TC-09-2</span>, <span class="id">SEC-1</span> … <span class="id">SEC-6</span>), so each of the 32 test cases and 6 security checks can be found in the code. Decisions made while coding are decisions 23 to 29 in the decision log, and the sign-off is decision 30.</p>
+<h2 id="i1-stage4">Stage 4 – Testing <span class="tag done">done</span></h2>
 <p><b>Question answered:</b> <i>Does it do what the requirements said?</i></p>
 <table>
-  <thead><tr><th>Use case</th><th>Flow tested</th><th>Result</th><th>Notes</th></tr></thead>
-  <tbody><tr><td class="id">UC-xx</td><td>Main flow / alternative flow id</td><td>Pass / Fail</td><td class="dash">—</td></tr></tbody>
+  <thead><tr><th>Use case</th><th>Flows tested</th><th>Result</th><th>Notes</th></tr></thead>
+  <tbody>
+    <tr><td><span class="id">UC-01</span> Search for jobs</td><td>TC-01-1 … 5</td><td><span class="tag done">Pass 5/5</span></td><td class="dash">—</td></tr>
+    <tr><td><span class="id">UC-02</span> View job details</td><td>TC-02-1 … 3</td><td><span class="tag done">Pass 3/3</span></td><td class="dash">—</td></tr>
+    <tr><td><span class="id">UC-03</span> Apply for a job</td><td>TC-03-1 … 5</td><td><span class="tag done">Pass 5/5</span></td><td class="dash">—</td></tr>
+    <tr><td><span class="id">UC-04</span> View my applications</td><td>TC-04-1 … 3</td><td><span class="tag done">Pass 3/3</span></td><td class="dash">—</td></tr>
+    <tr><td><span class="id">UC-05</span> Post a job</td><td>TC-05-1 … 3</td><td><span class="tag done">Pass 3/3</span></td><td class="dash">—</td></tr>
+    <tr><td><span class="id">UC-06</span> Edit a job post</td><td>TC-06-1 … 3</td><td><span class="tag done">Pass 3/3</span></td><td class="dash">—</td></tr>
+    <tr><td><span class="id">UC-07</span> View applications for a job</td><td>TC-07-1 … 3</td><td><span class="tag done">Pass 3/3</span></td><td class="dash">—</td></tr>
+    <tr><td><span class="id">UC-08</span> Sign in</td><td>TC-08-1 … 5</td><td><span class="tag done">Pass 5/5</span></td><td class="dash">—</td></tr>
+    <tr><td><span class="id">UC-09</span> Sign out</td><td>TC-09-1 … 2</td><td><span class="tag done">Pass 2/2</span></td><td class="dash">—</td></tr>
+    <tr><td>Permissions and security</td><td><span class="id">SEC-1</span> … 6</td><td><span class="tag done">Pass 6/6</span></td><td class="dash">—</td></tr>
+    <tr><td>Manual checklist</td><td><span class="id">MC-1</span> … 5</td><td><span class="tag done">Pass 5/5</span></td><td>First run: <b>MC-2 failed</b> (S-05 and S-07 scrolled sideways at 390 px) and <b>MC-1</b> needed a review. Both are now closed: <a href="iteration-1/tickets/JB-001.html">JB-001</a> (scroll box for tables) and <a href="iteration-1/tickets/JB-002.html">JB-002</a> (screens compared with the mockups; one header highlight fixed).</td></tr>
+  </tbody>
 </table>
+<p class="sub"><b>Run 30 Oct 2026, 13:31 (build b111266):</b> 41 of 43 plan items passed, 1 failed, 1 needs review. The full report, with screenshots, is <a href="iteration-1/test-result/test-result-20261030-133126.html">test-result-20261030-133126.html</a>; every run is listed in <a href="iteration-1/test-result/index.html">all test runs</a>. The failure was fixed under ticket <a href="iteration-1/tickets/JB-001.html">JB-001</a> and the review done under <a href="iteration-1/tickets/JB-002.html">JB-002</a> (<a href="iteration-1/tickets/index.html">all tickets</a>).</p>
+<p class="sub"><b>Final run 30 Oct 2026, 13:44 (same build plus the two fixes, not yet committed):</b> all 43 plan items pass; the browser tests are now 36 (one added for JB-002). Report: <a href="iteration-1/test-result/test-result-20261030-134400.html">test-result-20261030-134400.html</a>. Run without screenshots, so the file is small; the MC-1 review is entered as a note from JB-002.</p>
 <p class="sub">Each flow written in Stage 1 becomes one test case. The plan was made in Phase 2C of Stage 2 (see Test plan) and the tests were written in Stage 3; this stage runs them and reports the results. A failure either sends us back to fix code, or back to Stage 1 if the requirement was wrong.</p>
-<h2 id="i1-stage5">Stage 5 – Deployment <span class="tag wont">not started</span></h2>
+<h2 id="i1-stage5">Stage 5 – Deployment <span class="tag done">done</span></h2>
 <p><b>Question answered:</b> <i>How do real users get it?</i></p>
 <table>
   <tbody>
-    <tr><th>Where</th><td class="dash">—</td></tr>
-    <tr><th>URL</th><td class="dash">—</td></tr>
-    <tr><th>How it was published</th><td class="dash">—</td></tr>
+    <tr><th>Where</th><td>Local host only: the developer's own computer. This iteration is not published on the internet.</td></tr>
+    <tr><th>URL</th><td><code>http://localhost:3000</code></td></tr>
+    <tr><th>How it was published</th><td><code>npm run seed</code> (demo data), <code>npm run build</code>, then <code>npm start</code> in <code>job-board/app/</code> (one process: the Express server also serves the built React files). The Docker image described in the README is ready for a later iteration but was not used.</td></tr>
+    <tr><th>Demo accounts</th><td>Listed on the Sign in page; every account uses the password <code>demo1234</code>.</td></tr>
   </tbody>
 </table>
-<h2 id="i1-stage6">Stage 6 – Review &amp; Maintenance <span class="tag wont">not started</span></h2>
+<h2 id="i1-stage6">Stage 6 – Review &amp; Maintenance <span class="tag done">done</span></h2>
 <p><b>Question answered:</b> <i>What did we learn, and what comes next?</i></p>
 <div class="cols">
-  <div class="card"><b>What went well</b><p class="dash" style="margin:6px 0 0">—</p></div>
-  <div class="card"><b>What to change next time</b><p class="dash" style="margin:6px 0 0">—</p></div>
+  <div class="card"><b>What went well</b><ul>
+    <li>Use cases written first became the test plan and then the tests, so every use case has a test case and every test traces back to a requirement.</li>
+    <li>Mockups signed off before coding gave the build a clear target, and the manual checklist caught where the mockups fell short.</li>
+    <li>One command (<code>npm run verify</code>) runs the whole plan and writes a dated result, so each run is a record.</li>
+    <li>The two testing findings were written up as tickets, fixed, and closed by a later run.</li>
+  </ul></div>
+  <div class="card"><b>What to change next time</b><ul>
+    <li>Look at the mockups at phone width in Stage 2, not only on a desktop screen (JB-001 was a design gap).</li>
+    <li>Decide what "matches the mockup" means in Stage 2, for example by keeping design notes out of the screen itself, so the review in Stage 4 is quicker.</li>
+    <li>Keep screenshots out of routine test results; save them only when a failure or a review needs them.</li>
+    <li>Commit at the end of each stage rather than leaving the work uncommitted.</li>
+  </ul></div>
 </div>
-<p class="sub">Anything deferred, or discovered along the way, becomes the starting point of the next iteration.</p>
+<table>
+  <thead><tr><th>Deferred to the next iteration</th><th>Why</th></tr></thead>
+  <tbody>
+    <tr><td>Tables on phone width could be stacked cards instead of a scroll box (JB-001 option B)</td><td>The scroll box is enough for a prototype.</td></tr>
+    <tr><td>Publishing online (the Docker image is ready)</td><td>Iteration 1 is local host only (decision 34).</td></tr>
+    <tr><td>Security warnings from <code>npm audit</code> in the development tools</td><td>Not looked at; they do not affect the running app.</td></tr>
+  </tbody>
+</table>
+<p class="sub"><b>Summary report:</b> <a href="iteration-1/summary-report.html">iteration-1/summary-report.html</a> collects the whole iteration on one page.</p>
+<p class="sub"><b>Maintenance:</b> none. Iteration 1 was a prototype for learning and ends here. It is not kept running, and no fixes will be made to it; the code stays in <code>job-board/app/</code> for reference and as the starting point of iteration 2.</p>
 
 <!-- ============================ TRACEABILITY ============================ -->
 <h2 id="i1-traceability">Traceability (filled in as we go)</h2>
@@ -1286,21 +1332,21 @@ BROWSER     localStorage                           keys: jb.jobs, jb.application
 <table>
   <thead><tr><th>Use case</th><th>Priority</th><th>Design (Stage 2)</th><th>Code (Stage 3)</th><th>Test (Stage 4)</th><th>Deployed (Stage 5)</th></tr></thead>
   <tbody>
-    <tr><td><span class="id">UC-01</span> Search for jobs</td><td><span class="tag must">Must</span></td><td><a href="iteration-1/static-design/s01-search.html">S-01</a></td><td><code>GET /jobs</code>, <code>HomePage</code></td><td><span class="id">TC-01-1…5</span> written; formal run in Stage 4</td><td class="dash">—</td></tr>
-    <tr><td><span class="id">UC-02</span> View job details</td><td><span class="tag must">Must</span></td><td><a href="iteration-1/static-design/s02-job-detail.html">S-02</a></td><td><code>GET /jobs/:id</code>, <code>JobDetailPage</code></td><td><span class="id">TC-02-1…3</span> written; formal run in Stage 4</td><td class="dash">—</td></tr>
-    <tr><td><span class="id">UC-03</span> Apply for a job</td><td><span class="tag must">Must</span></td><td><a href="iteration-1/static-design/s03-apply.html">S-03</a>, <a href="iteration-1/static-design/s08-sign-in.html">S-08</a></td><td><code>POST /jobs/:id/applications</code>, <code>ApplyPage</code></td><td><span class="id">TC-03-1…5</span> written; formal run in Stage 4</td><td class="dash">—</td></tr>
-    <tr><td><span class="id">UC-04</span> View my applications</td><td><span class="tag must">Must</span></td><td><a href="iteration-1/static-design/s04-my-applications.html">S-04</a>, <a href="iteration-1/static-design/s08-sign-in.html">S-08</a></td><td><code>GET /me/applications</code>, <code>MyApplicationsPage</code></td><td><span class="id">TC-04-1…3</span> written; formal run in Stage 4</td><td class="dash">—</td></tr>
-    <tr><td><span class="id">UC-05</span> Post a job</td><td><span class="tag must">Must</span></td><td><a href="iteration-1/static-design/s05-employer-jobs.html">S-05</a>, <a href="iteration-1/static-design/s06-job-form.html">S-06</a></td><td><code>POST /employer/jobs</code>, <code>JobFormPage</code></td><td><span class="id">TC-05-1…3</span> written; formal run in Stage 4</td><td class="dash">—</td></tr>
-    <tr><td><span class="id">UC-06</span> Edit a job post</td><td><span class="tag must">Must</span></td><td><a href="iteration-1/static-design/s05-employer-jobs.html">S-05</a>, <a href="iteration-1/static-design/s06-job-form.html">S-06</a></td><td><code>PUT /employer/jobs/:id</code>, <code>JobFormPage</code></td><td><span class="id">TC-06-1…3</span> written; formal run in Stage 4</td><td class="dash">—</td></tr>
-    <tr><td><span class="id">UC-07</span> View applications for a job</td><td><span class="tag must">Must</span></td><td><a href="iteration-1/static-design/s05-employer-jobs.html">S-05</a>, <a href="iteration-1/static-design/s07-applications.html">S-07</a></td><td><code>GET /employer/jobs/:id/applications</code>, <code>JobApplicationsPage</code></td><td><span class="id">TC-07-1…3</span> written; formal run in Stage 4</td><td class="dash">—</td></tr>
-    <tr><td><span class="id">UC-08</span> Sign in</td><td><span class="tag must">Must</span></td><td><a href="iteration-1/static-design/s08-sign-in.html">S-08</a></td><td><code>POST /auth/sign-in</code>, <code>GET /auth/me</code>, <code>SignInPage</code></td><td><span class="id">TC-08-1…5</span> written; formal run in Stage 4</td><td class="dash">—</td></tr>
-    <tr><td><span class="id">UC-09</span> Sign out</td><td><span class="tag must">Must</span></td><td><a href="iteration-1/static-design/s08-sign-in.html">S-08</a></td><td><code>POST /auth/sign-out</code>, header button</td><td><span class="id">TC-09-1…2</span> written; formal run in Stage 4</td><td class="dash">—</td></tr>
+    <tr><td><span class="id">UC-01</span> Search for jobs</td><td><span class="tag must">Must</span></td><td><a href="iteration-1/static-design/s01-search.html">S-01</a></td><td><code>GET /jobs</code>, <code>HomePage</code></td><td><span class="id">TC-01-1…5</span> passed (run 20261030-134400)</td><td>Local host</td></tr>
+    <tr><td><span class="id">UC-02</span> View job details</td><td><span class="tag must">Must</span></td><td><a href="iteration-1/static-design/s02-job-detail.html">S-02</a></td><td><code>GET /jobs/:id</code>, <code>JobDetailPage</code></td><td><span class="id">TC-02-1…3</span> passed (run 20261030-134400)</td><td>Local host</td></tr>
+    <tr><td><span class="id">UC-03</span> Apply for a job</td><td><span class="tag must">Must</span></td><td><a href="iteration-1/static-design/s03-apply.html">S-03</a>, <a href="iteration-1/static-design/s08-sign-in.html">S-08</a></td><td><code>POST /jobs/:id/applications</code>, <code>ApplyPage</code></td><td><span class="id">TC-03-1…5</span> passed (run 20261030-134400)</td><td>Local host</td></tr>
+    <tr><td><span class="id">UC-04</span> View my applications</td><td><span class="tag must">Must</span></td><td><a href="iteration-1/static-design/s04-my-applications.html">S-04</a>, <a href="iteration-1/static-design/s08-sign-in.html">S-08</a></td><td><code>GET /me/applications</code>, <code>MyApplicationsPage</code></td><td><span class="id">TC-04-1…3</span> passed (run 20261030-134400)</td><td>Local host</td></tr>
+    <tr><td><span class="id">UC-05</span> Post a job</td><td><span class="tag must">Must</span></td><td><a href="iteration-1/static-design/s05-employer-jobs.html">S-05</a>, <a href="iteration-1/static-design/s06-job-form.html">S-06</a></td><td><code>POST /employer/jobs</code>, <code>JobFormPage</code></td><td><span class="id">TC-05-1…3</span> passed (run 20261030-134400)</td><td>Local host</td></tr>
+    <tr><td><span class="id">UC-06</span> Edit a job post</td><td><span class="tag must">Must</span></td><td><a href="iteration-1/static-design/s05-employer-jobs.html">S-05</a>, <a href="iteration-1/static-design/s06-job-form.html">S-06</a></td><td><code>PUT /employer/jobs/:id</code>, <code>JobFormPage</code></td><td><span class="id">TC-06-1…3</span> passed (run 20261030-134400)</td><td>Local host</td></tr>
+    <tr><td><span class="id">UC-07</span> View applications for a job</td><td><span class="tag must">Must</span></td><td><a href="iteration-1/static-design/s05-employer-jobs.html">S-05</a>, <a href="iteration-1/static-design/s07-applications.html">S-07</a></td><td><code>GET /employer/jobs/:id/applications</code>, <code>JobApplicationsPage</code></td><td><span class="id">TC-07-1…3</span> passed (run 20261030-134400)</td><td>Local host</td></tr>
+    <tr><td><span class="id">UC-08</span> Sign in</td><td><span class="tag must">Must</span></td><td><a href="iteration-1/static-design/s08-sign-in.html">S-08</a></td><td><code>POST /auth/sign-in</code>, <code>GET /auth/me</code>, <code>SignInPage</code></td><td><span class="id">TC-08-1…5</span> passed (run 20261030-134400)</td><td>Local host</td></tr>
+    <tr><td><span class="id">UC-09</span> Sign out</td><td><span class="tag must">Must</span></td><td><a href="iteration-1/static-design/s08-sign-in.html">S-08</a></td><td><code>POST /auth/sign-out</code>, header button</td><td><span class="id">TC-09-1…2</span> passed (run 20261030-134400)</td><td>Local host</td></tr>
   </tbody>
 </table>
 
 <h2 id="i1-next">Next step</h2>
 <div class="note">
-  <b>Stage 3 is built</b> (decisions 22 to 29). Next is <b>Stage 4 – Testing</b>: run the whole test plan (32 test cases and 6 security checks) against a fresh seeded database, record pass or fail for each id in <code>iteration-1/test-result/</code>, and do a manual walk through the demo script in a real browser. Anything that fails goes back to Stage 3, or to Stage 1 if the requirement was wrong.
+  <b>Iteration 1 is complete</b> (all six stages, decisions 1 to 35). Read the <a href="iteration-1/summary-report.html">summary report</a>. Next is <b>iteration 2</b>: start from the blank <a href="#template">template</a>, write its goal and use cases (Stage 1), and take the deferred items listed in Stage 6 as candidates. The iteration 1 work is not committed yet.
 </div>
 
 
@@ -1309,17 +1355,18 @@ BROWSER     localStorage                           keys: jb.jobs, jb.application
 <section class="panel" id="template">
 <h1>Iteration template</h1>
 <p class="sub">The blank skeleton every iteration starts from.</p>
-<div class="note"><b>Starting a new iteration:</b> copy this panel, give it the id <code>iteration-N</code>, add a tab for it in the sidebar, prefix every id inside it with <code>iN-</code> so links stay unique, and replace everything in [brackets]. Keep the sections in this order.</div>
+<div class="note"><b>Starting a new iteration:</b> copy this panel, give it the id <code>iteration-N</code>, add a tab for it in the sidebar, prefix every id inside it with <code>iN-</code> so links stay unique, and replace everything in [brackets]. Keep the sections in this order. Each iteration also has its own folder, <code>iteration-N/</code>, holding <code>static-design/</code>, <code>test-plan/</code>, <code>test-result/</code>, <code>tickets/</code> and <code>summary-report.html</code>.</div>
 
 <h1>Iteration N – [Name]</h1>
 <p class="sub"><b>Goal:</b> [one sentence describing what this iteration should achieve]</p>
-<ol class="stages" aria-label="Development stages">
+<ol class="stages has-summary" aria-label="Development stages">
   <li class="current"><span class="n">Stage 1</span><b><a href="#tpl-requirements">Requirements</a></b><span class="state">● We are here</span></li>
   <li class="multi"><span class="n">Stage 2</span><b>Design</b><span class="links"><a href="#tpl-design-graphic" data-bar="Graphic design">Graphic</a><a href="#tpl-design-software" data-bar="Software design">Software</a><a href="#tpl-design-testplan" data-bar="Test plan">Test plan</a></span><span class="state">Planned</span></li>
   <li><span class="n">Stage 3</span><b><a href="#tpl-stage3">Implementation</a></b><span class="state">Planned</span></li>
   <li><span class="n">Stage 4</span><b><a href="#tpl-stage4">Testing</a></b><span class="state">Planned</span></li>
   <li><span class="n">Stage 5</span><b><a href="#tpl-stage5">Deployment</a></b><span class="state">Planned</span></li>
   <li><span class="n">Stage 6</span><b><a href="#tpl-stage6">Review &amp; Maintenance</a></b><span class="state">Planned</span></li>
+  <li class="summary"><span class="n">Report</span><b><a href="#tpl-stage6">Summary</a></b><span class="state">Written in Stage 6</span></li>
 </ol>
 
 <h2 id="tpl-requirements">Stage 1 – Requirements (use cases) <span class="tag could">current</span></h2>
@@ -1452,14 +1499,23 @@ BROWSER     localStorage                           keys: jb.jobs, jb.application
   <thead><tr><th>Use case</th><th>Flow tested</th><th>Result</th><th>Notes</th></tr></thead>
   <tbody><tr><td class="id">UC-xx</td><td>Main flow / alternative flow id</td><td>Pass / Fail</td><td class="dash">—</td></tr></tbody>
 </table>
+<table>
+  <thead><tr><th>Run (date and time)</th><th>Result</th><th>Test result file</th></tr></thead>
+  <tbody><tr><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td></tr></tbody>
+</table>
+<table>
+  <thead><tr><th>Ticket</th><th>Found by</th><th>Problem</th><th>Fix and proof</th><th>Status</th></tr></thead>
+  <tbody><tr><td class="id">[PRJ-001]</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td></tr></tbody>
+</table>
+<p class="sub">Every run of the test plan is saved as a dated file in <code>test-result/</code>. Each failure or "needs review" item gets a ticket in <code>tickets/</code>; a ticket is closed only when a later run passes. Stage 4 is signed off when every exit criterion of the test plan is met.</p>
 <p class="sub">Each flow written in Stage 1 becomes one test case. The plan was made in Phase 2C of Stage 2 (see Test plan) and the tests were written in Stage 3; this stage runs them and reports the results. A failure either sends us back to fix code, or back to Stage 1 if the requirement was wrong.</p>
 <h2 id="tpl-stage5">Stage 5 – Deployment <span class="tag wont">not started</span></h2>
 <p><b>Question answered:</b> <i>How do real users get it?</i></p>
 <table>
   <tbody>
-    <tr><th>Where</th><td class="dash">—</td></tr>
+    <tr><th>Where</th><td class="dash">— (a web host, or local host only)</td></tr>
     <tr><th>URL</th><td class="dash">—</td></tr>
-    <tr><th>How it was published</th><td class="dash">—</td></tr>
+    <tr><th>How it was published</th><td class="dash">— (the steps to start it)</td></tr>
   </tbody>
 </table>
 <h2 id="tpl-stage6">Stage 6 – Review &amp; Maintenance <span class="tag wont">not started</span></h2>
@@ -1468,6 +1524,11 @@ BROWSER     localStorage                           keys: jb.jobs, jb.application
   <div class="card"><b>What went well</b><p class="dash" style="margin:6px 0 0">—</p></div>
   <div class="card"><b>What to change next time</b><p class="dash" style="margin:6px 0 0">—</p></div>
 </div>
+<table>
+  <thead><tr><th>Deferred to the next iteration</th><th>Why</th></tr></thead>
+  <tbody><tr><td class="dash">—</td><td class="dash">—</td></tr></tbody>
+</table>
+<p class="sub"><b>Maintenance:</b> [kept running and fixed, or retired at the end of this iteration]. <b>Summary report:</b> write <code>iteration-N/summary-report.html</code> (goal and result, the six stages, what was built, test results, tickets, lessons, open items) and link it from the Summary box above.</p>
 <p class="sub">Anything deferred, or discovered along the way, becomes the starting point of the next iteration.</p>
 
 <h2 id="tpl-traceability">Traceability</h2>
@@ -1509,7 +1570,7 @@ BROWSER     localStorage                           keys: jb.jobs, jb.application
     bar.innerHTML = '';
     var tracker = panel.querySelector('.stages');
     if (!tracker || !watcher) return;
-    Array.prototype.forEach.call(tracker.querySelectorAll('li'), function (li) {
+    Array.prototype.forEach.call(tracker.querySelectorAll('li:not(.summary)'), function (li) {
       var sub = li.querySelectorAll('.links a');
       if (sub.length) {
         var grp = document.createElement('span');

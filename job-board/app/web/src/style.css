@@ -109,6 +109,7 @@ table.data th, table.data td { padding: 11px 14px; text-align: left; border-bott
 table.data th { background: #f0f5f5; font-size: .78rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
 table.data tr:last-child td { border-bottom: 0; }
 table.data .actions { text-align: right; white-space: nowrap; }
+.table-scroll { overflow-x: auto; border-radius: var(--radius); }
 
 .page-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; }
 

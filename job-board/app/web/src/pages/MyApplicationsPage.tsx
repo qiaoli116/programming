@@ -2,7 +2,7 @@
 import { Link } from 'react-router-dom';
 import { api } from '../api';
 import { useAuth } from '../auth';
-import { EmptyState, Loading, Notice, Page } from '../components/ui';
+import { EmptyState, Loading, Notice, Page, TableScroll } from '../components/ui';
 import { formatDate, plural } from '../format';
 import { useLoad } from '../useLoad';
 
@@ -25,28 +25,30 @@ export function MyApplicationsPage() {
             <p className="muted">
               {plural(applications.length, 'application')} by <b>{user?.name}</b>
             </p>
-            <table className="data">
-              <thead>
-                <tr>
-                  <th>Job</th>
-                  <th>Company</th>
-                  <th>Date applied</th>
-                </tr>
-              </thead>
-              <tbody>
-                {applications.map((a) => (
-                  <tr key={a.id}>
-                    <td>
-                      <Link to={`/jobs/${a.jobId}`}>
-                        <b>{a.jobTitle}</b>
-                      </Link>
-                    </td>
-                    <td>{a.company}</td>
-                    <td>{formatDate(a.appliedAt)}</td>
+            <TableScroll>
+              <table className="data">
+                <thead>
+                  <tr>
+                    <th>Job</th>
+                    <th>Company</th>
+                    <th>Date applied</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {applications.map((a) => (
+                    <tr key={a.id}>
+                      <td>
+                        <Link to={`/jobs/${a.jobId}`}>
+                          <b>{a.jobTitle}</b>
+                        </Link>
+                      </td>
+                      <td>{a.company}</td>
+                      <td>{formatDate(a.appliedAt)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </TableScroll>
           </>
         ))}
     </Page>

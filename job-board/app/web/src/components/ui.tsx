@@ -12,6 +12,9 @@ export const Loading = () => (
   </div>
 );
 
+/** Lets a wide table scroll inside its own box on a narrow screen, so the page itself never scrolls sideways (JB-001). */
+export const TableScroll = ({ children }: { children: ReactNode }) => <div className="table-scroll">{children}</div>;
+
 export function Notice({ kind, children }: { kind: 'ok' | 'err' | 'info'; children: ReactNode }) {
   return (
     <div className={`notice ${kind}`} role={kind === 'err' ? 'alert' : 'status'}>

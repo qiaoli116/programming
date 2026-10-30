@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JB-002 – Job board iteration 1</title>
+<style>
+:root{--ink:#101828;--mute:#667085;--line:#e4e7ec;--bg:#f9fafb;--pass:#067647;--passbg:#ecfdf3;--fail:#b42318;--failbg:#fef3f2;--warn:#b54708;--warnbg:#fffaeb;--blue:#175cd3}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 system-ui,sans-serif;color:var(--ink);background:var(--bg)}
+main{max-width:960px;margin:0 auto;padding:24px 16px 64px}h1{margin:4px 0 8px;font-size:24px}h2{margin:30px 0 8px;font-size:18px;border-bottom:1px solid var(--line);padding-bottom:4px}h3{margin:18px 0 4px;font-size:15px}
+a{color:var(--blue)}.small{font-size:13px;color:var(--mute)}code{background:#f2f4f7;padding:1px 5px;border-radius:4px;font-size:13px}
+.pill{display:inline-block;padding:1px 9px;border-radius:99px;font-size:12.5px;font-weight:600;white-space:nowrap}.pass{background:var(--passbg);color:var(--pass)}.fail{background:var(--failbg);color:var(--fail)}.warn{background:var(--warnbg);color:var(--warn)}
+.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:8px;overflow:hidden;margin:12px 0}
+.fields div{background:#fff;padding:8px 12px}.fields b{display:block;font-size:12px;color:var(--mute);text-transform:uppercase;letter-spacing:.04em}
+table{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--line);border-radius:8px;overflow:hidden;font-size:14px}
+th,td{padding:7px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}th{background:#f2f4f7;font-size:13px}tr:last-child td{border-bottom:0}.wrap{overflow-x:auto}
+</style></head>
+<body><main>
+<p class="small"><a href="index.html">← All tickets</a> · <a href="../test-result/index.html">Test results</a> · <a href="../../process.html#i1-stage4">Process document, Stage 4</a></p>
+<h1><span class="small">JB-002</span><br>Review: do the built screens match the mockups?</h1>
+<p><span class="pill pass">Verified – closed</span> &nbsp; <span class="pill warn">Review task</span> &nbsp; <span class="pill warn">Severity: low</span></p>
+
+<div class="fields">
+  <div><b>Raised by</b>Verification run 20261030-133126 (test MC-1, "needs review")</div>
+  <div><b>Assigned to</b>Claude (reviewer)</div>
+  <div><b>Opened</b>30 Oct 2026, 1:32 pm</div>
+  <div><b>Closed</b>30 Oct 2026, 1:44 pm</div>
+  <div><b>Found in</b>build <code>b111266</code></div>
+  <div><b>Fixed in</b>working tree on <code>b111266</code> (commit pending)</div>
+  <div><b>Screens</b>S-01 to S-08</div>
+  <div><b>Test plan item</b>MC-1 – each screen matches its mockup (layout, wording, empty states)</div>
+</div>
+
+<h2>1. Report</h2>
+<p>A computer cannot judge "does this look like the design?". MC-1 therefore does not pass or fail. It takes a screenshot of the real screen next to the Stage 2 mockup for all eight screens and is marked <b>needs review</b>. This ticket is that review: a person (here, Claude) compares each pair and decides whether the differences matter.</p>
+<p><b>Done when:</b> every screen is compared; each difference is either fixed or accepted with a reason; the result is entered against MC-1.</p>
+
+<h2>2. Investigation – screen by screen</h2>
+<p class="small">Method: the app screenshots and the mockup screenshots from <a href="../test-result/test-result-20261030-133126.html">run 20261030-133126</a> were put side by side (app on the left, mockup on the right). Layout, colours, wording, fields, buttons and states were compared. The wording of the empty and error states, which a screenshot of the normal screen does not show, was checked by reading the mockup text against the app code.</p>
+<div class="wrap"><table>
+<tr><th>Screen</th><th>Result</th><th>What was compared and what differed</th></tr>
+<tr><td>S-01 Search</td><td><span class="pill pass">Match</span></td><td>Header, search form, results count, job cards and chips are the same. The app shows 30 jobs and the mockup 6 (sample data).</td></tr>
+<tr><td>S-02 Job details</td><td><span class="pill warn">1 difference</span></td><td>Same layout, side panel and wording. <b>"Find jobs" in the header was not highlighted</b> in the app; the mockup highlights it. See finding F-1.</td></tr>
+<tr><td>S-03 Apply</td><td><span class="pill warn">1 difference</span></td><td>Same form, labels and hint text. Same header difference as S-02 (F-1).</td></tr>
+<tr><td>S-04 My applications</td><td><span class="pill pass">Match</span></td><td>Same table and heading. The app shows 10 applications for the demo seeker and the mockup 3 (sample data).</td></tr>
+<tr><td>S-05 My job posts</td><td><span class="pill pass">Match</span></td><td>Same header with the "Employer area" tag, "+ Post a job" button, table columns and links. Different sample rows. Empty-state wording ("No job posts yet", "Post your first job so seekers can find it.") is identical to the mockup.</td></tr>
+<tr><td>S-06 Post a job</td><td><span class="pill pass">Match</span></td><td>Same fields, order, hints (company "Taken from your employer account.", "One requirement per line.") and buttons. The mockup's line "Create mode (UC-05). Fields are empty." is a design note, not screen text. Edit-mode text ("Changes appear straight away for job seekers…") is identical.</td></tr>
+<tr><td>S-07 Applications</td><td><span class="pill pass">Match</span></td><td>Same table, same "View" button and cover letter panel (the app's button changes to "Hide" while open). Empty-state and "cannot view" wording identical.</td></tr>
+<tr><td>S-08 Sign in</td><td><span class="pill pass">Match</span></td><td>Same form and the demo accounts box. The mockup also lists the alternative states (wrong password, signed out) in its notes; those messages are checked by tests TC-08-3 and TC-09-1 and by MC-4.</td></tr>
+</table></div>
+
+<h3>Findings</h3>
+<div class="wrap"><table>
+<tr><th style="width:5%">#</th><th>Difference</th><th style="width:16%">Decision</th><th>Reason</th></tr>
+<tr><td>F-1</td><td>"Find jobs" not highlighted in the header on the job details (S-02) and apply (S-03) pages.</td><td><span class="pill pass">Fixed</span></td><td>The mockups highlight it on both pages. It tells the user which area they are in. See section 3.</td></tr>
+<tr><td>F-2</td><td>The mockup's dark "Design mockup" bar at the top and the DESIGN NOTES section at the bottom.</td><td><span class="pill warn">Accepted</span></td><td>They are annotations for the design review, not part of the product.</td></tr>
+<tr><td>F-3</td><td>Different sample data (30 jobs instead of 6, other applicants and dates).</td><td><span class="pill warn">Accepted</span></td><td>The seed data was extended on purpose (see the seed data section). The screens behave the same with more data.</td></tr>
+<tr><td>F-4</td><td>A job card's summary is the first paragraph of the description, shortened.</td><td><span class="pill warn">Accepted</span></td><td>Already decided in decision 28; the mockup had hand-written summaries.</td></tr>
+<tr><td>F-5</td><td>Wording of the alternative states was checked by reading, not by looking at screenshots.</td><td><span class="pill warn">Accepted</span></td><td>These states are covered by test cases (TC-04-2, TC-07-2, TC-07-3 and others) and MC-4 checks the messages.</td></tr>
+</table></div>
+<p><b>Verdict:</b> the built screens match the mockups. One real difference was found and fixed; the rest are intended.</p>
+
+<h2>3. Solution (F-1)</h2>
+<div class="wrap"><table>
+<tr><th>File</th><th>Change</th></tr>
+<tr><td><code>web/src/components/Layout.tsx</code></td><td>The "Find jobs" link is highlighted on <code>/</code> and on every address starting with <code>/jobs/</code> (the job page and the application form). Before, it was highlighted on <code>/</code> only.</td></tr>
+<tr><td><code>e2e/tests/use-cases.spec.ts</code></td><td>New browser test <i>"Find jobs" stays highlighted on the job page and the application form</i>, so the difference cannot come back.</td></tr>
+</table></div>
+
+<h2>4. Verification</h2>
+<div class="wrap"><table>
+<tr><th>Check</th><th>Result</th></tr>
+<tr><td>New test for F-1</td><td><span class="pill pass">Pass</span></td></tr>
+<tr><td>TypeScript check, unit/API tests, browser tests</td><td><span class="pill pass">Pass</span> – browser tests 36 of 36 (35 old + 1 new)</td></tr>
+<tr><td>Final verification run <a href="../test-result/test-result-20261030-134400.html">20261030-134400</a></td><td><span class="pill pass">Pass</span> – 43 of 43 plan items pass. The run itself reported MC-1 as "needs review"; the review in this ticket was entered as a note on MC-1 and the result page was re-rendered with it.</td></tr>
+</table></div>
+<p class="small">Honest limits: the review was done by Claude by looking at screenshots, not by a person with the real devices. If the class sees something different, reopen this ticket. This run was made without screenshots to keep the result file small; the screenshots used for this review are in <a href="../test-result/test-result-20261030-133126.html">run 20261030-133126</a>.</p>
+
+<h2>5. History</h2>
+<div class="wrap"><table>
+<tr><th>When (about)</th><th>Event</th></tr>
+<tr><td>30 Oct, 1:31 pm</td><td>Test run 20261030-133126: MC-1 marked "needs review". Ticket opened.</td></tr>
+<tr><td>30 Oct, 1:34 pm</td><td>Eight screen pairs compared. Difference F-1 found; F-2 to F-5 listed as intended.</td></tr>
+<tr><td>30 Oct, 1:42 pm</td><td>F-1 fixed in the header and a test added.</td></tr>
+<tr><td>30 Oct, 1:44 pm</td><td>Final run 20261030-134400 passes. Verdict entered against MC-1. Ticket closed.</td></tr>
+</table></div>
+
+<h2>Related</h2>
+<ul>
+  <li><a href="JB-001.html">JB-001</a> – phone-width failure (MC-2), same verification round.</li>
+  <li><a href="../static-design/s01-search.html">Mockups</a> (Stage 2, Phase 2A) and the <a href="../test-plan/test-plan.html">test plan</a>, item MC-1.</li>
+</ul>
+</main></body></html>

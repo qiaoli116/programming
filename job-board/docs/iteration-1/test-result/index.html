@@ -1,0 +1,20 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Test runs – Job board iteration 1</title><style>
+:root{--ink:#101828;--mute:#667085;--line:#e4e7ec;--bg:#f9fafb;--pass:#067647;--passbg:#ecfdf3;--fail:#b42318;--failbg:#fef3f2;--warn:#b54708;--warnbg:#fffaeb}
+*{box-sizing:border-box}body{margin:0;font:15px/1.5 system-ui,sans-serif;color:var(--ink);background:var(--bg)}
+main{max-width:1050px;margin:0 auto;padding:24px 16px 64px}h1{margin:0 0 4px;font-size:26px}h2{margin:32px 0 8px;font-size:19px}h3{margin:20px 0 6px;font-size:16px}
+.sub{color:var(--mute);margin:0 0 16px}.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin:16px 0}
+.card{background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px 14px}.card b{display:block;font-size:26px}.card span{color:var(--mute);font-size:13px}
+table{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--line);border-radius:8px;overflow:hidden;font-size:14px}
+th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}th{background:#f2f4f7;font-size:13px}tr:last-child td{border-bottom:0}
+.wrap{overflow-x:auto}.id{font-family:ui-monospace,Consolas,monospace;font-weight:600;white-space:nowrap}
+.pill{display:inline-block;padding:1px 9px;border-radius:99px;font-size:12.5px;font-weight:600;white-space:nowrap}
+.pass{background:var(--passbg);color:var(--pass)}.fail{background:var(--failbg);color:var(--fail)}.review,.incomplete{background:var(--warnbg);color:var(--warn)}.notrun{background:#f2f4f7;color:var(--mute)}
+.small{font-size:13px;color:var(--mute)}.note{background:#fff;border-left:4px solid var(--warn);padding:6px 10px;margin:6px 0;font-size:13.5px}
+pre{background:#101828;color:#f2f4f7;padding:10px 12px;border-radius:6px;overflow-x:auto;font-size:12.5px;white-space:pre-wrap}
+details{margin:6px 0}summary{cursor:pointer;color:#175cd3}.shots{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px;margin-top:8px}
+.shots figure{margin:0;background:#fff;border:1px solid var(--line);border-radius:6px;padding:6px}.shots img{max-width:100%;display:block}.shots figcaption{font-size:12.5px;color:var(--mute);margin-top:4px}
+a{color:#175cd3}</style></head><body><main>
+<p class="small"><a href="../test-plan/test-plan.html">Test plan</a> · <a href="../../process.html#i1-stage4">Process document, Stage 4</a></p>
+<h1>Test runs</h1><p class="sub">One file per run of the whole test plan, named with the time the run started. Newest first.</p>
+<div class="wrap"><table><thead><tr><th>Started</th><th>Result</th><th>Passed</th><th>Failed</th><th>Duration</th><th>Build</th></tr></thead><tbody><tr><td><a href="test-result-20261030-134400.html">30 Oct 2026, 1:44:00 pm</a></td><td><span class="pill pass">All plan items passed</span></td><td>43 / 43</td><td>0</td><td class="small">59 s</td><td class="small"><code>b111266</code></td></tr><tr><td><a href="test-result-20261030-134021.html">30 Oct 2026, 1:40:21 pm</a></td><td><span class="pill review">No failures, but 1 item(s) still need attention</span></td><td>42 / 43</td><td>0</td><td class="small">55 s</td><td class="small"><code>b111266</code></td></tr><tr><td><a href="test-result-20261030-133827.html">30 Oct 2026, 1:38:27 pm</a></td><td><span class="pill review">No failures, but 1 item(s) still need attention</span></td><td>42 / 43</td><td>0</td><td class="small">66 s</td><td class="small"><code>b111266</code></td></tr><tr><td><a href="test-result-20261030-133126.html">30 Oct 2026, 1:31:26 pm</a></td><td><span class="pill fail">1 of 43 plan items failed</span></td><td>41 / 43</td><td>1</td><td class="small">61 s</td><td class="small"><code>b111266</code></td></tr></tbody></table></div>
+</main></body></html>

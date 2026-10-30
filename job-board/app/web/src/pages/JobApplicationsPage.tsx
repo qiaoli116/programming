@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { api } from '../api';
-import { EmptyState, Loading, Notice, NotFoundCard, Page } from '../components/ui';
+import { EmptyState, Loading, Notice, NotFoundCard, Page, TableScroll } from '../components/ui';
 import { formatDate, plural } from '../format';
 import { useLoad } from '../useLoad';
 
@@ -62,32 +62,34 @@ export function JobApplicationsPage() {
       ) : (
         <>
           <p className="muted">{plural(applications.length, 'application')}</p>
-          <table className="data">
-            <thead>
-              <tr>
-                <th>Applicant</th>
-                <th>Email</th>
-                <th>Date applied</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {applications.map((a) => (
-                <tr key={a.id}>
-                  <td>
-                    <b>{a.applicantName}</b>
-                  </td>
-                  <td>{a.applicantEmail}</td>
-                  <td>{formatDate(a.appliedAt)}</td>
-                  <td className="actions">
-                    <button className="btn secondary small" onClick={() => setOpenId(a.id === openId ? null : a.id)}>
-                      {a.id === openId ? 'Hide' : 'View'}
-                    </button>
-                  </td>
+          <TableScroll>
+            <table className="data">
+              <thead>
+                <tr>
+                  <th>Applicant</th>
+                  <th>Email</th>
+                  <th>Date applied</th>
+                  <th></th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {applications.map((a) => (
+                  <tr key={a.id}>
+                    <td>
+                      <b>{a.applicantName}</b>
+                    </td>
+                    <td>{a.applicantEmail}</td>
+                    <td>{formatDate(a.appliedAt)}</td>
+                    <td className="actions">
+                      <button className="btn secondary small" onClick={() => setOpenId(a.id === openId ? null : a.id)}>
+                        {a.id === openId ? 'Hide' : 'View'}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </TableScroll>
         </>
       )}
       {open && (

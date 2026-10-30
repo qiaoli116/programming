@@ -10,6 +10,7 @@ const current = ({ isActive }: { isActive: boolean }) => (isActive ? 'current' :
 export function Header() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const isEmployer = user?.role === 'employer';
 
   async function handleSignOut() {
@@ -38,7 +39,7 @@ export function Header() {
             </NavLink>
           ) : (
             <>
-              <NavLink to="/" end className={current}>
+              <NavLink to="/" className={({ isActive }) => (isActive || pathname.startsWith('/jobs/') ? 'current' : undefined)} end>
                 Find jobs
               </NavLink>
               {user && (

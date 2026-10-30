@@ -1,6 +1,6 @@
 // End-to-end tests: each use case in a real browser. Test names start with the id from the test plan
 // (docs/iteration-1/test-plan/test-plan.html). Every test starts from freshly seeded data.
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures';
 import { ACCOUNTS, openJob, signIn, tableRows } from './helpers';
 
 test.beforeEach(async ({ request }) => {
@@ -76,6 +76,17 @@ test.describe('UC-02 View job details', () => {
     await expect(page.getByText('Job not found')).toBeVisible();
     await page.getByRole('link', { name: 'Search for jobs' }).click();
     await expect(page).toHaveURL('/');
+  });
+
+  // JB-002: the mockups keep "Find jobs" highlighted on the job page and the application form.
+  test('"Find jobs" stays highlighted on the job page and the application form', async ({ page }) => {
+    const findJobs = page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Find jobs' });
+    await signIn(page, ACCOUNTS.seekerNoApps);
+    await openJob(page, 'Frontend Developer');
+    await expect(findJobs).toHaveClass(/current/);
+    await page.getByRole('link', { name: 'Apply for this job' }).click();
+    await expect(page.getByRole('heading', { name: 'Your application' })).toBeVisible();
+    await expect(findJobs).toHaveClass(/current/);
   });
 });
 

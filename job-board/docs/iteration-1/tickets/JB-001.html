@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JB-001 – Job board iteration 1</title>
+<style>
+:root{--ink:#101828;--mute:#667085;--line:#e4e7ec;--bg:#f9fafb;--pass:#067647;--passbg:#ecfdf3;--fail:#b42318;--failbg:#fef3f2;--warn:#b54708;--warnbg:#fffaeb;--blue:#175cd3}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 system-ui,sans-serif;color:var(--ink);background:var(--bg)}
+main{max-width:960px;margin:0 auto;padding:24px 16px 64px}h1{margin:4px 0 8px;font-size:24px}h2{margin:30px 0 8px;font-size:18px;border-bottom:1px solid var(--line);padding-bottom:4px}h3{margin:18px 0 4px;font-size:15px}
+a{color:var(--blue)}.small{font-size:13px;color:var(--mute)}code{background:#f2f4f7;padding:1px 5px;border-radius:4px;font-size:13px}
+.pill{display:inline-block;padding:1px 9px;border-radius:99px;font-size:12.5px;font-weight:600}.pass{background:var(--passbg);color:var(--pass)}.fail{background:var(--failbg);color:var(--fail)}.warn{background:var(--warnbg);color:var(--warn)}
+.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:8px;overflow:hidden;margin:12px 0}
+.fields div{background:#fff;padding:8px 12px}.fields b{display:block;font-size:12px;color:var(--mute);text-transform:uppercase;letter-spacing:.04em}
+table{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--line);border-radius:8px;overflow:hidden;font-size:14px}
+th,td{padding:7px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}th{background:#f2f4f7;font-size:13px}tr:last-child td{border-bottom:0}.wrap{overflow-x:auto}
+pre{background:#101828;color:#f2f4f7;padding:10px 12px;border-radius:6px;overflow-x:auto;font-size:12.5px;white-space:pre-wrap}
+.shots{display:flex;flex-wrap:wrap;gap:14px;margin:8px 0}.shots figure{margin:0;background:#fff;border:1px solid var(--line);border-radius:6px;padding:6px;width:250px}.shots img{width:100%;display:block}.shots figcaption{font-size:12.5px;color:var(--mute);margin-top:4px}
+.box{background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px 14px}
+</style></head>
+<body><main>
+<p class="small"><a href="index.html">← All tickets</a> · <a href="../test-result/index.html">Test results</a> · <a href="../../process.html#i1-stage4">Process document, Stage 4</a></p>
+<h1><span class="small">JB-001</span><br>Employer pages scroll sideways on a phone-width screen</h1>
+<p><span class="pill pass">Verified – closed</span> &nbsp; <span class="pill warn">Bug</span> &nbsp; <span class="pill warn">Severity: medium</span></p>
+
+<div class="fields">
+  <div><b>Reported by</b>Verification run 20261030-133126 (test MC-2)</div>
+  <div><b>Assigned to</b>Claude</div>
+  <div><b>Opened</b>30 Oct 2026, 1:32 pm</div>
+  <div><b>Resolved / verified</b>30 Oct 2026, 1:44 pm</div>
+  <div><b>Found in</b>build <code>b111266</code></div>
+  <div><b>Fixed in</b>working tree on <code>b111266</code> (commit pending)</div>
+  <div><b>Screens</b>S-05 My job posts, S-07 Applications (S-04 shares the cause)</div>
+  <div><b>Test plan item</b>MC-2 – usable in a narrow, phone-width window</div>
+</div>
+
+<h2>1. Report</h2>
+<p>On a phone-width window (390 px wide) the employer's <b>My job posts</b> and <b>Applications</b> pages are wider than the screen. The whole page scrolls sideways, so the "Edit" and "View" buttons on the right are cut off and the page looks broken.</p>
+<h3>Steps to reproduce</h3>
+<ol>
+  <li>Open the app and make the browser window 390 px wide (or use the device toolbar in Chrome, 390 × 844).</li>
+  <li>Sign in as <code>hiring@northwind.example</code> / <code>demo1234</code>. The page shown is <b>My job posts</b> (S-05).</li>
+  <li>Look for a sideways scroll bar. Then click "5 applications" on <i>Frontend Developer</i> to open <b>Applications</b> (S-07).</li>
+</ol>
+<div class="wrap"><table>
+<tr><th>Expected</th><td>Every screen fits the width of the phone. Nothing makes the whole page scroll sideways.</td></tr>
+<tr><th>Actual</th><td>S-05 is 510 px wide and S-07 is 524 px wide in a 390 px window. The page scrolls sideways.</td></tr>
+</table></div>
+<h3>Evidence from the failed run</h3>
+<pre>MC-2 screens are usable in a narrow, phone-width window (no sideways scrolling)
+  Expected: []
+  Received: ["S-05 My job posts", "S-07 Applications"]    (screens that scroll sideways at 390 px wide)</pre>
+<div class="shots">
+  <figure><a href="img/JB-001-before-S-05.png"><img src="img/JB-001-before-S-05.png" alt="S-05 before the fix"></a><figcaption>Before – S-05, 510 px wide in a 390 px window</figcaption></figure>
+  <figure><a href="img/JB-001-before-S-07.png"><img src="img/JB-001-before-S-07.png" alt="S-07 before the fix"></a><figcaption>Before – S-07, 524 px wide in a 390 px window</figcaption></figure>
+</div>
+<p class="small">Source: <a href="../test-result/test-result-20261030-133126.html">test result 20261030-133126</a>, manual checklist MC-2.</p>
+
+<h2>2. Investigation</h2>
+<table>
+<tr><th style="width:24%">Question</th><th>Finding</th></tr>
+<tr><td>Is it every screen?</td><td>No. The checklist visits all eight screens; only S-05 and S-07 are over-wide. S-04 (3 columns) passed, but it uses the same table.</td></tr>
+<tr><td>What is wide?</td><td>Both screens show a data table (<code>table.data</code>). S-05 has 5 columns (Job, Location, Posted, Applications, button). S-07 has 4 columns and the email address column cannot be shortened. At 390 px the columns cannot all fit.</td></tr>
+<tr><td>Why does the page grow?</td><td>In <code>web/src/style.css</code> the table is <code>width:100%</code>, but a table is never narrower than its content. There is no narrow-screen rule for tables: the only media queries are for the search form (700 px), the job form rows (600 px) and the job detail layout (800 px).</td></tr>
+<tr><td>Is it a coding mistake?</td><td>No. The Stage 2 mockup stylesheet (<code>static-design/style.css</code>) has the same gap, and the app reused its CSS. The mockups were only looked at on a desktop screen, so this was a <b>design gap</b>. This is exactly what manual checklist item MC-2 exists to catch.</td></tr>
+<tr><td>Impact</td><td>Medium. Nothing is lost and a desktop user is not affected, but employers on a phone cannot reach the Edit / View buttons without sideways scrolling, and the page looks broken. No use case is blocked.</td></tr>
+</table>
+
+<h3>Options considered</h3>
+<div class="wrap"><table>
+<tr><th>Option</th><th>Good</th><th>Not so good</th><th></th></tr>
+<tr><td><b>A. Let the table scroll inside its own box</b></td><td>Smallest change. All columns and the real table markup stay (good for screen readers). The page itself stops scrolling sideways.</td><td>The user still scrolls sideways inside the table.</td><td><span class="pill pass">Chosen</span></td></tr>
+<tr><td>B. Turn each row into a stacked card under 600 px</td><td>No sideways scrolling at all.</td><td>Needs new card markup and labels for every cell, new design for 3 screens, more risk.</td><td>Later, if needed</td></tr>
+<tr><td>C. Hide some columns on phones</td><td>Quick.</td><td>Hides information (for example the applicant's email).</td><td>Rejected</td></tr>
+</table></div>
+
+<h2>3. Solution</h2>
+<p>A small <code>TableScroll</code> component wraps each data table in a box that scrolls sideways when the table is too wide.</p>
+<div class="wrap"><table>
+<tr><th>File</th><th>Change</th></tr>
+<tr><td><code>web/src/components/ui.tsx</code></td><td>New <code>TableScroll</code> component: <code>&lt;div className="table-scroll"&gt;</code></td></tr>
+<tr><td><code>web/src/style.css</code></td><td><code>.table-scroll { overflow-x: auto; border-radius: var(--radius); }</code></td></tr>
+<tr><td><code>EmployerJobsPage.tsx</code> (S-05), <code>JobApplicationsPage.tsx</code> (S-07), <code>MyApplicationsPage.tsx</code> (S-04)</td><td>The table is wrapped in <code>&lt;TableScroll&gt;</code>. S-04 is included so a long job title cannot break it later.</td></tr>
+</table></div>
+<p class="small">The mockups (Stage 2) were not changed. Choosing option A is a small design decision, recorded in the <a href="../../process.html#i1-stage4">decision log</a> (decision 31).</p>
+
+<h2>4. Verification</h2>
+<div class="wrap"><table>
+<tr><th>Check</th><th>Result</th></tr>
+<tr><td>TypeScript check, all four workspaces</td><td><span class="pill pass">Pass</span></td></tr>
+<tr><td>Unit and API tests (Vitest)</td><td><span class="pill pass">Pass</span> 54 of 54</td></tr>
+<tr><td>Browser tests (Playwright)</td><td><span class="pill pass">Pass</span> 35 of 35 before JB-002's test was added; 36 of 36 in the final run</td></tr>
+<tr><td>MC-2 re-run (the test that failed)</td><td><span class="pill pass">Pass</span> – no screen scrolls sideways at 390 px. First seen in <a href="../test-result/test-result-20261030-133827.html">run 20261030-133827</a>, and again in the final <a href="../test-result/test-result-20261030-134400.html">run 20261030-134400</a>.</td></tr>
+<tr><td>Nothing else broke (regression)</td><td><span class="pill pass">Pass</span> – in the final run all 32 test cases and 6 security tests pass, as before the fix.</td></tr>
+<tr><td>Looked at by eye</td><td><span class="pill pass">Pass</span> – screenshots below</td></tr>
+</table></div>
+<div class="shots">
+  <figure><a href="img/JB-001-after-S-05.png"><img src="img/JB-001-after-S-05.png" alt="S-05 after the fix"></a><figcaption>After – S-05 fits the 390 px window; the table scrolls inside its box</figcaption></figure>
+  <figure><a href="img/JB-001-after-S-07.png"><img src="img/JB-001-after-S-07.png" alt="S-07 after the fix"></a><figcaption>After – S-07 fits; the table is scrolled to the right here because the test had just clicked "View"</figcaption></figure>
+</div>
+<p><b>Known limitation (accepted):</b> on a phone the first column is partly out of sight until the user scrolls the table back, and there is no arrow hinting that the table scrolls. A stacked layout (option B) would remove this; it is not needed for a prototype.</p>
+
+<h2>5. History</h2>
+<div class="wrap"><table>
+<tr><th>When (about)</th><th>Event</th></tr>
+<tr><td>30 Oct, 1:31 pm</td><td>Test run 20261030-133126: MC-2 fails. Ticket opened.</td></tr>
+<tr><td>30 Oct, 1:33 pm</td><td>Investigation: the screenshots are 510 and 524 px wide; the table CSS has no narrow-screen rule; the mockup CSS has the same gap.</td></tr>
+<tr><td>30 Oct, 1:36 pm</td><td>Option A chosen and implemented. Typecheck, unit/API and browser tests pass.</td></tr>
+<tr><td>30 Oct, 1:38 pm</td><td>Run 20261030-133827: MC-2 passes. Screenshots saved to this ticket.</td></tr>
+<tr><td>30 Oct, 1:44 pm</td><td>Final run 20261030-134400: all plan items pass. Ticket closed as verified.</td></tr>
+</table></div>
+
+<h2>Related</h2>
+<ul>
+  <li><a href="JB-002.html">JB-002</a> – review of every screen against its mockup (MC-1), same verification round.</li>
+  <li><a href="../test-plan/test-plan.html">Test plan</a>, section 8 (manual checklist), item MC-2.</li>
+</ul>
+</main></body></html>

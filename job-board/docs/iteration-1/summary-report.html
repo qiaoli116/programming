@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Iteration 1 summary report – Job board</title>
+<style>
+:root{--ink:#101828;--mute:#667085;--line:#e4e7ec;--bg:#f9fafb;--pass:#067647;--passbg:#ecfdf3;--warn:#b54708;--warnbg:#fffaeb;--blue:#175cd3;--accent:#0f766e}
+*{box-sizing:border-box}body{margin:0;font:15.5px/1.6 system-ui,sans-serif;color:var(--ink);background:var(--bg)}
+main{max-width:940px;margin:0 auto;padding:28px 16px 72px}h1{margin:0 0 4px;font-size:30px}h2{margin:36px 0 10px;font-size:20px;border-bottom:2px solid var(--line);padding-bottom:5px}h3{margin:18px 0 4px;font-size:15.5px}
+a{color:var(--blue)}.small{font-size:13px;color:var(--mute)}.sub{color:var(--mute);margin:0 0 18px}code{background:#f2f4f7;padding:1px 5px;border-radius:4px;font-size:13px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin:16px 0}
+.card{background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px 14px}.card b{display:block;font-size:28px;line-height:1.2;color:var(--accent)}.card span{color:var(--mute);font-size:13px}
+table{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--line);border-radius:8px;overflow:hidden;font-size:14px}
+th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}th{background:#f2f4f7;font-size:13px}tr:last-child td{border-bottom:0}.wrap{overflow-x:auto}
+.pill{display:inline-block;padding:1px 9px;border-radius:99px;font-size:12.5px;font-weight:600;white-space:nowrap}.pass{background:var(--passbg);color:var(--pass)}.warn{background:var(--warnbg);color:var(--warn)}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}.box{background:#fff;border:1px solid var(--line);border-radius:8px;padding:6px 16px 10px}.box ul{margin:4px 0;padding-left:20px}
+.flow{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0;padding:0;list-style:none}.flow li{background:#fff;border:1px solid var(--line);border-left:4px solid var(--pass);border-radius:6px;padding:6px 12px;font-size:14px}.flow li span{display:block;font-size:12px;color:var(--mute)}
+.id{font-family:ui-monospace,Consolas,monospace;font-weight:600;white-space:nowrap}
+</style></head>
+<body><main>
+<p class="small"><a href="../process.html#iteration-1">Process document</a> · <a href="tickets/index.html">Tickets</a> · <a href="test-result/index.html">Test results</a></p>
+<h1>Iteration 1 – summary report</h1>
+<p class="sub">Job board, minimal prototype · all six stages complete · Friday 30 October 2026</p>
+
+<h2>In one paragraph</h2>
+<p>Iteration 1 built the smallest complete loop of a Seek-style job board: an employer posts a job, a job seeker finds it and applies, and the employer reads the application. It went through all six stages of the development process, from use cases to a signed-off test run. The final run passed all 43 items of the test plan. Two problems found in testing were written up as tickets, fixed and proved fixed by a later run. The prototype runs on local host only and has now reached the end of its life; the project moves on to iteration 2.</p>
+
+<div class="cards">
+  <div class="card"><b>9</b><span>use cases (all Must)</span></div>
+  <div class="card"><b>8</b><span>screens designed and built</span></div>
+  <div class="card"><b>43 / 43</b><span>plan items pass (final run)</span></div>
+  <div class="card"><b>2</b><span>tickets, both closed</span></div>
+  <div class="card"><b>35</b><span>decisions recorded</span></div>
+</div>
+
+<h2>Goal and result</h2>
+<div class="wrap"><table>
+<tr><th style="width:22%">Goal</th><td>The smallest complete loop: an employer posts a job, a seeker finds it and applies, and both can see the result.</td></tr>
+<tr><th>Result</th><td><span class="pill pass">Goal met</span> All nine use cases work and are tested: search, job details, apply, my applications, post a job, edit a job post, view applications, sign in, sign out.</td></tr>
+<tr><th>Where it runs</th><td>Local host only, <code>http://localhost:3000</code> (decision 34). A Docker image is ready but was not used.</td></tr>
+<tr><th>Status</th><td>Closed. No maintenance is planned (decision 35).</td></tr>
+</table></div>
+
+<h2>How the six stages went</h2>
+<ol class="flow">
+  <li>Stage 1<span>Requirements · 9 use cases</span></li>
+  <li>Stage 2<span>Design · 8 mockups, software design, test plan</span></li>
+  <li>Stage 3<span>Implementation · server, web app, tests</span></li>
+  <li>Stage 4<span>Testing · 4 runs, 2 tickets</span></li>
+  <li>Stage 5<span>Deployment · local host</span></li>
+  <li>Stage 6<span>Review · closed</span></li>
+</ol>
+<div class="wrap"><table>
+<tr><th>Stage</th><th>What was produced</th><th>Signed off</th></tr>
+<tr><td>1 Requirements</td><td>Nine use cases with main and alternative flows, priorities (MoSCoW), revised once to add sign-in (decision 18).</td><td>Decision 18 onward</td></tr>
+<tr><td>2 Design</td><td>Phase 2A eight clickable mockups (S-01 to S-08); Phase 2B software design (data, API, technology choices, React + TypeScript from decision 17); Phase 2C test plan of 32 test cases, 6 security tests and a 5-item manual checklist.</td><td>Decision 21, 30 Oct 12:24</td></tr>
+<tr><td>3 Implementation</td><td>Express and SQLite server with 11 API endpoints, React web app, seed script with 30 jobs and 6 employers, Docker image, and the tests.</td><td>Decision 30 (commit <code>b111266</code>, 30 Oct 13:09)</td></tr>
+<tr><td>4 Testing</td><td>One-command verification (<code>npm run verify</code>) that runs every test and writes a dated HTML result; four runs; tickets JB-001 and JB-002.</td><td>Decision 33</td></tr>
+<tr><td>5 Deployment</td><td>Run on local host: seed, build, start.</td><td>Decision 34</td></tr>
+<tr><td>6 Review &amp; Maintenance</td><td>This report and the Stage 6 section of the process document.</td><td>Decision 35</td></tr>
+</table></div>
+
+<h2>What was built</h2>
+<div class="cols">
+  <div class="box"><h3>Technology</h3><ul>
+    <li>TypeScript everywhere, in four npm workspaces: <code>shared</code>, <code>server</code>, <code>web</code>, <code>e2e</code></li>
+    <li>Node 22, Express 4, Knex with SQLite (better-sqlite3)</li>
+    <li>React 18 with Vite</li>
+    <li>Vitest and supertest for unit and API tests, Playwright with Chrome for browser tests</li>
+  </ul></div>
+  <div class="box"><h3>Size (lines of code)</h3><ul>
+    <li>Server: about 750</li>
+    <li>Web app including styles: about 1,500</li>
+    <li>Shared types: about 70</li>
+    <li>Tests: about 700</li>
+  </ul><p class="small">Counted from the source files of <code>job-board/app/</code> at the end of the iteration.</p></div>
+</div>
+
+<h2>Testing results</h2>
+<p>Every run is saved as a dated HTML file, so each result stays on record. The first run found two items to deal with; the final run found none.</p>
+<div class="wrap"><table>
+<thead><tr><th>Run</th><th>Purpose</th><th>Result</th></tr></thead>
+<tbody>
+<tr><td><a href="test-result/test-result-20261030-133126.html">133126</a></td><td>First full run, watched in the browser, then repeated without delays</td><td>41 of 43 pass, 1 fail (MC-2), 1 to review (MC-1)</td></tr>
+<tr><td><a href="test-result/test-result-20261030-133827.html">133827</a></td><td>After the JB-001 fix (with screenshots, 5 MB)</td><td>MC-2 passes; MC-1 still to review</td></tr>
+<tr><td><a href="test-result/test-result-20261030-134021.html">134021</a></td><td>First run without screenshots</td><td>42 of 43, MC-1 to review</td></tr>
+<tr><td><a href="test-result/test-result-20261030-134400.html">134400</a></td><td><b>Final run</b>, after the JB-002 fix</td><td><span class="pill pass">43 of 43 pass</span> in 55 seconds</td></tr>
+</tbody></table></div>
+<div class="wrap" style="margin-top:12px"><table>
+<tr><th style="width:36%">Level</th><th>Count in the final run</th></tr>
+<tr><td>Unit and API tests (Vitest)</td><td>54</td></tr>
+<tr><td>Browser tests (Playwright)</td><td>36</td></tr>
+<tr><td>Test plan items (32 test cases, 6 security, 5 manual checklist)</td><td>43, all pass</td></tr>
+</table></div>
+
+<h2>Problems found and fixed</h2>
+<div class="wrap"><table>
+<thead><tr><th>Ticket</th><th>Found by</th><th>What it was</th><th>Fix</th><th>Status</th></tr></thead>
+<tbody>
+<tr><td class="id"><a href="tickets/JB-001.html">JB-001</a></td><td>MC-2, phone-width check</td><td>Employer pages (S-05, S-07) scrolled sideways on a phone. A design gap: the mockup CSS had no rule for tables.</td><td>Tables scroll inside their own box (<code>TableScroll</code>).</td><td><span class="pill pass">Closed</span></td></tr>
+<tr><td class="id"><a href="tickets/JB-002.html">JB-002</a></td><td>MC-1, screens versus mockups</td><td>Review of all eight screens. One real difference: "Find jobs" was not highlighted on the job and apply pages. Four other differences were intended.</td><td>Header highlight fixed, test added.</td><td><span class="pill pass">Closed</span></td></tr>
+</tbody></table></div>
+<p>Neither problem was a missing requirement, so nothing went back to Stage 1. Both fixes were small and followed the signed-off design.</p>
+
+<h2>Lessons</h2>
+<div class="cols">
+  <div class="box"><h3>What went well</h3><ul>
+    <li>Use cases became the test plan, then the tests: every use case has a test and every test traces back to a requirement.</li>
+    <li>Signed-off mockups gave the build a clear target, and the manual checklist showed where they fell short.</li>
+    <li>One command runs the whole plan and writes a dated result.</li>
+    <li>Findings were written as tickets with the cause, fix and proof, then closed by a later run.</li>
+  </ul></div>
+  <div class="box"><h3>What to change next time</h3><ul>
+    <li>Check mockups at phone width in Stage 2, not only on a desktop screen.</li>
+    <li>Decide in Stage 2 what "matches the mockup" means, to make the Stage 4 review quicker.</li>
+    <li>Keep screenshots out of routine results; save them only for failures and reviews (decision 32).</li>
+    <li>Commit at the end of each stage.</li>
+  </ul></div>
+</div>
+
+<h2>Open items for iteration 2</h2>
+<div class="wrap"><table>
+<thead><tr><th>Item</th><th>Why it was deferred</th></tr></thead>
+<tbody>
+<tr><td><b>Commit the iteration 1 work.</b> The fixes, tickets, test tooling, results and document updates are not yet in git.</td><td>No commit was requested yet.</td></tr>
+<tr><td>Stacked-card tables on phones instead of the scroll box (JB-001 option B)</td><td>The scroll box is enough for a prototype.</td></tr>
+<tr><td>Publishing online (the Docker image is ready)</td><td>Iteration 1 is local host only.</td></tr>
+<tr><td><code>npm audit</code> warnings in the development tools</td><td>Not reviewed; they do not affect the running app.</td></tr>
+<tr><td>MC-1 was reviewed by Claude from screenshots, not by a person</td><td>A person may want to look at the screens too; reopen JB-002 if they see something different.</td></tr>
+</tbody></table></div>
+
+<h2>Where to find everything</h2>
+<div class="wrap"><table>
+<tr><th style="width:30%">Item</th><th>Location</th></tr>
+<tr><td>Process document, decisions 1 to 35</td><td><a href="../process.html#iteration-1">docs/process.html</a></td></tr>
+<tr><td>Mockups (S-01 to S-08)</td><td><a href="static-design/s01-search.html">docs/iteration-1/static-design/</a></td></tr>
+<tr><td>Test plan</td><td><a href="test-plan/test-plan.html">docs/iteration-1/test-plan/test-plan.html</a></td></tr>
+<tr><td>Test results</td><td><a href="test-result/index.html">docs/iteration-1/test-result/</a></td></tr>
+<tr><td>Tickets</td><td><a href="tickets/index.html">docs/iteration-1/tickets/</a></td></tr>
+<tr><td>Code, tests and README</td><td><code>job-board/app/</code></td></tr>
+<tr><td>Run it</td><td><code>npm run seed</code>, <code>npm run build</code>, <code>npm start</code>, then open http://localhost:3000 (demo accounts are on the Sign in page, password <code>demo1234</code>)</td></tr>
+<tr><td>Run all tests and write a result</td><td><code>npm run verify</code> (add <code>--no-images</code> for a small file)</td></tr>
+</table></div>
+</main></body></html>

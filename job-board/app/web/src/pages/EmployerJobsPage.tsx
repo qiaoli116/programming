@@ -2,7 +2,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { api } from '../api';
 import { useAuth } from '../auth';
-import { EmptyState, Loading, Notice, Page } from '../components/ui';
+import { EmptyState, Loading, Notice, Page, TableScroll } from '../components/ui';
 import { plural, timeAgo } from '../format';
 import { useLoad } from '../useLoad';
 
@@ -43,38 +43,40 @@ export function EmployerJobsPage() {
             </Link>
           </EmptyState>
         ) : (
-          <table className="data">
-            <thead>
-              <tr>
-                <th>Job</th>
-                <th>Location</th>
-                <th>Posted</th>
-                <th>Applications</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {jobs.map((job) => (
-                <tr key={job.id}>
-                  <td>
-                    <Link to={`/jobs/${job.id}`}>
-                      <b>{job.title}</b>
-                    </Link>
-                  </td>
-                  <td>{job.location}</td>
-                  <td>{timeAgo(job.postedAt)}</td>
-                  <td>
-                    <Link to={`/employer/jobs/${job.id}/applications`}>{plural(job.applicationCount, 'application')}</Link>
-                  </td>
-                  <td className="actions">
-                    <Link className="btn secondary small" to={`/employer/jobs/${job.id}/edit`}>
-                      Edit
-                    </Link>
-                  </td>
+          <TableScroll>
+            <table className="data">
+              <thead>
+                <tr>
+                  <th>Job</th>
+                  <th>Location</th>
+                  <th>Posted</th>
+                  <th>Applications</th>
+                  <th></th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {jobs.map((job) => (
+                  <tr key={job.id}>
+                    <td>
+                      <Link to={`/jobs/${job.id}`}>
+                        <b>{job.title}</b>
+                      </Link>
+                    </td>
+                    <td>{job.location}</td>
+                    <td>{timeAgo(job.postedAt)}</td>
+                    <td>
+                      <Link to={`/employer/jobs/${job.id}/applications`}>{plural(job.applicationCount, 'application')}</Link>
+                    </td>
+                    <td className="actions">
+                      <Link className="btn secondary small" to={`/employer/jobs/${job.id}/edit`}>
+                        Edit
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </TableScroll>
         ))}
     </Page>
   );
