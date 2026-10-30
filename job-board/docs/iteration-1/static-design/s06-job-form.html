@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Job form – Job Board (design mockup)</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="mockbar">
+  <span>Design mockup · iteration 1</span>
+  <b>S-06 Job form (create / edit)</b>
+  <span>Use case: UC-05, UC-06</span>
+  <span class="spacer"></span>
+  <a href="s05-employer-jobs.html">◂ S-05</a> <a href="s07-applications.html">S-07 ▸</a>
+  <a href="../../process.html#iteration-1">Process document ↗</a>
+</div>
+<header class="site-header"><div class="inner">
+  <a class="brand" href="s05-employer-jobs.html">Job<span>Board</span> <span class="chip grey" style="vertical-align:middle">Employer area</span></a>
+  <nav>
+    <a href="s05-employer-jobs.html" class="current">My job posts</a>
+  </nav>
+  <div class="user"><span class="who">Northwind Digital</span> <span class="chip">Employer</span> <a class="btn secondary small" href="s08-sign-in.html#signed-out">Sign out</a></div>
+</div></header>
+<main>
+  <div class="crumbs"><a href="s05-employer-jobs.html">← Back to my job posts</a></div>
+  <div class="card">
+    <h1>Post a job</h1>
+    <p class="muted">Create mode (UC-05). Fields are empty.</p>
+  <form onsubmit="return false">
+    <div class="field"><label>Job title <span class="req">*</span></label><input type="text" value="" placeholder="e.g. Frontend Developer"></div>
+    <div class="row2">
+      <div class="field"><label>Company</label><input type="text" value="Northwind Digital" disabled><div class="hint">Taken from your employer account.</div></div>
+      <div class="field"><label>Location <span class="req">*</span></label><input type="text" value="" placeholder="e.g. Melbourne VIC"></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Work type <span class="req">*</span></label><select><option selected>Full-time</option><option>Part-time</option><option>Contract</option><option>Casual</option></select></div>
+      <div class="field"><label>Salary <span class="muted">(optional)</span></label><input type="text" value="" placeholder="e.g. $80k – $95k"></div>
+    </div>
+    <div class="field"><label>Description <span class="req">*</span></label><textarea placeholder="What is the role and the team like?"></textarea></div>
+    <div class="field"><label>Requirements <span class="req">*</span></label><textarea placeholder="Skills and experience needed."></textarea></div>
+    <a class="btn" href="s05-employer-jobs.html">Publish job</a>
+    <a class="btn secondary" href="s05-employer-jobs.html">Cancel</a>
+  </form>
+  </div>
+<div class="design-notes"><h2>Design notes</h2>
+<div class="state"><span class="label">Edit mode · UC-06 – same form, filled with the current values</span>
+  <div class="card" id="edit" style="margin-bottom:0">
+    <h1>Edit job post</h1>
+    <p class="muted">Changes appear straight away for job seekers. Applications already received are kept.</p>
+  <form onsubmit="return false">
+    <div class="field"><label>Job title <span class="req">*</span></label><input type="text" value="Frontend Developer" placeholder="e.g. Frontend Developer"></div>
+    <div class="row2">
+      <div class="field"><label>Company</label><input type="text" value="Northwind Digital" disabled><div class="hint">Taken from your employer account.</div></div>
+      <div class="field"><label>Location <span class="req">*</span></label><input type="text" value="Melbourne VIC" placeholder="e.g. Melbourne VIC"></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>Work type <span class="req">*</span></label><select><option selected>Full-time</option><option>Part-time</option><option>Contract</option><option>Casual</option></select></div>
+      <div class="field"><label>Salary <span class="muted">(optional)</span></label><input type="text" value="$90k – $110k" placeholder="e.g. $80k – $95k"></div>
+    </div>
+    <div class="field"><label>Description <span class="req">*</span></label><textarea placeholder="What is the role and the team like?">Northwind Digital is looking for a Frontend Developer to join our product team…</textarea></div>
+    <div class="field"><label>Requirements <span class="req">*</span></label><textarea placeholder="Skills and experience needed.">2+ years building web apps with HTML, CSS and JavaScript…</textarea></div>
+    <a class="btn" href="s05-employer-jobs.html">Save changes</a>
+    <a class="btn secondary" href="s05-employer-jobs.html">Cancel</a>
+  </form>
+  </div>
+</div><div class="state"><span class="label">Alternative state · UC-05 4a / UC-06 5a – required field missing</span>
+  <div class="notice err"><b>Please fix the highlighted fields.</b> Nothing has been saved.</div>
+  <div class="field error"><label>Job title <span class="req">*</span></label><input type="text" value=""><div class="err">Job title is required.</div></div>
+  <div class="field error"><label>Description <span class="req">*</span></label><textarea></textarea><div class="err">Please describe the role.</div></div>
+</div>
+  <ul class="notes-list">
+    <li><b>One screen, two modes.</b> UC-06 says the edit form is “the same form as UC-05, filled with the current values”. Only the heading, the button label and the starting values change.</li>
+    <li>Company is not typed: it comes from the employer's account and cannot be changed here, so an employer cannot post under another company's name.</li>
+    <li>Only salary is optional, matching the data model. The date posted is set by the system, so it is not on the form.</li>
+    <li>The form has no closing date and no “close listing” – both were deferred in Stage 1.</li>
+  </ul>
+</div>
+</main>
+<div class="site-footer">Static design mockup – sample data only, nothing here is saved.</div>
+</body>
+</html>

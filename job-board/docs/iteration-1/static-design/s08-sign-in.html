@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sign in – Job Board (design mockup)</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="mockbar">
+  <span>Design mockup · iteration 1</span>
+  <b>S-08 Sign in</b>
+  <span>Use case: UC-08, UC-09</span>
+  <span class="spacer"></span>
+  <a href="s07-applications.html">◂ S-07</a>
+  <a href="../../process.html#iteration-1">Process document ↗</a>
+</div>
+<header class="site-header"><div class="inner">
+  <a class="brand" href="s01-search.html">Job<span>Board</span></a>
+  <nav>
+    <a href="s01-search.html">Find jobs</a>
+  </nav>
+  <div class="user"><a class="btn small" href="s08-sign-in.html">Sign in</a></div>
+</div></header>
+<main>
+  <div class="card" style="max-width:440px;margin:24px auto 14px">
+    <h1>Sign in</h1>
+    <p class="muted">Use the email and password for your account.</p>
+    <form onsubmit="return false">
+      <div class="field"><label for="em">Email</label><input id="em" type="email" placeholder="you@example.com"></div>
+      <div class="field"><label for="pw">Password</label><input id="pw" type="password"></div>
+      <a class="btn" href="s01-search.html">Sign in</a>
+    </form>
+  </div>
+  <div class="card" style="max-width:440px;margin:0 auto;background:var(--accent-soft);border-color:#a7d7d2">
+    <h3>Demo accounts</h3>
+    <p class="small" style="margin-bottom:6px">Accounts are pre-created. Every demo account uses the password <b>demo1234</b>.</p>
+    <ul class="small" style="margin:0 0 0 18px;padding:0">
+      <li>Job seeker: <b>alex.chen@example.com</b></li>
+      <li>Employer: <b>hiring@northwind.example</b></li>
+    </ul>
+  </div>
+<div class="design-notes"><h2>Design notes</h2>
+<div class="state" id="apply"><span class="label">Alternative state · UC-08 1 – sent here from “Apply” while signed out</span>
+  <div class="notice info"><b>Please sign in to apply for Frontend Developer at Northwind Digital.</b> After signing in you will go straight to the application form (S-03).</div>
+</div><div class="state" id="signed-out"><span class="label">UC-09 step 3 – after Sign out</span>
+  <div class="notice ok"><b>You have been signed out.</b></div>
+</div><div class="state"><span class="label">Alternative state · UC-08 4a – wrong email or password</span>
+  <div class="notice err"><b>Email or password is incorrect.</b></div>
+  <div class="field"><label>Email</label><input type="email" value="alex.chen@example.com"></div>
+  <div class="field"><label>Password</label><input type="password" value=""></div>
+</div><div class="state"><span class="label">Alternative state · UC-08 3a – a field is empty</span>
+  <div class="field error"><label>Email</label><input type="email" value=""><div class="err">Enter your email address.</div></div>
+  <div class="field error"><label>Password</label><input type="password" value=""><div class="err">Enter your password.</div></div>
+</div>
+  <ul class="notes-list">
+    <li>One screen serves both kinds of user. After signing in a seeker goes back to where they were heading (or S-01), and an employer goes to S-05.</li>
+    <li>The error message does not say whether the email or the password was wrong, so it cannot be used to find out which emails have accounts.</li>
+    <li>There is no “Register” or “Forgot password” link: accounts are pre-created in the prototype, see decision 15.</li>
+    <li>The Demo accounts box exists only for the class demo and is removed in the production iteration.</li>
+    <li>Sign out has no screen of its own. It is a button in the header (visible on every signed-in screen) that ends the session and shows this page with the confirmation above.</li>
+  </ul>
+</div>
+</main>
+<div class="site-footer">Static design mockup – sample data only, nothing here is saved.</div>
+</body>
+</html>

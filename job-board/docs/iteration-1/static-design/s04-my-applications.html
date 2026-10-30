@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>My applications – Job Board (design mockup)</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="mockbar">
+  <span>Design mockup · iteration 1</span>
+  <b>S-04 My applications</b>
+  <span>Use case: UC-04 (needs UC-08)</span>
+  <span class="spacer"></span>
+  <a href="s03-apply.html">◂ S-03</a> <a href="s05-employer-jobs.html">S-05 ▸</a>
+  <a href="../../process.html#iteration-1">Process document ↗</a>
+</div>
+<header class="site-header"><div class="inner">
+  <a class="brand" href="s01-search.html">Job<span>Board</span></a>
+  <nav>
+    <a href="s01-search.html">Find jobs</a>
+    <a href="s04-my-applications.html" class="current">My applications</a>
+  </nav>
+  <div class="user"><span class="who">Alex Chen</span> <span class="chip">Seeker</span> <a class="btn secondary small" href="s08-sign-in.html#signed-out">Sign out</a></div>
+</div></header>
+<main>
+  <h1>My applications</h1>
+  <p class="muted">3 applications by <b>Alex Chen</b></p>
+  <table class="data">
+    <thead><tr><th>Job</th><th>Company</th><th>Date applied</th></tr></thead>
+    <tbody><tr><td><a href="s02-job-detail.html"><b>Frontend Developer</b></a></td><td>Northwind Digital</td><td>12 Oct 2026</td></tr><tr><td><a href="s02-job-detail.html"><b>Graphic Designer</b></a></td><td>Studio Mono</td><td>9 Oct 2026</td></tr><tr><td><a href="s02-job-detail.html"><b>Data Analyst</b></a></td><td>Harbour Insurance</td><td>2 Oct 2026</td></tr></tbody>
+  </table>
+<div class="design-notes"><h2>Design notes</h2>
+<div class="state"><span class="label">Alternative state · UC-04 2a – no applications yet</span>
+  <div class="card empty"><b>You have not applied for any jobs yet</b><a href="s01-search.html">Search for jobs</a> to find something to apply for.</div>
+</div>
+  <ul class="notes-list">
+    <li>The email box is gone: the system already knows who is signed in. This also fixes the privacy risk from Stage 1 – nobody can look at someone else's applications by typing their email.</li>
+    <li>Columns match UC-04 step 2: job title, company, date applied. The title links back to S-02 (UC-04 step 3).</li>
+    <li>If a signed-out visitor opens this page they are sent to Sign in (S-08) first.</li>
+  </ul>
+</div>
+</main>
+<div class="site-footer">Static design mockup – sample data only, nothing here is saved.</div>
+</body>
+</html>

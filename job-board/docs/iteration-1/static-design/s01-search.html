@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Search jobs – Job Board (design mockup)</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="mockbar">
+  <span>Design mockup · iteration 1</span>
+  <b>S-01 Home / search</b>
+  <span>Use case: UC-01</span>
+  <span class="spacer"></span>
+  <a href="s02-job-detail.html">S-02 ▸</a>
+  <a href="../../process.html#iteration-1">Process document ↗</a>
+</div>
+<header class="site-header"><div class="inner">
+  <a class="brand" href="s01-search.html">Job<span>Board</span></a>
+  <nav>
+    <a href="s01-search.html" class="current">Find jobs</a>
+  </nav>
+  <div class="user"><a class="btn small" href="s08-sign-in.html">Sign in</a></div>
+</div></header>
+<div class="search-band"><div class="inner">
+  <h1>Find your next job</h1>
+  <form class="search-form" onsubmit="return false">
+    <input type="text" aria-label="Keyword" placeholder="Job title, skill or company" value="">
+    <input type="text" aria-label="Location" placeholder="Location (city or state)" value="">
+    <a class="btn" href="s01-search.html">Search</a>
+  </form>
+</div></div>
+<main>
+  <div class="results-head"><h2 style="margin:0">All jobs</h2><span class="muted">6 jobs found · newest first</span></div>
+    <a class="card job-card" href="s02-job-detail.html">
+      <h3>Frontend Developer</h3>
+      <div class="company">Northwind Digital</div>
+      <div class="meta"><span>📍 Melbourne VIC</span><span class="chip">Full-time</span><span>💰 $90k – $110k</span><span>Posted 2 days ago</span></div>
+      <p class="small" style="margin:0">Build and maintain customer-facing web apps with a small, friendly product team.</p>
+    </a>
+    <a class="card job-card" href="s02-job-detail.html">
+      <h3>Barista</h3>
+      <div class="company">Corner Coffee Co.</div>
+      <div class="meta"><span>📍 Sydney NSW</span><span class="chip">Part-time</span><span>💰 $28 – $32 / hour</span><span>Posted 3 days ago</span></div>
+      <p class="small" style="margin:0">Weekend and early-morning shifts in a busy neighbourhood café. Training provided.</p>
+    </a>
+    <a class="card job-card" href="s02-job-detail.html">
+      <h3>Registered Nurse</h3>
+      <div class="company">Westside Health</div>
+      <div class="meta"><span>📍 Brisbane QLD</span><span class="chip">Full-time</span><span>💰 $85k + super</span><span>Posted 4 days ago</span></div>
+      <p class="small" style="margin:0">Join a supportive ward team caring for adult patients. Rotating shifts.</p>
+    </a>
+    <a class="card job-card" href="s02-job-detail.html">
+      <h3>Graphic Designer</h3>
+      <div class="company">Studio Mono</div>
+      <div class="meta"><span>📍 Melbourne VIC</span><span class="chip">Contract</span><span>💰 $600 / day</span><span>Posted 5 days ago</span></div>
+      <p class="small" style="margin:0">Three-month contract creating brand and campaign assets for retail clients.</p>
+    </a>
+    <a class="card job-card" href="s02-job-detail.html">
+      <h3>Data Analyst</h3>
+      <div class="company">Harbour Insurance</div>
+      <div class="meta"><span>📍 Sydney NSW</span><span class="chip">Full-time</span><span>Posted 1 week ago</span></div>
+      <p class="small" style="margin:0">Turn claims data into insights that help the business price risk more accurately.</p>
+    </a>
+    <a class="card job-card" href="s02-job-detail.html">
+      <h3>Warehouse Assistant</h3>
+      <div class="company">QuickShip Logistics</div>
+      <div class="meta"><span>📍 Perth WA</span><span class="chip">Casual</span><span>💰 $30 / hour</span><span>Posted 1 week ago</span></div>
+      <p class="small" style="margin:0">Pick, pack and dispatch orders. Forklift licence is a bonus but not required.</p>
+    </a>
+
+<div class="design-notes"><h2>Design notes</h2>
+<div class="state"><span class="label">Alternative state · UC-01 4a – no matches</span>
+  <div class="search-form" style="margin-bottom:14px">
+    <input type="text" aria-label="Keyword" value="astronaut">
+    <input type="text" aria-label="Location" value="Hobart TAS">
+    <span class="btn secondary">Search</span>
+  </div>
+  <div class="card empty"><b>No jobs found for “astronaut” in Hobart TAS</b>Try a different keyword, or remove the location to search everywhere.</div>
+</div>
+<div class="state"><span class="label">Header in each state (UC-08, UC-09) – the same header on every screen</span>
+  <p class="small muted">Signed out</p>
+<header class="site-header" style="border:1px solid var(--line);margin-bottom:12px"><div class="inner">
+  <a class="brand" href="s01-search.html">Job<span>Board</span></a>
+  <nav>
+    <a href="s01-search.html" class="current">Find jobs</a>
+  </nav>
+  <div class="user"><a class="btn small" href="s08-sign-in.html">Sign in</a></div>
+</div></header>
+  <p class="small muted">Signed in as a job seeker</p>
+<header class="site-header" style="border:1px solid var(--line);margin-bottom:12px"><div class="inner">
+  <a class="brand" href="s01-search.html">Job<span>Board</span></a>
+  <nav>
+    <a href="s01-search.html" class="current">Find jobs</a>
+    <a href="s04-my-applications.html">My applications</a>
+  </nav>
+  <div class="user"><span class="who">Alex Chen</span> <span class="chip">Seeker</span> <a class="btn secondary small" href="s08-sign-in.html#signed-out">Sign out</a></div>
+</div></header>
+  <p class="small muted">Signed in as an employer</p>
+<header class="site-header" style="border:1px solid var(--line);margin-bottom:12px"><div class="inner">
+  <a class="brand" href="s05-employer-jobs.html">Job<span>Board</span> <span class="chip grey" style="vertical-align:middle">Employer area</span></a>
+  <nav>
+    <a href="s05-employer-jobs.html" class="current">My job posts</a>
+  </nav>
+  <div class="user"><span class="who">Northwind Digital</span> <span class="chip">Employer</span> <a class="btn secondary small" href="s08-sign-in.html#signed-out">Sign out</a></div>
+</div></header>
+</div>
+  <ul class="notes-list">
+    <li>Searching needs no sign-in. Only applying and the employer area do.</li>
+    <li>The right of the header changes with who is signed in: a Sign in button, or the person's name, role and a Sign out button. There is no Register link, because accounts are pre-created.</li>
+    <li>Both fields empty shows every job, newest first (UC-01 2a). This is the default view above.</li>
+    <li>Each card shows exactly what UC-01 step 4 asks for: title, company, location, short summary, date posted. Work type and salary are bonus context.</li>
+    <li>Salary is optional, so cards without one simply leave it out (see Data Analyst).</li>
+    <li>The whole card is the link to S-02 – a bigger click target than just the title.</li>
+  </ul>
+</div>
+</main>
+<div class="site-footer">Static design mockup – sample data only, nothing here is saved.</div>
+</body>
+</html>

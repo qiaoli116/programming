@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>My job posts – Job Board (design mockup)</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="mockbar">
+  <span>Design mockup · iteration 1</span>
+  <b>S-05 Employer: my job posts</b>
+  <span>Use case: UC-05, UC-06, UC-07</span>
+  <span class="spacer"></span>
+  <a href="s04-my-applications.html">◂ S-04</a> <a href="s06-job-form.html">S-06 ▸</a>
+  <a href="../../process.html#iteration-1">Process document ↗</a>
+</div>
+<header class="site-header"><div class="inner">
+  <a class="brand" href="s05-employer-jobs.html">Job<span>Board</span> <span class="chip grey" style="vertical-align:middle">Employer area</span></a>
+  <nav>
+    <a href="s05-employer-jobs.html" class="current">My job posts</a>
+  </nav>
+  <div class="user"><span class="who">Northwind Digital</span> <span class="chip">Employer</span> <a class="btn secondary small" href="s08-sign-in.html#signed-out">Sign out</a></div>
+</div></header>
+<main>
+  <div class="page-head">
+    <div><h1>My job posts</h1><div class="muted">Northwind Digital · 5 posts</div></div>
+    <a class="btn" href="s06-job-form.html">+ Post a job</a>
+  </div>
+  <table class="data">
+    <thead><tr><th>Job</th><th>Location</th><th>Posted</th><th>Applications</th><th></th></tr></thead>
+    <tbody><tr><td><b>Frontend Developer</b></td><td>Melbourne VIC</td><td>2 days ago</td><td><a href="s07-applications.html">4 applications</a></td><td class="actions"><a class="btn secondary small" href="s06-job-form.html#edit">Edit</a></td></tr><tr><td><b>Backend Developer</b></td><td>Melbourne VIC</td><td>6 days ago</td><td><a href="s07-applications.html">2 applications</a></td><td class="actions"><a class="btn secondary small" href="s06-job-form.html#edit">Edit</a></td></tr><tr><td><b>UX Designer</b></td><td>Sydney NSW</td><td>1 week ago</td><td><a href="s07-applications.html">0 applications</a></td><td class="actions"><a class="btn secondary small" href="s06-job-form.html#edit">Edit</a></td></tr><tr><td><b>QA Engineer</b></td><td>Brisbane QLD</td><td>2 weeks ago</td><td><a href="s07-applications.html">3 applications</a></td><td class="actions"><a class="btn secondary small" href="s06-job-form.html#edit">Edit</a></td></tr><tr><td><b>Data Engineer</b></td><td>Remote</td><td>3 weeks ago</td><td><a href="s07-applications.html">1 application</a></td><td class="actions"><a class="btn secondary small" href="s06-job-form.html#edit">Edit</a></td></tr></tbody>
+  </table>
+<div class="design-notes"><h2>Design notes</h2>
+<div class="state"><span class="label">Empty state – before anyone has posted a job</span>
+  <div class="card empty"><b>No job posts yet</b>Post your first job so seekers can find it.<br><br><a class="btn" href="s06-job-form.html">+ Post a job</a></div>
+</div>
+<div class="state"><span class="label">Alternative state · not signed in – opening this page signed out</span>
+  <div class="notice info"><b>Please sign in to continue.</b> <a href="s08-sign-in.html">Go to Sign in</a></div>
+</div><div class="state"><span class="label">Alternative state · signed in as a seeker – the employer area is not for them</span>
+  <div class="card empty"><b>This area is for employer accounts</b>You are signed in as a job seeker. <a href="s01-search.html">Back to job search</a></div>
+</div>
+  <ul class="notes-list">
+    <li>This one screen is the starting point for three use cases: “Post a job” (UC-05), “Edit” (UC-06) and the applications link (UC-07).</li>
+    <li>The application count is a link, so the employer can see at a glance which posts have attracted interest.</li>
+    <li>This lists only the <b>signed-in employer's own</b> posts. Other companies' posts never appear here, and the company name is shown once at the top.</li>
+  </ul>
+</div>
+</main>
+<div class="site-footer">Static design mockup – sample data only, nothing here is saved.</div>
+</body>
+</html>

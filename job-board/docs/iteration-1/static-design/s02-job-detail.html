@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Job detail – Job Board (design mockup)</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="mockbar">
+  <span>Design mockup · iteration 1</span>
+  <b>S-02 Job detail</b>
+  <span>Use case: UC-02</span>
+  <span class="spacer"></span>
+  <a href="s01-search.html">◂ S-01</a> <a href="s03-apply.html">S-03 ▸</a>
+  <a href="../../process.html#iteration-1">Process document ↗</a>
+</div>
+<header class="site-header"><div class="inner">
+  <a class="brand" href="s01-search.html">Job<span>Board</span></a>
+  <nav>
+    <a href="s01-search.html" class="current">Find jobs</a>
+  </nav>
+  <div class="user"><a class="btn small" href="s08-sign-in.html">Sign in</a></div>
+</div></header>
+<main>
+  <div class="crumbs"><a href="s01-search.html">← Back to search results</a></div>
+  <div class="detail">
+    <div>
+      <div class="card">
+        <h1>Frontend Developer</h1>
+        <div style="font-weight:600">Northwind Digital</div>
+        <div class="meta"><span>📍 Melbourne VIC</span><span class="chip">Full-time</span><span>💰 $90k – $110k</span><span>Posted 2 days ago</span></div>
+      </div>
+      <div class="card">
+        <h2 style="margin-top:0">About the role</h2>
+        <p>Northwind Digital is looking for a Frontend Developer to join our product team. You will build and maintain customer-facing web applications, turn designs into fast, accessible interfaces and work closely with designers and backend engineers.</p>
+        <p>We are a team of twelve with a relaxed, collaborative culture, flexible hours and two days a week in our Melbourne CBD office.</p>
+        <h2>Requirements</h2>
+        <ul>
+          <li>2+ years building web apps with HTML, CSS and JavaScript</li>
+          <li>Experience with a modern framework (React, Vue or similar)</li>
+          <li>Care for accessibility and clean, readable code</li>
+          <li>Good communication and a willingness to learn</li>
+        </ul>
+      </div>
+    </div>
+    <aside>
+      <div class="card">
+        <h3>Interested?</h3>
+        <p class="small muted">You need to be signed in as a job seeker to apply.</p>
+        <a class="btn" style="width:100%;text-align:center" href="s08-sign-in.html#apply">Sign in to apply</a>
+      </div>
+    </aside>
+  </div>
+<div class="design-notes"><h2>Design notes</h2>
+<div class="state"><span class="label">Alternative state · UC-02 1a – job does not exist</span>
+  <div class="card empty"><b>Job not found</b>This job may have been removed, or the link is wrong.<br><br><a class="btn secondary" href="s01-search.html">Search for jobs</a></div>
+</div>
+<div class="state"><span class="label">Alternative state · UC-03 – a signed-in seeker sees the Apply button</span>
+  <div class="card" style="max-width:280px"><h3>Interested?</h3><p class="small muted">It takes about two minutes.</p>
+  <a class="btn" style="width:100%;text-align:center" href="s03-apply.html">Apply for this job</a></div>
+</div>
+  <ul class="notes-list">
+    <li>This mockup is shown signed out, because job details are public. The button changes to “Apply for this job” once a seeker is signed in (state above).</li>
+    <li>Shows every field UC-02 lists: title, company, location, work type, salary (if given), description, requirements.</li>
+    <li>“Apply” is the one strong button on the page and stays visible beside the text on wide screens. On a phone it moves below the description.</li>
+    <li>Salary is shown only when the employer provided one.</li>
+  </ul>
+</div>
+</main>
+<div class="site-footer">Static design mockup – sample data only, nothing here is saved.</div>
+</body>
+</html>

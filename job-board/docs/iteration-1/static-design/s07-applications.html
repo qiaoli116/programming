@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Applications – Job Board (design mockup)</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="mockbar">
+  <span>Design mockup · iteration 1</span>
+  <b>S-07 Applications for a job</b>
+  <span>Use case: UC-07</span>
+  <span class="spacer"></span>
+  <a href="s06-job-form.html">◂ S-06</a> <a href="s08-sign-in.html">S-08 ▸</a>
+  <a href="../../process.html#iteration-1">Process document ↗</a>
+</div>
+<header class="site-header"><div class="inner">
+  <a class="brand" href="s05-employer-jobs.html">Job<span>Board</span> <span class="chip grey" style="vertical-align:middle">Employer area</span></a>
+  <nav>
+    <a href="s05-employer-jobs.html" class="current">My job posts</a>
+  </nav>
+  <div class="user"><span class="who">Northwind Digital</span> <span class="chip">Employer</span> <a class="btn secondary small" href="s08-sign-in.html#signed-out">Sign out</a></div>
+</div></header>
+<main>
+  <div class="crumbs"><a href="s05-employer-jobs.html">← Back to my job posts</a></div>
+  <div class="page-head">
+    <div><h1>Applications</h1><div><b>Frontend Developer</b> · Northwind Digital · Melbourne VIC</div></div>
+    <a class="btn secondary" href="s06-job-form.html#edit">Edit this post</a>
+  </div>
+  <p class="muted">4 applications</p>
+  <table class="data">
+    <thead><tr><th>Applicant</th><th>Email</th><th>Date applied</th><th></th></tr></thead>
+    <tbody><tr><td><b>Alex Chen</b></td><td>alex.chen@example.com</td><td>12 Oct 2026</td><td class="actions"><a class="btn secondary small" href="#open">View</a></td></tr><tr><td><b>Priya Nair</b></td><td>priya.nair@example.com</td><td>11 Oct 2026</td><td class="actions"><a class="btn secondary small" href="#open">View</a></td></tr><tr><td><b>Tom Becker</b></td><td>tom.becker@example.com</td><td>10 Oct 2026</td><td class="actions"><a class="btn secondary small" href="#open">View</a></td></tr><tr><td><b>Maria Santos</b></td><td>maria.s@example.com</td><td>8 Oct 2026</td><td class="actions"><a class="btn secondary small" href="#open">View</a></td></tr></tbody>
+  </table>
+
+  <div class="card" id="open" style="margin-top:20px;border-color:var(--accent)">
+    <div class="page-head" style="margin-bottom:6px"><h2 style="margin:0">Alex Chen</h2><span class="muted small">Applied 12 Oct 2026</span></div>
+    <div class="meta"><span>✉ alex.chen@example.com</span><span>☎ 0400 000 000</span></div>
+    <h3 style="margin-top:12px">Cover letter</h3>
+    <p>Hi team – I have three years of experience building React apps and care a lot about accessibility. At my current job I rebuilt our checkout flow, which cut drop-off by 18%. I would love to bring that same attention to detail to Northwind Digital.</p>
+    <p style="margin:0">Kind regards,<br>Alex</p>
+  </div>
+<div class="design-notes"><h2>Design notes</h2>
+<div class="state"><span class="label">Alternative state · UC-07 2a – no applications yet</span>
+  <div class="card empty"><b>No applications yet</b>When job seekers apply, they will appear here.</div>
+</div>
+<div class="state"><span class="label">Alternative state · UC-07 1a – the post belongs to another employer</span>
+  <div class="card empty"><b>You cannot view these applications</b>You can only see applications for your own job posts. <a href="s05-employer-jobs.html">Back to my job posts</a></div>
+</div>
+  <ul class="notes-list">
+    <li>List first, detail second, as in UC-07 steps 2 and 3. The opened application is shown below the list in this mockup; in the real app it could be a separate view or expand in place.</li>
+    <li>Name and email come from each applicant's account.</li>
+    <li>Contact details are visible straight away. That is open question 3 for the client.</li>
+    <li>There is no status (shortlisted, rejected) – deferred in Stage 1.</li>
+  </ul>
+</div>
+</main>
+<div class="site-footer">Static design mockup – sample data only, nothing here is saved.</div>
+</body>
+</html>

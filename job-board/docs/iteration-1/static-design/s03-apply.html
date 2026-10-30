@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Apply – Job Board (design mockup)</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="mockbar">
+  <span>Design mockup · iteration 1</span>
+  <b>S-03 Apply form</b>
+  <span>Use case: UC-03 (needs UC-08)</span>
+  <span class="spacer"></span>
+  <a href="s02-job-detail.html">◂ S-02</a> <a href="s04-my-applications.html">S-04 ▸</a>
+  <a href="../../process.html#iteration-1">Process document ↗</a>
+</div>
+<header class="site-header"><div class="inner">
+  <a class="brand" href="s01-search.html">Job<span>Board</span></a>
+  <nav>
+    <a href="s01-search.html" class="current">Find jobs</a>
+    <a href="s04-my-applications.html">My applications</a>
+  </nav>
+  <div class="user"><span class="who">Alex Chen</span> <span class="chip">Seeker</span> <a class="btn secondary small" href="s08-sign-in.html#signed-out">Sign out</a></div>
+</div></header>
+<main>
+  <div class="crumbs"><a href="s02-job-detail.html">← Back to job</a></div>
+  <div class="card" style="background:var(--accent-soft);border-color:#a7d7d2">
+    <span class="muted small">You are applying for</span>
+    <h3 style="font-size:1.15rem">Frontend Developer · Northwind Digital</h3>
+    <span class="muted small">Melbourne VIC · Full-time</span>
+  </div>
+  <div class="card">
+    <h1>Your application</h1>
+    <p class="muted" style="margin-bottom:14px">Applying as <b>Alex Chen</b> · alex.chen@example.com <span class="small">(from your account)</span></p>
+    <form onsubmit="return false">
+      <div class="field"><label for="p">Phone <span class="muted">(optional)</span></label><input id="p" type="tel" placeholder="e.g. 0400 000 000"></div>
+      <div class="field"><label for="c">Cover letter <span class="req">*</span></label>
+        <textarea id="c" placeholder="Tell the employer why you are a good fit."></textarea></div>
+      <a class="btn" href="s03-apply.html#sent">Send application</a>
+      <a class="btn secondary" href="s02-job-detail.html">Cancel</a>
+    </form>
+  </div>
+<div class="design-notes"><h2>Design notes</h2>
+<div class="state"><span class="label">Alternative state · UC-03 1a – not signed in (what a signed-out visitor sees instead)</span>
+  <div class="notice info"><b>Please sign in to apply.</b> You will come straight back to this job. <a href="s08-sign-in.html#apply">Go to Sign in</a></div>
+</div><div class="state"><span class="label">Alternative state · UC-03 4a – validation error (what the seeker typed is kept)</span>
+  <div class="notice err"><b>Please fix the highlighted fields.</b></div>
+  <div class="field"><label>Phone <span class="muted">(optional)</span></label><input type="tel" value="0400 000 000"></div>
+  <div class="field error"><label>Cover letter <span class="req">*</span></label><textarea></textarea><div class="err">Please write a short cover letter.</div></div>
+</div><div class="state"><span class="label">Alternative state · UC-03 4b – already applied to this job</span>
+  <div class="notice info"><b>You have already applied for this job</b> on 12 Oct 2026. <a href="s04-my-applications.html">View my applications</a></div>
+</div><div class="state"><span class="label">Success state · UC-03 step 5 – confirmation</span>
+  <div class="notice ok" id="sent"><b>Your application has been sent.</b><br>Frontend Developer at Northwind Digital.</div>
+  <p><a class="btn" href="s04-my-applications.html">View my applications</a> <a class="btn secondary" href="s01-search.html">Keep searching</a></p>
+</div>
+  <ul class="notes-list">
+    <li>The job being applied for is repeated at the top so the seeker never loses track of it.</li>
+    <li>Name and email are no longer typed: they come from the signed-in account, so only phone (optional) and the cover letter remain.</li>
+    <li>The “already applied” rule now works on the account, not on an email typed into the form.</li>
+  </ul>
+</div>
+</main>
+<div class="site-footer">Static design mockup – sample data only, nothing here is saved.</div>
+</body>
+</html>

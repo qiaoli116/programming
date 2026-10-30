@@ -1,0 +1,1534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Job Board – Development Process</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --card: #ffffff; --text: #1d2330; --muted: #5d6677; --line: #dde1e8;
+    --accent: #2563eb; --accent-soft: #e3ecff;
+    --must: #b42318; --must-bg: #fde8e6;
+    --should: #b54708; --should-bg: #fdf0dc;
+    --could: #175cd3; --could-bg: #e3ecff;
+    --wont: #5d6677; --wont-bg: #eceef2;
+    --done: #067647;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12151c; --card: #1a1f2a; --text: #e6e9ef; --muted: #9aa3b5; --line: #2c3342;
+      --accent: #6b9bff; --accent-soft: #1d2a47;
+      --must: #ff9a8f; --must-bg: #3a1f1d;
+      --should: #f5b46a; --should-bg: #3a2c17;
+      --could: #8ab4ff; --could-bg: #1d2a47;
+      --wont: #9aa3b5; --wont-bg: #262c39;
+      --done: #4ade80;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+  .layout { display: grid; grid-template-columns: 260px minmax(0, 1fr); min-height: 100vh; }
+  .content { min-width: 0; }
+  main { max-width: 980px; margin: 0 auto; padding: 0 28px; }
+  .panel { padding-top: 32px; padding-bottom: 20px; }
+  .panel + .panel { margin-top: 20px; }
+  .js .panel + .panel { margin-top: 0; }
+  [hidden] { display: none !important; }
+  code { font: .85em ui-monospace, Consolas, monospace; background: var(--wont-bg); padding: 1px 5px; border-radius: 4px; }
+  .dash { color: var(--muted); }
+
+  /* ---- compact stage bar: appears when the big tracker scrolls out of view ---- */
+  .stagebar { display: none; position: fixed; top: 0; left: 260px; right: 0; z-index: 20; gap: 6px;
+    padding: 8px 28px; background: var(--card); border-bottom: 1px solid var(--line);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, .15); flex-wrap: wrap; justify-content: center; }
+  .stagebar.visible { display: flex; }
+  .stagebar a { flex: 0 1 auto; text-align: center; padding: 4px 12px; border: 1px solid var(--line); border-radius: 8px;
+    font-size: .85rem; font-weight: 600; white-space: nowrap; text-decoration: none; }
+  .stagebar a:hover { border-color: var(--accent); color: inherit; }
+  .stagebar .grp { display: inline-flex; flex: 0 0 auto; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .stagebar .grp:has(a.current) { border-color: var(--accent); }
+  .stagebar .grp a { border: 0; border-radius: 0; }
+  .stagebar .grp a + a { border-left: 1px solid var(--line); }
+  .stagebar a.current { border-color: var(--accent); background: var(--accent-soft); }
+  .stagebar a.done::before { content: "✓ "; color: var(--done); }
+  h2, h3, h4, details.uc { scroll-margin-top: 64px; }
+
+  @media (max-width: 1100px) { h2, h3, h4, details.uc { scroll-margin-top: 100px; } }
+
+  /* ---- sidebar tabs ---- */
+  .sidebar { position: sticky; top: 0; height: 100vh; overflow-y: auto; background: var(--card); border-right: 1px solid var(--line); padding: 22px 14px; }
+  .brand { padding: 0 10px 14px; border-bottom: 1px solid var(--line); margin-bottom: 6px; }
+  .brand b { display: block; font-size: 1.15rem; }
+  .brand span { color: var(--muted); font-size: .85rem; }
+  .group-label { margin: 18px 10px 6px; color: var(--muted); font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; }
+  .tab { display: block; padding: 8px 10px; margin: 2px 0; border-radius: 8px; border-left: 3px solid transparent; text-decoration: none; }
+  .tab b { display: block; font-size: .95rem; }
+  .tab span { display: block; color: var(--muted); font-size: .78rem; line-height: 1.3; }
+  .tab:hover { background: var(--bg); color: inherit; }
+  .tab.active { background: var(--accent-soft); border-left-color: var(--accent); }
+  @media (max-width: 800px) {
+    .layout { grid-template-columns: 1fr; }
+    .stagebar { left: 0; padding: 8px 12px; }
+    .sidebar { position: static; height: auto; border-right: 0; border-bottom: 1px solid var(--line); }
+    main { padding: 0 16px; }
+  }
+  h1 { margin: 0 0 4px; font-size: 1.9rem; }
+  h2 { margin: 40px 0 8px; font-size: 1.35rem; padding-bottom: 6px; border-bottom: 2px solid var(--line); }
+  h3 { margin: 20px 0 6px; font-size: 1.05rem; }
+  h4 { margin: 18px 0 6px; font-size: .98rem; }
+  .options { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px; margin: 10px 0 6px; }
+  .opt { position: relative; display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; font-size: .88rem; }
+  .opt:has(input:not(:disabled)):hover { border-color: var(--accent); }
+  .opt input { position: absolute; opacity: 0; pointer-events: none; }
+  .opt:has(input:checked) { border: 2px solid var(--accent); background: var(--accent-soft); padding: 11px 13px; }
+  .opt:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .opt-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+  .opt-name { font-weight: 700; font-size: .98rem; }
+  .opt-what { color: var(--muted); }
+  .pc { display: block; padding-left: 14px; text-indent: -14px; }
+  .pc.plus { color: var(--done); }
+  .pc.minus { color: var(--muted); }
+  .chosen-line { margin: 4px 0 0; font-size: .9rem; color: var(--muted); }
+  .decision.is-chosen .chosen-line { color: var(--accent); }
+  .decision { margin-top: 26px; }
+  details.draft { margin: 30px 0 0; padding: 10px 16px; border: 1px dashed var(--line); border-radius: 10px; }
+  details.draft summary { cursor: pointer; color: var(--muted); font-weight: 600; }
+  h3.phase { margin: 34px 0 8px; padding: 10px 14px; font-size: 1.12rem; background: var(--card); border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 0 8px 8px 0; }
+  .phases { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; list-style: none; padding: 0; margin: 16px 0 0; }
+  .phases li { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; position: relative; }
+  .phases li:hover { border-color: var(--accent); }
+  .phases .n { display: block; color: var(--muted); font-size: .72rem; text-transform: uppercase; letter-spacing: .05em; }
+  .phases b { display: block; font-size: 1rem; }
+  .phases b a { text-decoration: none; }
+  .phases b a::after { content: ""; position: absolute; inset: 0; border-radius: 10px; }
+  .phases p { margin: 4px 0 0; font-size: .88rem; color: var(--muted); }
+  @media (max-width: 760px) { .phases { grid-template-columns: 1fr; } }
+  p, li { max-width: 75ch; }
+  a { color: inherit; text-decoration: underline; text-decoration-color: var(--muted); text-underline-offset: 3px; }
+  a:hover { color: var(--accent); text-decoration-color: var(--accent); }
+  .sub { color: var(--muted); margin: 0; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px 20px; margin: 12px 0; }
+  .note { border-left: 4px solid var(--accent); background: var(--accent-soft); padding: 10px 16px; border-radius: 0 8px 8px 0; margin: 14px 0; }
+
+  /* ---- stage tracker ---- */
+  .stages { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; list-style: none; padding: 0; margin: 20px 0 0; }
+  .stages li { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; font-size: .85rem; position: relative; }
+  .stages .n { display: block; color: var(--muted); font-size: .72rem; text-transform: uppercase; letter-spacing: .05em; }
+  .stages b { display: block; font-size: .95rem; }
+  .stages .state { display: block; margin-top: 4px; color: var(--muted); font-size: .75rem; }
+  .stages li.current { border: 2px solid var(--accent); background: var(--accent-soft); }
+  .stages li a { text-decoration: none; }
+  .stages li a::after { content: ""; position: absolute; inset: 0; border-radius: 10px; }
+  .stages li:hover { border-color: var(--accent); }
+  .stages li.multi a::after { display: none; }
+  .stages .links { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+  .stages .links a { position: relative; z-index: 1; flex: 1; text-align: center; padding: 2px 6px; border: 1px solid var(--line); border-radius: 6px; font-size: .78rem; font-weight: 600; background: var(--bg); }
+  .stages .links a:hover { border-color: var(--accent); color: var(--accent); }
+  html { scroll-behavior: smooth; }
+  .stages li.current .state { color: var(--accent); font-weight: 600; }
+  .stages li.done .state { color: var(--done); }
+  @media (max-width: 760px) { .stages { grid-template-columns: repeat(2, 1fr); } }
+
+  /* ---- tables ---- */
+  table { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; font-size: .92rem; }
+  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { background: var(--bg); font-size: .78rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+  tr:last-child td { border-bottom: 0; }
+  td.dash { color: var(--muted); }
+
+  .tag { display: inline-block; padding: 1px 9px; border-radius: 99px; font-size: .75rem; font-weight: 600; white-space: nowrap; }
+  .must { color: var(--must); background: var(--must-bg); }
+  .should { color: var(--should); background: var(--should-bg); }
+  .could { color: var(--could); background: var(--could-bg); }
+  .tag.done { color: var(--done); background: var(--wont-bg); }
+  .wont { color: var(--wont); background: var(--wont-bg); }
+  .id { font-family: ui-monospace, Consolas, monospace; font-size: .85rem; color: var(--muted); white-space: nowrap; }
+
+  /* ---- use cases ---- */
+  details.uc { background: var(--card); border: 1px solid var(--line); border-radius: 10px; margin: 10px 0; }
+  details.uc > summary { cursor: pointer; padding: 12px 18px; display: flex; gap: 12px; align-items: center; list-style: none; }
+  details.uc > summary::-webkit-details-marker { display: none; }
+  details.uc > summary::before { content: "▸"; color: var(--muted); transition: transform .15s; }
+  details.uc[open] > summary::before { transform: rotate(90deg); }
+  details.uc > summary .title { font-weight: 600; flex: 1; }
+  .uc-body { padding: 0 18px 16px 42px; border-top: 1px solid var(--line); }
+  dl { display: grid; grid-template-columns: 140px 1fr; gap: 6px 14px; margin: 12px 0 0; }
+  dt { color: var(--muted); font-size: .85rem; text-transform: uppercase; letter-spacing: .03em; padding-top: 2px; }
+  dd { margin: 0; }
+  dd ol, dd ul { margin: 0; padding-left: 20px; }
+  @media (max-width: 600px) { dl { grid-template-columns: 1fr; } .uc-body { padding-left: 18px; } }
+
+  pre.diagram { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px 18px; overflow-x: auto; font: .85rem/1.45 ui-monospace, Consolas, monospace; }
+  .stage-card h3 { margin-top: 0; }
+  .stage-card.current { border: 2px solid var(--accent); }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 700px) { .cols { grid-template-columns: 1fr; } }
+  footer { max-width: 980px; margin: 40px auto; padding: 0 28px; color: var(--muted); font-size: .85rem; }
+  @media print { details.uc:not([open]) > .uc-body { display: block; } .sidebar, .stagebar { display: none !important; } .layout { display: block; } .panel[hidden] { display: block !important; } }
+</style>
+</head>
+<body>
+
+<div class="layout">
+<nav class="sidebar" aria-label="Iterations">
+  <div class="brand">
+    <b>Job Board</b>
+    <span>Development process</span>
+  </div>
+  <div class="group-label">Guide</div>
+  <a class="tab" href="#overview"><b>Process overview</b><span>The six stages</span></a>
+  <div class="group-label">Iterations</div>
+  <a class="tab" href="#iteration-1"><b>Iteration 1</b><span>Minimal prototype · Stage 2 Design (2A / 2B / 2C)</span></a>
+  <div class="group-label">Reuse</div>
+  <a class="tab" href="#template"><b>Template</b><span>Blank skeleton for new iterations</span></a>
+</nav>
+
+<div class="content">
+<main>
+
+<section class="panel" id="overview">
+<h1>Process overview</h1>
+<p class="sub">How every iteration of the Job Board prototype is run.</p>
+<!-- ============================ STAGES ============================ -->
+<h2 id="stages">The development cycle</h2>
+<p>Every software project moves through the same broad stages. Each pass around the loop is an <b>iteration</b>. Every iteration has its own tab on the left and uses the <b>same template</b>, so the process stays the same while the scope changes. These pages are our single record of what we decided at each stage and why.</p>
+
+<div class="card stage-card">
+  <h3>Stage 1 – Requirements</h3>
+  <p><b>Question answered:</b> <i>What should the system do, and for whom?</i></p>
+  <p><b>Output:</b> a list of actors and use cases, each with a priority, agreed with the "client" (the class). See the Requirements section of an iteration.</p>
+</div>
+<div class="card stage-card">
+  <h3>Stage 2 – Design</h3>
+  <p><b>Question answered:</b> <i>How will it be structured and what will it look like?</i></p>
+  <p><b>Output:</b> done in three phases. <b>2A Graphic design:</b> screens, navigation and clickable mockups of what the user sees. <b>2B Software design:</b> data model, web technology decisions, code structure and the functions we will build. <b>2C Test plan:</b> how we will prove it works. See the Design section of an iteration.</p>
+</div>
+<div class="card stage-card">
+  <h3>Stage 3 – Implementation</h3>
+  <p><b>Question answered:</b> <i>Can we build it?</i></p>
+  <p><b>Output:</b> working code for the "Must have" use cases, built in small steps, one use case at a time.</p>
+</div>
+<div class="card stage-card">
+  <h3>Stage 4 – Testing</h3>
+  <p><b>Question answered:</b> <i>Does it do what the requirements said?</i></p>
+  <p><b>Output:</b> for each use case, a check that its main flow and alternative flows actually work.</p>
+</div>
+<div class="card stage-card">
+  <h3>Stage 5 – Deployment</h3>
+  <p><b>Question answered:</b> <i>How do real users get it?</i></p>
+  <p><b>Output:</b> the prototype published at a URL (for example GitHub Pages).</p>
+</div>
+<div class="card stage-card">
+  <h3>Stage 6 – Review &amp; Maintenance</h3>
+  <p><b>Question answered:</b> <i>What did we learn, and what comes next?</i></p>
+  <p><b>Output:</b> a retrospective, and the deferred ideas that become the next cycle's requirements.</p>
+</div>
+
+<div class="note">
+  <b>Teaching point:</b> real projects rarely go in a straight line. Testing often reveals a missing requirement, which sends us back to Stage 1. Each stage's output is the next stage's input, which is why we write things down.
+</div>
+
+
+</section>
+
+<section class="panel" id="iteration-1">
+<h1>Iteration 1 – Minimal job board prototype</h1>
+<p class="sub"><b>Goal:</b> the smallest complete loop – an employer posts a job, a seeker finds it and applies, and both can see the result.</p>
+<ol class="stages" aria-label="Development stages">
+    <li class="done"><span class="n">Stage 1</span><b><a href="#i1-requirements">Requirements</a></b><span class="state">✓ Done</span></li>
+    <li class="current multi"><span class="n">Stage 2</span><b>Design</b><span class="links"><a href="#i1-design-graphic" data-bar="Graphic design" data-state="done">Graphic</a><a href="#i1-design-software" data-bar="Software design" data-state="current">Software</a><a href="#i1-design-testplan" data-bar="Test plan">Test plan</a></span><span class="state">2A ✓ · 2B ● · 2C ●</span></li>
+    <li><span class="n">Stage 3</span><b><a href="#i1-stage3">Implementation</a></b><span class="state">Planned</span></li>
+    <li><span class="n">Stage 4</span><b><a href="#i1-stage4">Testing</a></b><span class="state">Planned</span></li>
+    <li><span class="n">Stage 5</span><b><a href="#i1-stage5">Deployment</a></b><span class="state">Planned</span></li>
+    <li><span class="n">Stage 6</span><b><a href="#i1-stage6">Review &amp; Maintenance</a></b><span class="state">Planned</span></li>
+  </ol>
+
+<!-- ============================ REQUIREMENTS ============================ -->
+<h2 id="i1-requirements">Stage 1 – Requirements (use cases) <span class="tag done">done</span></h2>
+<div class="note"><b>Stage 1 signed off.</b> The requirements below are frozen for this cycle: all Must. Changes from now on go through the decision log. <b>Revised once, for sign-in (decision 18):</b> UC-08 and UC-09 were added, and UC-03 to UC-07 now assume signed-in users. They are marked <span class="tag should">revised</span>.</div>
+
+<h3>What is a use case?</h3>
+<p>A use case describes <b>one goal that one kind of user wants to achieve</b> with the system, written as a short story of steps. It says <i>what</i> the user and system do – not <i>how</i> it is coded. Because it is plain language, the client and developers can both read and agree on it.</p>
+
+<div class="card">
+  <p style="margin:0"><b>Anatomy of a use case on this page</b></p>
+  <ul style="margin:6px 0 0">
+    <li><b>Actor</b> – who wants the goal.</li>
+    <li><b>Goal</b> – what they want to achieve, in one sentence.</li>
+    <li><b>Preconditions</b> – what must be true before it can start.</li>
+    <li><b>Main flow</b> – the "everything goes right" steps.</li>
+    <li><b>Alternative flows</b> – what happens when something differs or goes wrong.</li>
+    <li><b>Postconditions</b> – what is true when it ends successfully.</li>
+    <li><b>Priority</b> – chosen with MoSCoW (below).</li>
+  </ul>
+</div>
+
+<h3>Actors</h3>
+<table>
+  <thead><tr><th>Actor</th><th>Who they are</th><th>In prototype?</th></tr></thead>
+  <tbody>
+    <tr><td><b>Job Seeker</b></td><td>Someone looking for work. Searching and reading jobs needs no sign-in; applying and viewing their applications need one. Has a pre-created account.</td><td>Yes</td></tr>
+    <tr><td><b>Employer</b></td><td>A company representative who advertises jobs and reads applications. Must sign in. Has a pre-created account that holds the company name.</td><td>Yes</td></tr>
+    <tr><td><b>Administrator</b></td><td>Platform staff who moderate listings and users.</td><td class="dash">No – next cycle</td></tr>
+  </tbody>
+</table>
+
+<h3>Scope: a minimal prototype</h3>
+<p>We deliberately keep the system as small as possible while still being a complete loop: an employer posts a job, a seeker finds it and applies, and both sides can see the result.</p>
+<div class="cols">
+  <div class="card">
+    <b>Job Seeker can…</b>
+    <ul style="margin:6px 0 0">
+      <li>search for jobs</li>
+      <li>view a job</li>
+      <li>sign in and sign out</li>
+      <li>apply for a job</li>
+      <li>see the list of jobs they applied for</li>
+    </ul>
+  </div>
+  <div class="card">
+    <b>Employer can…</b>
+    <ul style="margin:6px 0 0">
+      <li>sign in and sign out</li>
+      <li>post a job</li>
+      <li>edit their own job posts</li>
+      <li>see the applications for their own jobs</li>
+    </ul>
+  </div>
+</div>
+
+<h3>Prioritising with MoSCoW</h3>
+<p>Every candidate use case was given a priority. After cutting back to the minimum, everything that remains is <span class="tag must">Must</span> (the prototype is pointless without it). The rest went into the <span class="tag wont">Won't (yet)</span> list below – deliberately left for a later cycle. The two middle categories, <span class="tag should">Should</span> (important, build if time allows) and <span class="tag could">Could</span> (nice to have), are empty for now.</p>
+
+<h3>Use case overview</h3>
+<table>
+  <thead><tr><th>ID</th><th>Use case</th><th>Actor</th><th>Priority</th></tr></thead>
+  <tbody>
+    <tr><td class="id">UC-01</td><td><a href="#i1-uc-01">Search for jobs</a></td><td>Job Seeker</td><td><span class="tag must">Must</span></td></tr>
+    <tr><td class="id">UC-02</td><td><a href="#i1-uc-02">View job details</a></td><td>Job Seeker</td><td><span class="tag must">Must</span></td></tr>
+    <tr><td class="id">UC-03</td><td><a href="#i1-uc-03">Apply for a job</a></td><td>Job Seeker</td><td><span class="tag must">Must</span></td></tr>
+    <tr><td class="id">UC-04</td><td><a href="#i1-uc-04">View my applications</a></td><td>Job Seeker</td><td><span class="tag must">Must</span></td></tr>
+    <tr><td class="id">UC-05</td><td><a href="#i1-uc-05">Post a job</a></td><td>Employer</td><td><span class="tag must">Must</span></td></tr>
+    <tr><td class="id">UC-06</td><td><a href="#i1-uc-06">Edit a job post</a></td><td>Employer</td><td><span class="tag must">Must</span></td></tr>
+    <tr><td class="id">UC-07</td><td><a href="#i1-uc-07">View applications for a job</a></td><td>Employer</td><td><span class="tag must">Must</span></td></tr>
+    <tr><td class="id">UC-08</td><td><a href="#i1-uc-08">Sign in</a></td><td>Job Seeker, Employer</td><td><span class="tag must">Must</span></td></tr>
+    <tr><td class="id">UC-09</td><td><a href="#i1-uc-09">Sign out</a></td><td>Job Seeker, Employer</td><td><span class="tag must">Must</span></td></tr>
+  </tbody>
+</table>
+<p class="sub">These priorities are a <b>proposal</b>. Part of today's exercise is for the class, acting as the client, to challenge them.</p>
+
+<h3>Use case details</h3>
+<p class="sub">Click a use case to expand it.</p>
+
+<!-- UC-01 -->
+<details class="uc" id="i1-uc-01" open>
+  <summary><span class="id">UC-01</span><span class="title">Search for jobs</span><span class="tag must">Must</span></summary>
+  <div class="uc-body"><dl>
+    <dt>Actor</dt><dd>Job Seeker (signing in is not required)</dd>
+    <dt>Goal</dt><dd>Find jobs that match what I'm looking for.</dd>
+    <dt>Preconditions</dt><dd>At least one job post exists in the system.</dd>
+    <dt>Main flow</dt><dd><ol>
+      <li>The seeker opens the home page.</li>
+      <li>The seeker types a keyword (job title, skill or company) and/or a location.</li>
+      <li>The seeker submits the search.</li>
+      <li>The system shows a list of matching jobs: title, company, location, short summary, date posted.</li>
+    </ol></dd>
+    <dt>Alternative flows</dt><dd><ul>
+      <li><b>2a. Both fields empty:</b> the system shows all jobs, newest first.</li>
+      <li><b>4a. No matches:</b> the system says nothing was found and suggests broadening the search.</li>
+    </ul></dd>
+    <dt>Postconditions</dt><dd>The seeker sees a results list; no data is changed.</dd>
+  </dl></div>
+</details>
+
+<!-- UC-02 -->
+<details class="uc" id="i1-uc-02">
+  <summary><span class="id">UC-02</span><span class="title">View job details</span><span class="tag must">Must</span></summary>
+  <div class="uc-body"><dl>
+    <dt>Actor</dt><dd>Job Seeker (signing in is not required)</dd>
+    <dt>Goal</dt><dd>Read the full description of a job to decide whether to apply.</dd>
+    <dt>Preconditions</dt><dd>The seeker has a job in front of them (from search results or a direct link).</dd>
+    <dt>Main flow</dt><dd><ol>
+      <li>The seeker selects a job from the results.</li>
+      <li>The system shows the full post: title, company, location, work type, salary (if given), description, requirements.</li>
+      <li>The page offers an "Apply" button and a way back to the results.</li>
+    </ol></dd>
+    <dt>Alternative flows</dt><dd><ul>
+      <li><b>1a. Job does not exist:</b> the system shows a "Job not found" message with a link to search again.</li>
+    </ul></dd>
+    <dt>Postconditions</dt><dd>The seeker has read the job; no data is changed.</dd>
+  </dl></div>
+</details>
+
+<!-- UC-03 -->
+<details class="uc" id="i1-uc-03">
+  <summary><span class="id">UC-03</span><span class="title">Apply for a job</span><span class="tag must">Must</span><span class="tag should">revised</span></summary>
+  <div class="uc-body"><dl>
+    <dt>Actor</dt><dd>Job Seeker (signed in)</dd>
+    <dt>Goal</dt><dd>Send my application to the employer.</dd>
+    <dt>Preconditions</dt><dd>The seeker is signed in (UC-08) and viewing a job (UC-02).</dd>
+    <dt>Main flow</dt><dd><ol>
+      <li>The seeker chooses "Apply".</li>
+      <li>The system shows an application form. It shows who is applying (name and email, taken from the seeker's account) and asks for a phone number (optional) and a cover letter.</li>
+      <li>The seeker fills in the form and submits it.</li>
+      <li>The system validates the form and records the application against the seeker's account.</li>
+      <li>The system confirms: "Your application has been sent."</li>
+    </ol></dd>
+    <dt>Alternative flows</dt><dd><ul>
+      <li><b>1a. Not signed in:</b> the system sends the seeker to sign in (UC-08) and then back to this job.</li>
+      <li><b>4a. Cover letter missing:</b> the system highlights the problem and keeps what the seeker already typed.</li>
+      <li><b>4b. The seeker has already applied to this job:</b> the system tells the seeker and does not create a duplicate.</li>
+    </ul></dd>
+    <dt>Postconditions</dt><dd>A new application is linked to the job and to the seeker's account, and is available to the job's employer (UC-07) and to the seeker (UC-04).</dd>
+  </dl></div>
+</details>
+
+<!-- UC-04 -->
+<details class="uc" id="i1-uc-04">
+  <summary><span class="id">UC-04</span><span class="title">View my applications</span><span class="tag must">Must</span><span class="tag should">revised</span></summary>
+  <div class="uc-body"><dl>
+    <dt>Actor</dt><dd>Job Seeker (signed in)</dd>
+    <dt>Goal</dt><dd>See the list of jobs I have applied for.</dd>
+    <dt>Preconditions</dt><dd>The seeker is signed in (UC-08). There is no need to type an email: the system knows who is signed in.</dd>
+    <dt>Main flow</dt><dd><ol>
+      <li>The seeker opens "My applications".</li>
+      <li>The system lists every application made by this seeker: job title, company, date applied.</li>
+      <li>The seeker can select an entry to view the job (UC-02).</li>
+    </ol></dd>
+    <dt>Alternative flows</dt><dd><ul>
+      <li><b>1a. Not signed in:</b> the system sends the seeker to sign in (UC-08).</li>
+      <li><b>2a. No applications yet:</b> the system says so and invites the seeker to search for jobs.</li>
+    </ul></dd>
+    <dt>Postconditions</dt><dd>No data is changed. A seeker never sees another seeker's applications.</dd>
+  </dl></div>
+</details>
+
+<!-- UC-05 -->
+<details class="uc" id="i1-uc-05">
+  <summary><span class="id">UC-05</span><span class="title">Post a job</span><span class="tag must">Must</span><span class="tag should">revised</span></summary>
+  <div class="uc-body"><dl>
+    <dt>Actor</dt><dd>Employer (signed in)</dd>
+    <dt>Goal</dt><dd>Advertise a vacancy so job seekers can find it.</dd>
+    <dt>Preconditions</dt><dd>The employer is signed in (UC-08) with an employer account.</dd>
+    <dt>Main flow</dt><dd><ol>
+      <li>The employer chooses "Post a job".</li>
+      <li>The system shows a form: title, location, work type, salary range (optional), description, requirements. The company name is filled in from the employer's account and cannot be changed.</li>
+      <li>The employer fills in and submits the form.</li>
+      <li>The system validates and saves the post, owned by this employer.</li>
+      <li>The system shows the new post as job seekers will see it.</li>
+    </ol></dd>
+    <dt>Alternative flows</dt><dd><ul>
+      <li><b>1a. Not signed in, or signed in as a seeker:</b> the system sends the user to sign in (UC-08) or says the area is for employers.</li>
+      <li><b>4a. Required field missing:</b> the system highlights it and keeps the other values.</li>
+    </ul></dd>
+    <dt>Postconditions</dt><dd>The job appears in search results (UC-01) under the employer's company name.</dd>
+  </dl></div>
+</details>
+
+<!-- UC-06 -->
+<details class="uc" id="i1-uc-06">
+  <summary><span class="id">UC-06</span><span class="title">Edit a job post</span><span class="tag must">Must</span><span class="tag should">revised</span></summary>
+  <div class="uc-body"><dl>
+    <dt>Actor</dt><dd>Employer (signed in)</dd>
+    <dt>Goal</dt><dd>Correct or update a job post after publishing it.</dd>
+    <dt>Preconditions</dt><dd>The employer is signed in (UC-08) and owns the post (UC-05).</dd>
+    <dt>Main flow</dt><dd><ol>
+      <li>The employer opens the employer area, which lists their own job posts.</li>
+      <li>The employer selects a post and chooses "Edit".</li>
+      <li>The system shows the same form as UC-05, filled with the current values.</li>
+      <li>The employer changes fields and saves.</li>
+      <li>The system validates and saves the changes.</li>
+    </ol></dd>
+    <dt>Alternative flows</dt><dd><ul>
+      <li><b>2a. The post belongs to another employer:</b> the system refuses ("You can only edit your own posts") and nothing is changed.</li>
+      <li><b>5a. Required field missing:</b> same behaviour as UC-05 step 4a; nothing is saved until it is fixed.</li>
+    </ul></dd>
+    <dt>Postconditions</dt><dd>Seekers see the updated post in search results and job details. Applications already received are kept.</dd>
+  </dl></div>
+</details>
+
+<!-- UC-07 -->
+<details class="uc" id="i1-uc-07">
+  <summary><span class="id">UC-07</span><span class="title">View applications for a job</span><span class="tag must">Must</span><span class="tag should">revised</span></summary>
+  <div class="uc-body"><dl>
+    <dt>Actor</dt><dd>Employer (signed in)</dd>
+    <dt>Goal</dt><dd>See who applied to my job.</dd>
+    <dt>Preconditions</dt><dd>The employer is signed in (UC-08) and owns the post (UC-05). Applications appear once seekers have applied (UC-03).</dd>
+    <dt>Main flow</dt><dd><ol>
+      <li>The employer opens the employer area and selects one of their posts.</li>
+      <li>The system lists the applications for that post: applicant name, email (both from the applicant's account), date applied.</li>
+      <li>The employer opens an application to read the full details and cover letter.</li>
+    </ol></dd>
+    <dt>Alternative flows</dt><dd><ul>
+      <li><b>1a. The post belongs to another employer:</b> the system refuses ("You cannot view these applications") and shows nothing.</li>
+      <li><b>2a. No applications yet:</b> the system says so.</li>
+    </ul></dd>
+    <dt>Postconditions</dt><dd>No data is changed.</dd>
+  </dl></div>
+</details>
+
+<!-- UC-08 -->
+<details class="uc" id="i1-uc-08">
+  <summary><span class="id">UC-08</span><span class="title">Sign in</span><span class="tag must">Must</span></summary>
+  <div class="uc-body"><dl>
+    <dt>Actor</dt><dd>Job Seeker or Employer</dd>
+    <dt>Goal</dt><dd>Prove who I am so I can apply, see my applications, or manage my job posts.</dd>
+    <dt>Preconditions</dt><dd>An account exists. In the prototype accounts are pre-created; there is no sign-up.</dd>
+    <dt>Main flow</dt><dd><ol>
+      <li>The user chooses "Sign in", or is sent to the sign-in screen from a page that needs it (for example "Apply").</li>
+      <li>The system shows the sign-in form: email and password.</li>
+      <li>The user fills in the form and submits it.</li>
+      <li>The system checks the email and password and starts a session.</li>
+      <li>The system takes the user where they were heading. If they were heading nowhere in particular, a seeker goes to the home page and an employer to "My job posts".</li>
+    </ol></dd>
+    <dt>Alternative flows</dt><dd><ul>
+      <li><b>1a. Already signed in:</b> the system goes straight to the user's start page.</li>
+      <li><b>3a. A field is empty:</b> the system highlights it.</li>
+      <li><b>4a. Wrong email or password:</b> the system says "Email or password is incorrect" (without saying which), keeps the email and clears the password.</li>
+    </ul></dd>
+    <dt>Postconditions</dt><dd>The user is signed in. The header shows their name, their role and a "Sign out" button.</dd>
+  </dl></div>
+</details>
+
+<!-- UC-09 -->
+<details class="uc" id="i1-uc-09">
+  <summary><span class="id">UC-09</span><span class="title">Sign out</span><span class="tag must">Must</span></summary>
+  <div class="uc-body"><dl>
+    <dt>Actor</dt><dd>Job Seeker or Employer</dd>
+    <dt>Goal</dt><dd>End my session so the next person on this device cannot use my account.</dd>
+    <dt>Preconditions</dt><dd>The user is signed in (UC-08).</dd>
+    <dt>Main flow</dt><dd><ol>
+      <li>The user chooses "Sign out" in the header.</li>
+      <li>The system ends the session.</li>
+      <li>The system shows the sign-in screen with the message "You have been signed out."</li>
+    </ol></dd>
+    <dt>Alternative flows</dt><dd><ul>
+      <li><b>2a. The session had already expired:</b> the result is the same.</li>
+    </ul></dd>
+    <dt>Postconditions</dt><dd>Pages that need an account ask the user to sign in again.</dd>
+  </dl></div>
+</details>
+
+<h3>Deferred (not in the prototype)</h3>
+<p>These were considered and deliberately cut. Writing them down means they are not forgotten – they are the starting point for the next cycle.</p>
+<table>
+  <thead><tr><th>Idea</th><th>Priority</th><th>Why deferred</th></tr></thead>
+  <tbody>
+    <tr><td>Filter and sort search results</td><td><span class="tag wont">Won't (yet)</span></td><td>Search by keyword and location is enough to find a job in a small data set.</td></tr>
+    <tr><td>Save a job for later</td><td><span class="tag wont">Won't (yet)</span></td><td>Nice convenience, but the core loop works without it.</td></tr>
+    <tr><td>Register (sign-up), email verification, password reset</td><td><span class="tag wont">Won't (yet)</span></td><td>Sign-in itself is in (UC-08). Accounts are pre-created for the prototype; self-service sign-up needs validation, email sending and abuse protection.</td></tr>
+    <tr><td>Application status (viewed, shortlisted, rejected)</td><td><span class="tag wont">Won't (yet)</span></td><td>Needs a two-way flow between employer and seeker, and real identity.</td></tr>
+    <tr><td>Close a listing / closing dates</td><td><span class="tag wont">Won't (yet)</span></td><td>Editing a post (UC-06) is enough for now.</td></tr>
+    <tr><td>Profile and résumé upload</td><td><span class="tag wont">Won't (yet)</span></td><td>Needs file storage. The apply form asks for phone and cover letter each time.</td></tr>
+    <tr><td>Email job alerts</td><td><span class="tag wont">Won't (yet)</span></td><td>Needs a server running in the background and email sending.</td></tr>
+    <tr><td>Administrator role</td><td><span class="tag wont">Won't (yet)</span></td><td>Moderation only matters once there are real users.</td></tr>
+  </tbody>
+</table>
+
+<h3>Open questions for the class (the "client")</h3>
+<div class="card">
+  <ol style="margin:0">
+    <li>Accounts are pre-created and every demo account shares one password. Is that acceptable for a demo? What would real users need (sign-up, email verification, password reset)?</li>
+    <li>Is salary compulsory when posting a job, or optional?</li>
+    <li>Should employers see applicants' contact details immediately?</li>
+    <li>What is the <i>one</i> use case we would regret not building?</li>
+    <li>Have we missed an actor or a goal entirely?</li>
+  </ol>
+  <p class="sub" style="margin-bottom:0">Record the answers in the decision log below.</p>
+</div>
+
+<h3>Decision log</h3>
+<table>
+  <thead><tr><th>#</th><th>Stage</th><th>Decision</th><th>Why</th></tr></thead>
+  <tbody>
+    <tr><td>1</td><td>Requirements</td><td>Build a prototype, not a full product.</td><td>One session; learn the whole cycle once before going deep.</td></tr>
+    <tr><td>2</td><td>Requirements</td><td>Use cases with MoSCoW priorities to capture requirements.</td><td>Plain-language, readable by non-programmers, easy to turn into tests later.</td></tr>
+    <tr><td>3</td><td>Requirements</td><td>Minimal scope. Seeker: search, view, apply, see own applications. Employer: post, edit, see applications.</td><td>The smallest set that forms a complete loop. An early draft had no way for employers to see applications, which was caught in review: applying would have sent applications nowhere.</td></tr>
+    <tr><td>4</td><td>Requirements</td><td>No accounts or sign-in. Seekers look up their applications by email.</td><td>Removes passwords and sessions from the first cycle. Risk accepted and listed as open question 1.</td></tr>
+    <tr><td>5</td><td>Requirements</td><td>Use case IDs were renumbered UC-01 to UC-07 after the scope reset.</td><td>Nothing depended on the draft IDs yet. From now on, IDs are stable and never reused.</td></tr>
+    <tr><td>6</td><td>Requirements</td><td>Stage 1 signed off with the seven use cases UC-01 to UC-07.</td><td>Scope agreed by the client. The open questions above were not discussed; the use cases stand as written (salary optional, employers see applicant email, no accounts) and the risks carry forward into design.</td></tr>
+    <tr><td>7</td><td>Design</td><td>Technology: Option A – browser only, data kept in local storage.</td><td>Finishes the whole cycle in one session. Only the storage layer changes if we move to a server later.</td></tr>
+    <tr><td>8</td><td>Design</td><td>Design is delivered as clickable static HTML mockups, one page per screen, in <code>docs/iteration-1/static-design/</code>.</td><td>Reusable as the app's specification and style source, and testable by clicking through.</td></tr>
+    <tr><td>9</td><td>Design</td><td>Visual style: clean white cards on a light background with a single teal accent.</td><td>Familiar job-board look; teal is calmer than the default link blue.</td></tr>
+    <tr><td>10</td><td>Design</td><td>Stage 2 is split into two phases: <b>2A Graphic design</b> (what it looks like) and <b>2B Software design</b> (how it is built, including web technology decisions).</td><td>Building a web app needs both. Making the technology decisions explicit before coding avoids surprises in Stage 3.</td></tr>
+    <tr><td>11</td><td>Design</td><td>Decision 7 (browser-only) is reopened: the app is multi-user, so the technology decisions T-1 to T-8 (backend, database, API, frontend, sign-in, permissions, hosting) are put to the class.</td><td>Local storage cannot share data between users. Decision 4 (no accounts) is also at risk, see T-6.</td></tr>
+    <tr><td>12</td><td>Design</td><td>Phase 2A (graphic design) signed off: screens S-01 to S-07, navigation, teal visual style and the static mockups in <code>docs/iteration-1/static-design/</code>.</td><td>Reviewed and accepted. Further screen changes go through the decision log. Screens for sign-in may be added if T-6 requires accounts.</td></tr>
+    <tr><td>13</td><td>Design</td><td>Technology decisions T-1 to T-8: frontend + backend + database; Node.js + Express; SQLite; REST + JSON; plain HTML and JavaScript; email + password with session cookie; two roles (seeker, employer) with ownership checks; cloud platform hosting.</td><td>The recommended option in every case. Supersedes decision 7 (browser-only) and decision 4 (no accounts), which means Stage 1 and Phase 2A need a small update for sign-in.</td></tr>
+    <tr><td>14</td><td>Design</td><td>Plan two stacks: the prototype stack above for Iteration 1, and a production stack (TypeScript, PostgreSQL, React, containers with CI) proposed for Iteration 2, with migration rules followed from day one.</td><td>The prototype should be migrated, not discarded. The API is the contract, so the database and the frontend can be replaced independently.</td></tr>
+    <tr><td>15</td><td>Design</td><td>No sign-up in the prototype. User accounts are pre-created (seeded); the app has only sign-in and sign-out. Self-service sign-up, email verification and password reset move to the production iteration.</td><td>Removes the registration screen, validation and email handling from the first cycle while keeping real sign-in and permissions (T-6, T-7).</td></tr>
+    <tr><td>16</td><td>Design</td><td>The system starts with a realistic seed data set: 5 employers, 8 seekers, 30 jobs and about 45 applications, loaded by a repeatable seed script. All seeded accounts share one demo password.</td><td>No sign-up means no way to create data by registering, and an empty system is a poor demo. The data is chosen so every use case and alternative flow can be shown at once. Known passwords are demo-only.</td></tr>
+    <tr><td>17</td><td>Design</td><td>T-5 changed from plain HTML + JavaScript to <b>React with Vite</b>, and the language is <b>TypeScript</b> for both frontend and backend from the start.</td><td>A framework will be needed anyway, and starting with it costs little now but avoids the largest rewrite later. JavaScript first gives no benefit over TypeScript, which only adds types. Supersedes the T-5 part of decision 13 and the language and frontend parts of decision 14: the production stack now differs from the prototype only in the database, hosting and auth upgrades.</td></tr>
+    <tr><td>18</td><td>Requirements, Design</td><td>Sign-in applied to the signed-off stages. <b>Stage 1:</b> UC-08 Sign in and UC-09 Sign out added; UC-03 to UC-07 revised for signed-in users and ownership; UC-03 no longer asks for name and email; UC-04 no longer asks for an email. <b>Phase 2A:</b> new screen S-08 Sign in; S-02 to S-07 and every header updated. <b>Data model:</b> User added, a Job has an owner, an Application has an applicant. Demo accounts share the password <code>demo1234</code>.</td><td>Follows from decisions 13 and 15. Supersedes decision 4 (no accounts) and the email lookup in UC-04. Fixes the privacy risk behind open question 1, because seekers see only their own applications and employers only their own posts. Stage 1 and Phase 2A were signed off, so the change is recorded here rather than made silently.</td></tr>
+    <tr><td>19</td><td>Design</td><td>The <b>test plan is part of Phase 2B</b>. It is written in design, the tests are written in Stage 3 alongside each use case, and they are run and reported in Stage 4. Test levels: unit and API tests (Vitest), end-to-end tests (Playwright), a manual checklist.</td><td>Every use case flow already is a test case. Planning early makes the design testable and stops testing being squeezed into the last hour. Stage 4 stays the place where results are reported and bugs are fixed.</td></tr>
+    <tr><td>20</td><td>Design</td><td>The test plan is its own <b>Phase 2C</b> of Stage 2 (after 2A Graphic design and 2B Software design), not a part of 2B. It supersedes the wording of decision 19; the timing in decision 19 is unchanged.</td><td>The test plan is a design deliverable in its own right and is reviewed on its own. Giving it a phase makes it visible in the stage bar and in the checklist.</td></tr>
+    <tr><td class="dash" colspan="4"><i>Add rows as the class makes decisions…</i></td></tr>
+  </tbody>
+</table>
+
+
+<!-- ============================ DESIGN ============================ -->
+<h2 id="i1-design">Stage 2 – Design <span class="tag could">current</span></h2>
+<p>Requirements said <i>what</i> the system does. Design decides <i>how it is shaped</i>. For a web application that is two different jobs, so we do it in two phases, and we also plan the testing before we build. We still write no code. Everything here is a <b>proposal</b> for the class to discuss.</p>
+
+<ol class="phases">
+  <li><span class="n">Phase 2A · <span class="tag done">done</span></span><b><a href="#i1-design-graphic">Graphic design</a></b><p>What the user sees and clicks: screens, navigation, visual style, static mockups.</p></li>
+  <li><span class="n">Phase 2B</span><b><a href="#i1-design-software">Software design</a></b><p>How it is built: data model, database, backend, frontend, sign-in and permissions, hosting.</p></li>
+  <li><span class="n">Phase 2C</span><b><a href="#i1-design-testplan">Test plan</a></b><p>How we prove it works: test levels and tools, and a test case for every use case flow.</p></li>
+</ol>
+
+<h4>Design checklist</h4>
+<table>
+  <thead><tr><th>Phase</th><th>Design output</th><th>Status</th></tr></thead>
+  <tbody>
+    <tr><td>2A Graphic</td><td>Screens and navigation</td><td><span class="tag done">Done</span></td></tr>
+    <tr><td>2A Graphic</td><td>Visual style</td><td><span class="tag done">Done – teal accent</span></td></tr>
+    <tr><td>2A Graphic</td><td>Static mockups (one page per screen)</td><td><span class="tag done">Done – reviewed</span></td></tr>
+    <tr><td>2A Graphic</td><td>Sign in screen (S-08) and sign-in changes to S-02 to S-07</td><td><span class="tag done">Done – decision 18</span></td></tr>
+    <tr><td>2B Software</td><td>Data model (with User, owner and applicant)</td><td><span class="tag could">Proposed</span></td></tr>
+    <tr><td>2B Software</td><td>Technology decisions T-1 to T-8, and the stack and migration plan</td><td><span class="tag done">Decided – stack for review</span></td></tr>
+    <tr><td>2B Software</td><td>Seed data plan</td><td><span class="tag could">Proposed</span></td></tr>
+    <tr><td>2B Software</td><td><a href="#i1-architecture">Architecture</a>, <a href="#i1-api">API</a>, <a href="#i1-functions">functions</a>, <a href="#i1-frontend-structure">frontend routes</a> and <a href="#i1-structure">file structure</a></td><td><span class="tag could">Proposed</span></td></tr>
+    <tr><td>2C Test plan</td><td><a href="#i1-design-testplan">Test plan</a> (levels, tools, 32 test cases, security tests)</td><td><span class="tag could">Proposed</span></td></tr>
+  </tbody>
+</table>
+
+<h3 id="i1-design-graphic" class="phase">Phase 2A – Graphic design <span class="tag done">done</span></h3>
+<p><b>Question answered:</b> <i>What will the user see, and how do they move around?</i> This phase produces nothing that runs. It is about layout, wording and flow, and it is cheap to change.</p>
+
+<h4>Screens</h4>
+<div class="note"><b>Revised after sign-off (decision 18):</b> Phase 2A was signed off before we chose sign-in. S-08 Sign in was added and S-02 to S-07 were updated, mainly the header and the screens that used to ask for an email.</div>
+<p>Each use case must be reachable on at least one screen, and every screen should exist because of a use case. Mapping them both ways is a simple completeness check.</p>
+<table>
+  <thead><tr><th>ID</th><th>Screen</th><th>Used by</th><th>Shows / does</th><th>Use cases</th><th>Mockup</th></tr></thead>
+  <tbody>
+    <tr><td class="id">S-01</td><td>Home / search</td><td>Seeker</td><td>Keyword and location fields, list of results</td><td>UC-01</td><td><a href="iteration-1/static-design/s01-search.html">Open ↗</a></td></tr>
+    <tr><td class="id">S-02</td><td>Job detail</td><td>Seeker</td><td>Full job post, "Apply" button (or "Sign in to apply"), back to results</td><td>UC-02</td><td><a href="iteration-1/static-design/s02-job-detail.html">Open ↗</a></td></tr>
+    <tr><td class="id">S-03</td><td>Apply form</td><td>Seeker</td><td>Who is applying (from the account), phone, cover letter; confirmation message</td><td>UC-03</td><td><a href="iteration-1/static-design/s03-apply.html">Open ↗</a></td></tr>
+    <tr><td class="id">S-04</td><td>My applications</td><td>Seeker</td><td>List of the signed-in seeker's applications</td><td>UC-04</td><td><a href="iteration-1/static-design/s04-my-applications.html">Open ↗</a></td></tr>
+    <tr><td class="id">S-05</td><td>Employer: my job posts</td><td>Employer</td><td>List of the signed-in employer's own posts with "Edit" and "Applications" actions, "Post a job" button</td><td>UC-05, UC-06, UC-07</td><td><a href="iteration-1/static-design/s05-employer-jobs.html">Open ↗</a></td></tr>
+    <tr><td class="id">S-06</td><td>Job form (create / edit)</td><td>Employer</td><td>One form used for both posting and editing; company comes from the account</td><td>UC-05, UC-06</td><td><a href="iteration-1/static-design/s06-job-form.html">Open ↗</a></td></tr>
+    <tr><td class="id">S-07</td><td>Applications for a job</td><td>Employer</td><td>List of applicants; open one to read the cover letter</td><td>UC-07</td><td><a href="iteration-1/static-design/s07-applications.html">Open ↗</a></td></tr>
+    <tr><td class="id">S-08</td><td>Sign in</td><td>Seeker, Employer</td><td>Email and password; demo accounts box; the sign-out message</td><td>UC-08, UC-09</td><td><a href="iteration-1/static-design/s08-sign-in.html">Open ↗</a></td></tr>
+  </tbody>
+</table>
+
+<h4>Navigation</h4>
+<pre class="diagram">Anyone (signed out)
+  S-01 Home / search --> S-02 Job detail --[Apply]--> S-08 Sign in
+  Header "Sign in" -----------------------------------> S-08 Sign in
+
+Seeker (signed in)                              Employer (signed in)
+  S-01 --> S-02 --> S-03 Apply form               S-05 My job posts --> S-06 Job form (create)
+  S-04 My applications --> S-02 Job detail           |    +-----------> S-06 Job form (edit)
+                                                     +----------------> S-07 Applications for a job
+
+After sign-in: a seeker goes back to where they were heading (else S-01); an employer goes to S-05.
+"Sign out" in the header of any signed-in screen --> S-08 with "You have been signed out."</pre>
+<div class="note">
+  <b>Design decision worth discussing:</b> the post form and the edit form are the <i>same screen</i> (S-06). UC-06 says "the same form as UC-05, filled with the current values". Reusing it means less to build and one place to fix bugs.
+</div>
+
+<h4>Static mockups</h4>
+<p>Instead of drawing wireframes in this document, each screen is a separate, clickable HTML page in <code>docs/iteration-1/static-design/</code>. They look like the finished product but contain only sample data – nothing is saved and search does not filter.</p>
+<table>
+  <thead><tr><th>ID</th><th>Mockup</th><th>Use cases</th></tr></thead>
+  <tbody>
+    <tr><td class="id">S-01</td><td><a href="iteration-1/static-design/s01-search.html">Home / search</a></td><td>UC-01</td></tr>
+    <tr><td class="id">S-02</td><td><a href="iteration-1/static-design/s02-job-detail.html">Job detail</a></td><td>UC-02</td></tr>
+    <tr><td class="id">S-03</td><td><a href="iteration-1/static-design/s03-apply.html">Apply form</a></td><td>UC-03</td></tr>
+    <tr><td class="id">S-04</td><td><a href="iteration-1/static-design/s04-my-applications.html">My applications</a></td><td>UC-04</td></tr>
+    <tr><td class="id">S-05</td><td><a href="iteration-1/static-design/s05-employer-jobs.html">Employer: my job posts</a></td><td>UC-05, UC-06, UC-07</td></tr>
+    <tr><td class="id">S-06</td><td><a href="iteration-1/static-design/s06-job-form.html">Job form (create / edit)</a></td><td>UC-05, UC-06</td></tr>
+    <tr><td class="id">S-07</td><td><a href="iteration-1/static-design/s07-applications.html">Applications for a job</a></td><td>UC-07</td></tr>
+    <tr><td class="id">S-08</td><td><a href="iteration-1/static-design/s08-sign-in.html">Sign in</a></td><td>UC-08, UC-09</td></tr>
+  </tbody>
+</table>
+<div class="note">
+  <b>Why separate pages?</b> They can be clicked through to test the navigation, and in Stage 3 they become the specification of the real app: the same <code>style.css</code>, with the markup turned into React components and sample data replaced by real data.
+  Each mockup also shows the <b>alternative states</b> from the use cases (no results, validation errors, empty lists) under "Design notes" at the bottom of the page.
+</div>
+
+
+<h3 id="i1-design-software" class="phase">Phase 2B – Software design <span class="tag should">decisions made</span></h3>
+<p><b>Question answered:</b> <i>What will the code be made of, and which web technologies do we choose?</i> Once code exists, changing these decisions is expensive. That is why we make them now, in the open, with reasons.</p>
+<p>This is a <b>multi-user application</b>, so besides the screens and the data we must also decide the database, the backend, the frontend, how users sign in, and who may do what.</p>
+
+<h4>Data model</h4>
+<p>The system stores three kinds of thing. Everything on the screens above comes from one of them. <b>Updated for sign-in (decision 18):</b> User was added, and Job and Application now point at the users involved instead of holding a company name, name and email.</p>
+<div class="cols">
+  <div>
+    <table>
+      <thead><tr><th colspan="3">User</th></tr></thead>
+      <tbody>
+        <tr><td class="id">id</td><td>unique number</td><td>required</td></tr>
+        <tr><td class="id">name</td><td>text</td><td>required</td></tr>
+        <tr><td class="id">email</td><td>text, valid email, unique</td><td>required</td></tr>
+        <tr><td class="id">passwordHash</td><td>a bcrypt hash, never the password itself</td><td>required</td></tr>
+        <tr><td class="id">role</td><td>seeker or employer</td><td>required</td></tr>
+        <tr><td class="id">companyName</td><td>text, employers only</td><td>employers</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div>
+    <table>
+      <thead><tr><th colspan="3">Job</th></tr></thead>
+      <tbody>
+        <tr><td class="id">id</td><td>unique number</td><td>required</td></tr>
+        <tr><td class="id">ownerId</td><td>refers to a User (an employer)</td><td>required</td></tr>
+        <tr><td class="id">title</td><td>text</td><td>required</td></tr>
+        <tr><td class="id">location</td><td>text</td><td>required</td></tr>
+        <tr><td class="id">workType</td><td>full-time, part-time, contract, casual</td><td>required</td></tr>
+        <tr><td class="id">salary</td><td>text, e.g. "$80k–$95k"</td><td>optional</td></tr>
+        <tr><td class="id">description</td><td>long text</td><td>required</td></tr>
+        <tr><td class="id">requirements</td><td>long text</td><td>required</td></tr>
+        <tr><td class="id">postedAt</td><td>date</td><td>set by system</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+<div class="cols">
+  <div>
+    <table>
+      <thead><tr><th colspan="3">Application</th></tr></thead>
+      <tbody>
+        <tr><td class="id">id</td><td>unique number</td><td>required</td></tr>
+        <tr><td class="id">jobId</td><td>refers to a Job</td><td>required</td></tr>
+        <tr><td class="id">applicantId</td><td>refers to a User (a seeker)</td><td>required</td></tr>
+        <tr><td class="id">phone</td><td>text</td><td>optional</td></tr>
+        <tr><td class="id">coverLetter</td><td>long text</td><td>required</td></tr>
+        <tr><td class="id">appliedAt</td><td>date</td><td>set by system</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div>
+    <div class="card">
+      <b>Relationships and rules</b>
+      <ul style="margin:6px 0 0">
+        <li>One employer (User) has many Jobs: <span class="id">Job.ownerId</span>. The company name shown on a job is the owner's <span class="id">companyName</span>.</li>
+        <li>One Job has many Applications: <span class="id">Application.jobId</span>.</li>
+        <li>One seeker (User) has many Applications: <span class="id">Application.applicantId</span>.</li>
+        <li><b>UC-03 4b:</b> the pair (<span class="id">jobId</span>, <span class="id">applicantId</span>) must be unique, which stops duplicate applications.</li>
+        <li><b>UC-04</b> finds the Applications whose <span class="id">applicantId</span> is the signed-in user. <b>UC-07</b> shows each applicant's name and email by looking up their User.</li>
+        <li><b>Permissions:</b> a Job can be edited, and its Applications read, only by its owner. An Application can be read only by its applicant and by the owner of its Job.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<h4>Technology decisions</h4>
+<p>For each decision we listed the realistic options with their pros and cons and marked a recommendation. The class adopted the recommendation every time; the chosen option is highlighted on each card. Keeping the rejected options on the page records <i>why</i> we chose, which matters when we revisit a decision later.</p>
+
+<div class="decision locked is-chosen" id="i1-t1" data-decision="T-1">
+  <h4>T-1 Architecture: where does the data live?</h4>
+  <p>The app now has many users, so an employer on one computer must see applications sent from another. This reopens decision 7 (browser-only).</p>
+  <div class="options">
+    <label class="opt"><input type="radio" disabled name="T-1" value="browser"><span class="opt-head"><span class="opt-name">Browser only</span></span><span class="opt-what">HTML, CSS and JavaScript; data kept in each browser's local storage.</span><span class="pc plus">+ Nothing to install or run</span><span class="pc plus">+ Can be hosted free on GitHub Pages</span><span class="pc minus">– Every browser has its own private data, so users cannot see each other's jobs or applications</span><span class="pc minus">– No real sign-in is possible</span></label>
+    <label class="opt"><input type="radio" checked disabled name="T-1" value="server"><span class="opt-head"><span class="opt-name">Frontend + backend + database</span><span class="tag done">Recommended</span></span><span class="opt-what">Pages talk to a server, which stores everything in a database.</span><span class="pc plus">+ Data is shared, so real multi-user behaviour</span><span class="pc plus">+ Real sign-in and permissions</span><span class="pc plus">+ How real job sites work</span><span class="pc minus">– More to set up: a server and a database</span><span class="pc minus">– Needs hosting that can run code</span></label>
+  </div>
+  <p class="chosen-line">Decision: <b class="chosen-name">Frontend + backend + database</b></p>
+</div>
+
+<div class="decision locked is-chosen" id="i1-t2" data-decision="T-2">
+  <h4>T-2 Backend: language and framework</h4>
+  <p>The server code that receives requests, applies the rules and talks to the database.</p>
+  <p class="sub">Not listed (Java Spring Boot, C# ASP.NET, PHP Laravel…)? Say so and we add it.</p>
+  <div class="options">
+    <label class="opt"><input type="radio" checked disabled name="T-2" value="node"><span class="opt-head"><span class="opt-name">Node.js + Express</span><span class="tag done">Recommended</span></span><span class="opt-what">TypeScript (JavaScript with types) on the server, with a small, popular web framework.</span><span class="pc plus">+ One language (TypeScript) for frontend and backend, and API types can be shared</span><span class="pc plus">+ Tiny and easy to read</span><span class="pc plus">+ Huge community</span><span class="pc minus">– Few rules built in, so structure is up to us</span></label>
+    <label class="opt"><input type="radio" disabled name="T-2" value="fastapi"><span class="opt-head"><span class="opt-name">Python + FastAPI</span></span><span class="opt-what">Modern Python framework that checks input types and generates API documentation.</span><span class="pc plus">+ Clear, readable code</span><span class="pc plus">+ Interactive API docs for free</span><span class="pc minus">– A second language next to the browser's JavaScript</span></label>
+    <label class="opt"><input type="radio" disabled name="T-2" value="flask"><span class="opt-head"><span class="opt-name">Python + Flask</span></span><span class="opt-what">The simplest Python web framework.</span><span class="pc plus">+ Least to learn</span><span class="pc plus">+ Very widely taught</span><span class="pc minus">– Less built in than FastAPI</span><span class="pc minus">– A second language next to JavaScript</span></label>
+  </div>
+  <p class="chosen-line">Decision: <b class="chosen-name">Node.js + Express</b></p>
+</div>
+
+<div class="decision locked is-chosen" id="i1-t3" data-decision="T-3">
+  <h4>T-3 Database</h4>
+  <p>Where jobs, applications and users are stored. Our data model has two linked kinds of thing (jobs and their applications), and users once accounts exist.</p>
+  <div class="options">
+    <label class="opt"><input type="radio" checked disabled name="T-3" value="sqlite"><span class="opt-head"><span class="opt-name">SQLite</span><span class="tag done">Recommended</span></span><span class="opt-what">A real SQL database kept in a single file.</span><span class="pc plus">+ Nothing to install or run</span><span class="pc plus">+ Teaches tables, keys and queries</span><span class="pc plus">+ Can move to PostgreSQL later</span><span class="pc minus">– One writer at a time; fine for a prototype, not for a big site</span><span class="pc minus">– On free cloud hosts the file can be lost on redeploy</span></label>
+    <label class="opt"><input type="radio" disabled name="T-3" value="postgres"><span class="opt-head"><span class="opt-name">PostgreSQL</span></span><span class="opt-what">The full database server that many production sites use.</span><span class="pc plus">+ Production-grade, handles many users</span><span class="pc plus">+ Works well with cloud hosting</span><span class="pc minus">– Needs a database server running, which costs setup time today</span></label>
+    <label class="opt"><input type="radio" disabled name="T-3" value="mongo"><span class="opt-head"><span class="opt-name">MongoDB</span></span><span class="opt-what">Document database that stores JSON-like records.</span><span class="pc plus">+ Flexible structure</span><span class="pc plus">+ Natural fit with JavaScript objects</span><span class="pc minus">– The job-to-applications link is less visible and less enforced</span><span class="pc minus">– Less to learn about relational data</span></label>
+  </div>
+  <p class="chosen-line">Decision: <b class="chosen-name">SQLite</b></p>
+</div>
+
+<div class="decision locked is-chosen" id="i1-t4" data-decision="T-4">
+  <h4>T-4 API style: how the pages and the server talk</h4>
+  <p>The "contract" between what the user sees and the code that holds the data.</p>
+  <div class="options">
+    <label class="opt"><input type="radio" checked disabled name="T-4" value="rest"><span class="opt-head"><span class="opt-name">REST API with JSON</span><span class="tag done">Recommended</span></span><span class="opt-what">The server offers URLs such as <code>GET /jobs?q=nurse</code> and replies with JSON.</span><span class="pc plus">+ The most common style</span><span class="pc plus">+ Easy to test from the browser or a tool</span><span class="pc plus">+ One endpoint per use case</span><span class="pc minus">– Several requests when one screen needs data from several places</span></label>
+    <label class="opt"><input type="radio" disabled name="T-4" value="graphql"><span class="opt-head"><span class="opt-name">GraphQL</span></span><span class="opt-what">One endpoint; the page asks for exactly the fields it needs.</span><span class="pc plus">+ Flexible queries</span><span class="pc plus">+ No over-fetching</span><span class="pc minus">– More concepts to teach</span><span class="pc minus">– Overkill for seven use cases</span></label>
+    <label class="opt"><input type="radio" disabled name="T-4" value="ssr"><span class="opt-head"><span class="opt-name">Server-rendered pages</span></span><span class="opt-what">No separate API; the server builds each HTML page from a template.</span><span class="pc plus">+ No JavaScript needed to show data</span><span class="pc plus">+ Simple mental model</span><span class="pc minus">– Less like modern apps</span><span class="pc minus">– Makes T-5 (frontend) mostly irrelevant</span></label>
+  </div>
+  <p class="chosen-line">Decision: <b class="chosen-name">REST API with JSON</b></p>
+</div>
+
+<div class="decision locked is-chosen" id="i1-t5" data-decision="T-5">
+  <h4>T-5 Frontend</h4>
+  <p>How the screens are built and how they call the API. Ignore this one if T-4 is server-rendered pages. <b>Revised:</b> first decided as plain HTML + JavaScript, then changed to React because starting with a framework costs little now and avoids the biggest rewrite later (decision 17). The language is <b>TypeScript</b> on both the frontend and the backend.</p>
+  <div class="options">
+    <label class="opt"><input type="radio" disabled name="T-5" value="plain"><span class="opt-head"><span class="opt-name">Plain HTML + JavaScript</span></span><span class="opt-what">Pages from the mockups, with small scripts that call the API.</span><span class="pc plus">+ Reuses the mockups and <code>style.css</code> directly</span><span class="pc plus">+ No build step</span><span class="pc plus">+ Students see how the browser really works</span><span class="pc minus">– We write our own page-update code</span><span class="pc minus">– Gets repetitive on larger apps</span><span class="pc minus">– Would have to be rewritten as a framework app later (the largest migration cost)</span></label>
+    <label class="opt"><input type="radio" checked disabled name="T-5" value="react"><span class="opt-head"><span class="opt-name">React (with Vite and TypeScript)</span><span class="tag done">Recommended</span></span><span class="opt-what">Component-based framework, the industry standard. Vite builds and serves it.</span><span class="pc plus">+ No rewrite later: the prototype frontend is the production frontend</span><span class="pc plus">+ Each mockup part (card, filter bar, form) becomes a reusable component</span><span class="pc plus">+ <code>style.css</code> is reused as it is</span><span class="pc plus">+ Marketable skill, large community</span><span class="pc minus">– Needs a build toolchain (Vite, a few commands)</span><span class="pc minus">– Mockups must be rewritten as components</span><span class="pc minus">– More to explain in one day: components, props, state</span></label>
+    <label class="opt"><input type="radio" disabled name="T-5" value="vue"><span class="opt-head"><span class="opt-name">Vue</span></span><span class="opt-what">Component framework with a gentler learning curve.</span><span class="pc plus">+ Easier to start than React</span><span class="pc plus">+ Can be used without a build step for small apps</span><span class="pc minus">– Mockups still need converting</span><span class="pc minus">– Another tool to introduce</span></label>
+  </div>
+  <p class="chosen-line">Decision: <b class="chosen-name">React (with Vite and TypeScript)</b></p>
+</div>
+
+<div class="decision locked is-chosen" id="i1-t6" data-decision="T-6">
+  <h4>T-6 Authentication: how users prove who they are</h4>
+  <p>Needed as soon as different people use the app. This changes Stage 1 (see the box below).</p>
+  <div class="options">
+    <label class="opt"><input type="radio" checked disabled name="T-6" value="session"><span class="opt-head"><span class="opt-name">Email + password, session cookie</span><span class="tag done">Recommended</span></span><span class="opt-what">The server remembers who is signed in and gives the browser a cookie.</span><span class="pc plus">+ Simplest safe approach for a website</span><span class="pc plus">+ Sign-out works instantly</span><span class="pc minus">– Server must keep session data</span></label>
+    <label class="opt"><input type="radio" disabled name="T-6" value="jwt"><span class="opt-head"><span class="opt-name">Email + password, token (JWT)</span></span><span class="opt-what">The server hands out a signed token that the page sends with each request.</span><span class="pc plus">+ No server-side session data</span><span class="pc plus">+ Common with separate frontends and mobile apps</span><span class="pc minus">– Harder to sign out or revoke</span><span class="pc minus">– Easy to get wrong</span></label>
+    <label class="opt"><input type="radio" disabled name="T-6" value="oauth"><span class="opt-head"><span class="opt-name">Sign in with Google</span></span><span class="opt-what">Google confirms who the user is; we store no passwords.</span><span class="pc plus">+ No passwords to protect</span><span class="pc plus">+ Familiar to users</span><span class="pc minus">– Needs a Google developer account and set-up</span><span class="pc minus">– Hard to demo offline</span></label>
+    <label class="opt"><input type="radio" disabled name="T-6" value="none"><span class="opt-head"><span class="opt-name">No sign-in</span></span><span class="opt-what">Keep Stage 1 as it was: seekers look up applications by email.</span><span class="pc plus">+ Least to build</span><span class="pc minus">– Anyone can read anyone's applications by typing an email</span><span class="pc minus">– Anyone can edit any job post</span></label>
+  </div>
+  <p class="chosen-line">Decision: <b class="chosen-name">Email + password, session cookie</b></p>
+</div>
+
+<div class="decision locked is-chosen" id="i1-t7" data-decision="T-7">
+  <h4>T-7 Authorization: roles and ownership</h4>
+  <p>Once users exist: who is allowed to do what.</p>
+  <p class="sub"><b>Rules that apply whichever option is chosen:</b> an employer can edit a job and see its applications only if they posted it; a seeker can see only their own applications; every one of these checks happens on the server, never only in the page.</p>
+  <div class="options">
+    <label class="opt"><input type="radio" checked disabled name="T-7" value="two"><span class="opt-head"><span class="opt-name">Two roles, set on the account</span><span class="tag done">Recommended</span></span><span class="opt-what">Every account is a <b>seeker</b> or an <b>employer</b>, set when the account is created.</span><span class="pc plus">+ Matches the two actors in the use cases</span><span class="pc plus">+ Simple to explain and test</span><span class="pc minus">– A person who both hires and job-hunts needs two accounts</span></label>
+    <label class="opt"><input type="radio" disabled name="T-7" value="one"><span class="opt-head"><span class="opt-name">One account type</span></span><span class="opt-what">Any account may apply for jobs and post jobs.</span><span class="pc plus">+ One sign-up and one set of screens</span><span class="pc plus">+ Flexible</span><span class="pc minus">– Employer and seeker screens mix, so the UI is less clear</span></label>
+    <label class="opt"><input type="radio" disabled name="T-7" value="emponly"><span class="opt-head"><span class="opt-name">Employer accounts only</span></span><span class="opt-what">Employers sign in; seekers stay anonymous and apply with an email.</span><span class="pc plus">+ Less to build than full accounts</span><span class="pc plus">+ Protects the employer side</span><span class="pc minus">– Seeker privacy problem remains (open question 1)</span></label>
+  </div>
+  <p class="chosen-line">Decision: <b class="chosen-name">Two roles, set on the account</b></p>
+</div>
+
+<div class="decision locked is-chosen" id="i1-t8" data-decision="T-8">
+  <h4>T-8 Hosting</h4>
+  <p>Where the backend and database run. This is carried out in Stage 5, but it limits earlier choices (for example SQLite on a free host).</p>
+  <div class="options">
+    <label class="opt"><input type="radio" disabled name="T-8" value="local"><span class="opt-head"><span class="opt-name">Local only</span></span><span class="opt-what">Runs on the presenter's laptop during the demo.</span><span class="pc plus">+ No accounts or cost</span><span class="pc plus">+ Nothing to go wrong online</span><span class="pc minus">– Students cannot visit it afterwards</span></label>
+    <label class="opt"><input type="radio" checked disabled name="T-8" value="paas"><span class="opt-head"><span class="opt-name">Cloud platform (Render, Railway, Fly.io)</span><span class="tag done">Recommended</span></span><span class="opt-what">Push the code and the platform runs it with a public URL.</span><span class="pc plus">+ Public link for the class</span><span class="pc plus">+ Free tiers exist</span><span class="pc plus">+ Teaches deployment</span><span class="pc minus">– Free tiers sleep and can lose local files</span><span class="pc minus">– Account set-up needed</span></label>
+    <label class="opt"><input type="radio" disabled name="T-8" value="vps"><span class="opt-head"><span class="opt-name">Own server or containers (AWS, Docker)</span></span><span class="opt-what">Rent a virtual machine and set it up ourselves.</span><span class="pc plus">+ Full control</span><span class="pc plus">+ Closest to large production set-ups</span><span class="pc minus">– Too much to learn and set up for a one-day cycle</span></label>
+  </div>
+  <p class="chosen-line">Decision: <b class="chosen-name">Cloud platform (Render, Railway, Fly.io)</b></p>
+</div>
+
+<h4 id="i1-decisions-summary">Decisions at a glance</h4>
+<table>
+  <thead><tr><th>ID</th><th>Decision</th><th>Choice</th></tr></thead>
+  <tbody>
+    <tr><td class="id">T-1</td><td>Architecture: where does the data live?</td><td><b>Frontend + backend + database</b></td></tr>
+    <tr><td class="id">T-2</td><td>Backend: language and framework</td><td><b>Node.js + Express</b></td></tr>
+    <tr><td class="id">T-3</td><td>Database</td><td><b>SQLite</b></td></tr>
+    <tr><td class="id">T-4</td><td>API style: how the pages and the server talk</td><td><b>REST API with JSON</b></td></tr>
+    <tr><td class="id">T-5</td><td>Frontend</td><td><b>React (with Vite and TypeScript)</b></td></tr>
+    <tr><td class="id">T-6</td><td>Authentication: how users prove who they are</td><td><b>Email + password, session cookie</b></td></tr>
+    <tr><td class="id">T-7</td><td>Authorization: roles and ownership</td><td><b>Two roles, set on the account</b></td></tr>
+    <tr><td class="id">T-8</td><td>Hosting</td><td><b>Cloud platform (Render, Railway, Fly.io)</b></td></tr>
+  </tbody>
+</table>
+
+<h4 id="i1-stack">Technology stack: prototype now, production next</h4>
+<p>Iteration 1 is a prototype, and the next iteration aims at <b>production level</b>. Choosing both stacks now lets us pick a prototype stack that can be <i>migrated</i> instead of thrown away. The production column is a <b>proposal</b> for the class to review; nothing in it is built yet.</p>
+<table>
+  <thead><tr><th>Layer</th><th>Iteration 1 – prototype <span class="tag done">decided</span></th><th>Iteration 2 – production <span class="tag could">proposed</span></th></tr></thead>
+  <tbody>
+    <tr><td><b>Language</b></td><td>TypeScript (strict mode) for both backend and frontend</td><td>The same; nothing to migrate</td></tr>
+    <tr><td><b>Backend</b></td><td>Node.js (LTS) + Express, in TypeScript</td><td>The same (Fastify is an option)</td></tr>
+    <tr><td><b>Database</b></td><td>SQLite, one file</td><td>PostgreSQL, managed (for example Neon, Supabase or AWS RDS)</td></tr>
+    <tr><td><b>Data access</b></td><td>Knex query builder and migration files, used only inside repository modules</td><td>The same Knex pointed at PostgreSQL (Drizzle or Prisma are options)</td></tr>
+    <tr><td><b>Search</b></td><td>SQL <code>LIKE</code> on title, company and description</td><td>PostgreSQL full-text search; a search engine such as OpenSearch only if volume demands it</td></tr>
+    <tr><td><b>API</b></td><td>REST + JSON under <code>/api/v1</code>, documented in OpenAPI</td><td>The same contract, plus pagination and rate limiting</td></tr>
+    <tr><td><b>Frontend</b></td><td>React + TypeScript, built with Vite. The mockups become components and keep <code>style.css</code>. The built files are served by Express</td><td>The same React app, grown (routing, data caching, accessibility checks). Next.js only if job pages must be found by search engines</td></tr>
+    <tr><td><b>Authentication</b></td><td>Email + password <b>sign-in only</b>. Accounts are pre-created (seeded), so there is no sign-up screen. bcrypt hashes, server session cookie, sessions stored in the database</td><td>The same, plus self-service sign-up, email verification and password reset; sessions in Redis; optional Google sign-in; multi-factor later</td></tr>
+    <tr><td><b>Authorization</b></td><td>Two roles (seeker, employer) and ownership checks in the service layer</td><td>The same rules, plus an admin role; permissions covered by tests</td></tr>
+    <tr><td><b>Hosting</b></td><td>Cloud platform (Render or Railway), one service. SQLite needs a persistent disk, otherwise the data resets on redeploy</td><td>Docker containers on a cloud, managed PostgreSQL, CDN, own domain, HTTPS</td></tr>
+    <tr><td><b>Files and email</b></td><td class="dash">—</td><td>Object storage for résumés (for example S3); transactional email (Postmark or SES)</td></tr>
+    <tr><td><b>Testing</b></td><td>Playwright end-to-end tests through the browser, plus API tests with Vitest</td><td>The same, plus component tests and more unit tests, all run in CI</td></tr>
+    <tr><td><b>Delivery and monitoring</b></td><td>Manual deploy from GitHub; one build step (type-check and build the frontend)</td><td>GitHub Actions CI/CD, structured logs, error tracking (Sentry), database backups</td></tr>
+  </tbody>
+</table>
+
+<h4 id="i1-migration">Migration: making the move doable</h4>
+<p>Because the prototype already uses TypeScript and React, the two stacks differ in only two places: the database and hosting. Authentication is upgraded rather than replaced, and the frontend grows rather than being rewritten. Everything else carries over unchanged. For each move, here is how hard the move is and what we do <i>now</i> so that it stays that hard and no harder.</p>
+<table>
+  <thead><tr><th>Move</th><th>Effort</th><th>What changes</th><th>What we do now in the prototype</th></tr></thead>
+  <tbody>
+    <tr><td><b>Frontend grows</b></td><td><span class="tag done">Low</span></td><td>Same React app: add routing details, caching of server data, accessibility and performance work. Move to Next.js only if search-engine visibility becomes a requirement, which is a medium step.</td><td>Call the server only through one typed API module. Share the API types between backend and frontend. Keep all styling in <code>style.css</code>. Use the mockups and use cases as the specification. Write end-to-end tests that describe behaviour, not code.</td></tr>
+    <tr><td><b>SQLite → PostgreSQL</b></td><td><span class="tag should">Medium</span></td><td>Connection settings, a few SQL differences (dates, booleans, generated ids, case-insensitive search) and a one-off copy of the data.</td><td>Use Knex with migration files from day one. Write only portable SQL. Store dates as UTC ISO text. Keep all SQL inside repository modules. Treat ids as opaque. Run the same tests on PostgreSQL early in the production iteration.</td></tr>
+    <tr><td><b>Auth upgrades</b></td><td><span class="tag done">Low</span></td><td>Add self-service sign-up, email verification and password reset; move sessions to Redis. Seeded accounts and their password hashes keep working.</td><td>Use a maintained library and no home-made crypto. Keep the session store a swappable module. Keep secrets in environment variables.</td></tr>
+    <tr><td><b>Hosting → containers and CI</b></td><td><span class="tag should">Low–Medium</span></td><td>Package the app as a container, attach a managed database, add a build pipeline.</td><td>Write a Dockerfile from the start. Configure everything through environment variables. Write nothing to local disk except the SQLite file.</td></tr>
+    <tr><td><b>Tests</b></td><td><span class="tag done">Low</span></td><td>Tests keep passing across every move above, which is what tells us the migration worked.</td><td>Test through the HTTP API and the browser, never through internal functions.</td></tr>
+  </tbody>
+</table>
+
+<div class="note">
+  <b>Verdict: the migration is doable.</b> Because the API is the contract, the frontend and the database can be replaced <i>independently</i> of each other. There is no rewrite step: the biggest risk, moving from plain pages to a framework, was removed by starting with React and TypeScript (decision 17). The database move is a dialect change plus a data copy, and the rest is configuration or incremental upgrades. Suggested order for Iteration 2: <b>1)</b> PostgreSQL, <b>2)</b> hosting and CI, <b>3)</b> auth upgrades, <b>4)</b> frontend growth. The app stays working after each step.
+</div>
+
+<div class="note">
+  <b>Consequences for earlier stages: now applied (decision 18).</b> Choosing session sign-in (T-6) and two roles (T-7) changed work we had already signed off, so we updated it <i>before</i> building:
+  <ul>
+    <li><b>Stage 1:</b> UC-08 Sign in and UC-09 Sign out added; UC-03 to UC-07 revised. There is <b>no sign-up</b> in the prototype: accounts are pre-created.</li>
+    <li><b>Phase 2A:</b> new screen S-08 Sign in and a Sign out button in the header. No Register screen.</li>
+    <li><b>Seed data:</b> a seed script creates the demo accounts, jobs and applications, see <a href="#i1-seed">Seed data</a> below.</li>
+    <li><b>Data model:</b> User added, an owner on each Job, an applicant on each Application.</li>
+  </ul>
+</div>
+<h4 id="i1-seed">Seed data: the system starts with data in it</h4>
+<p>There is no sign-up and the demo should not begin with an empty screen, so the system ships with a realistic starting data set, created by a <b>seed script</b>. This also gives every use case, including its alternative flows, something to demonstrate straight away.</p>
+<table>
+  <thead><tr><th>Kind</th><th>Amount</th><th>What it contains</th></tr></thead>
+  <tbody>
+    <tr><td><b>Employer accounts</b></td><td>5</td><td>Five companies of different sizes, for example a hospital group, a café chain, a software company, a retailer and a logistics firm. Each can sign in and sees only its own posts.</td></tr>
+    <tr><td><b>Seeker accounts</b></td><td>8</td><td>Eight named people. One has applied to nothing, so "My applications" shows its empty state. One has applied to many jobs.</td></tr>
+    <tr><td><b>Jobs</b></td><td>30</td><td>Spread across technology, healthcare, hospitality, retail, trades and logistics, creative and education. Mixed locations (Sydney, Melbourne, Brisbane, Perth, Adelaide, remote) and work types (full-time, part-time, contract, casual). About one in five has no salary. Posted dates are spread over the last six weeks, so "newest first" is visible. The six jobs from the mockups are included.</td></tr>
+    <tr><td><b>Applications</b></td><td>about 45</td><td>Spread unevenly: a few jobs with none, most with one to three, and two popular jobs with five or more. Cover letters are short but readable.</td></tr>
+  </tbody>
+</table>
+
+<h4>What the seed data lets us demonstrate</h4>
+<table>
+  <thead><tr><th>Use case or flow</th><th>Seed data that covers it</th></tr></thead>
+  <tbody>
+    <tr><td><span class="id">UC-01</span> Search, main flow</td><td>Keywords that match several jobs, such as "nurse", "developer" or "assistant", and a location filter such as "Perth"</td></tr>
+    <tr><td><span class="id">UC-01</span> no results</td><td>A keyword nothing matches, listed in the demo script (for example "astronaut")</td></tr>
+    <tr><td><span class="id">UC-02</span> View details</td><td>A job with a long description, and a job with no salary</td></tr>
+    <tr><td><span class="id">UC-03</span> Apply, main flow</td><td>Jobs a given seeker has not yet applied to</td></tr>
+    <tr><td><span class="id">UC-03</span> already applied</td><td>A seeker who has already applied to a known job, to trigger the duplicate rule</td></tr>
+    <tr><td><span class="id">UC-04</span> My applications</td><td>One seeker with many applications, and one with none (empty state)</td></tr>
+    <tr><td><span class="id">UC-05, UC-06</span> Post and edit</td><td>Each employer already has posts to edit, and can post a new one</td></tr>
+    <tr><td><span class="id">UC-07</span> Applications for a job</td><td>Jobs with many applicants, and a job with none (empty state)</td></tr>
+    <tr><td>Permissions (T-7)</td><td>Two employers, so we can show that one cannot see or edit the other's jobs and applicants</td></tr>
+  </tbody>
+</table>
+
+<h4>How the seed data is delivered</h4>
+<ul>
+  <li><b>One data file, one script.</b> The data lives in a single readable file (for example <code>seed/seed-data.json</code>). A command such as <code>npm run seed</code> loads it into the database.</li>
+  <li><b>Repeatable.</b> The same command can wipe and reload, so the demo can be reset to a known state before each class.</li>
+  <li><b>Dates relative to today.</b> The script writes "posted 3 days ago" as a real date computed at load time, so the list never looks stale.</li>
+  <li><b>Demo logins.</b> All seeded accounts share one demo password, listed in the README and shown as a hint on the Sign in screen. Passwords are stored hashed like any other.</li>
+  <li><b>Demo only.</b> The production iteration must <i>not</i> ship known passwords. There the seed script is limited to development and test environments, and real users sign up themselves.</li>
+  <li><b>Migration-friendly.</b> The seed goes through the repository modules, not raw SQL, so the same script works unchanged on SQLite now and PostgreSQL later.</li>
+</ul>
+
+<div class="note">
+  <b>Security basics – not up for debate.</b> Passwords are stored only as salted hashes, never as text. The server re-checks all input and all permissions, because the browser cannot be trusted. Database queries use parameters, not string-joining. The deployed site uses HTTPS.
+</div>
+
+<h4 id="i1-architecture">Architecture: four layers and the browser</h4>
+<p>Splitting the code into layers means each part has one job. This is also why the database (SQLite now, PostgreSQL later) and the frontend can be replaced without touching the rest. Everything below is a <b>proposal</b> for the class to review; no code exists yet.</p>
+<pre class="diagram">BROWSER        React app (Vite, TypeScript)        screens S-01 to S-08 built from components
+  |  HTTP + JSON, session cookie, under /api/v1       the only contract between the two halves
+  v
+ROUTES         Express routes and middleware       URL in, JSON out. Checks "signed in?" and "which role?",
+  |                                                validates the shape of the input, picks the status code
+  v
+SERVICES       signIn, searchJobs, applyToJob ...  the business rules: validation, who owns what,
+  |                                                the duplicate-application rule
+  v
+REPOSITORIES   users, sessions, jobs, applications the only code that contains SQL (via Knex)
+  |
+  v
+DATABASE       SQLite file now, PostgreSQL later</pre>
+<div class="note">
+  <b>Rules that keep it tidy.</b> A layer may only call the layer directly below it. A route never touches the database; a page never talks to the database or to another page's code; only repositories contain SQL. The browser and the server share one set of <b>TypeScript types</b> (<code>User</code>, <code>Job</code>, <code>Application</code>, request and response shapes), so a change to the API is caught by the compiler on both sides. In production Express also serves the built React files, so there is one service to deploy. While developing, Vite serves the page and forwards <code>/api</code> requests to Express.
+</div>
+
+<h4 id="i1-api">The API: what the frontend can ask the server</h4>
+<p>REST + JSON under <code>/api/v1</code> (T-4). Signing in sets a session cookie; the browser sends it automatically. Every endpoint is listed in the OpenAPI file, which is the contract the frontend is written against.</p>
+<table>
+  <thead><tr><th>Endpoint</th><th>Who may call</th><th>Use cases</th><th>What it does</th></tr></thead>
+  <tbody>
+    <tr><td class="id">POST /auth/sign-in</td><td>Anyone</td><td>UC-08</td><td>Checks email and password, starts a session, returns the user (id, name, role, company).</td></tr>
+    <tr><td class="id">POST /auth/sign-out</td><td>Signed in</td><td>UC-09</td><td>Ends the session.</td></tr>
+    <tr><td class="id">GET /auth/me</td><td>Anyone</td><td>UC-08, UC-09</td><td>Says who is signed in, or "nobody". The page asks this on load to draw the header.</td></tr>
+    <tr><td class="id">GET /jobs?keyword=&amp;location=</td><td>Anyone</td><td>UC-01</td><td>Search. Both empty returns all jobs, newest first.</td></tr>
+    <tr><td class="id">GET /jobs/:id</td><td>Anyone</td><td>UC-02, UC-06</td><td>One job, or 404.</td></tr>
+    <tr><td class="id">POST /jobs/:id/applications</td><td>Seeker</td><td>UC-03</td><td>Apply for a job. 409 if already applied, 422 if the cover letter is missing.</td></tr>
+    <tr><td class="id">GET /me/applications</td><td>Seeker</td><td>UC-04</td><td>The signed-in seeker's applications, each with job title and company.</td></tr>
+    <tr><td class="id">GET /employer/jobs</td><td>Employer</td><td>UC-05, UC-06, UC-07</td><td>The employer's own posts, each with its number of applications.</td></tr>
+    <tr><td class="id">POST /jobs</td><td>Employer</td><td>UC-05</td><td>Create a post owned by the signed-in employer.</td></tr>
+    <tr><td class="id">PUT /jobs/:id</td><td>Employer, owner only</td><td>UC-06</td><td>Update a post. 403 if it belongs to someone else.</td></tr>
+    <tr><td class="id">GET /jobs/:id/applications</td><td>Employer, owner only</td><td>UC-07</td><td>Applications for one post, with each applicant's name and email. 403 if not the owner.</td></tr>
+  </tbody>
+</table>
+<p><b>Status codes used everywhere:</b> <span class="id">200</span>/<span class="id">201</span> success, <span class="id">401</span> not signed in, <span class="id">403</span> signed in but not allowed, <span class="id">404</span> not found, <span class="id">409</span> duplicate application, <span class="id">422</span> invalid input. Errors always have one shape, <code>{ error: { code, message, fields? } }</code>, so the page can show a message next to the right field.</p>
+
+<h4 id="i1-functions">Functions to build (services layer)</h4>
+<p>Every use case needs a small number of functions in the services layer. Listing them now tells us what Stage 3 consists of and what Stage 4 will test. Each service receives the signed-in user, so ownership is checked in one place.</p>
+<table>
+  <thead><tr><th>Function</th><th>Use cases</th><th>What it does</th></tr></thead>
+  <tbody>
+    <tr><td class="id">signIn(email, password)</td><td>UC-08</td><td>Finds the user, compares the password with the stored hash, creates a session. The same error for an unknown email and a wrong password.</td></tr>
+    <tr><td class="id">signOut(sessionId)</td><td>UC-09</td><td>Deletes the session. Does nothing if it is already gone.</td></tr>
+    <tr><td class="id">getCurrentUser(sessionId)</td><td>UC-08</td><td>Returns the user for a valid session, otherwise nobody.</td></tr>
+    <tr><td class="id">searchJobs(keyword, location)</td><td>UC-01</td><td>Case-insensitive match of the keyword against title, description and company, and of the location. Newest first.</td></tr>
+    <tr><td class="id">getJob(id)</td><td>UC-02, UC-06</td><td>Returns one job with its company name, or "not found".</td></tr>
+    <tr><td class="id">applyToJob(user, jobId, form)</td><td>UC-03</td><td>Seekers only. Validates the form, refuses a second application by the same user to the same job, stamps <span class="id">appliedAt</span>.</td></tr>
+    <tr><td class="id">getMyApplications(user)</td><td>UC-04</td><td>The user's applications, each with job title and company.</td></tr>
+    <tr><td class="id">listMyJobs(user)</td><td>UC-05, UC-06, UC-07</td><td>Employers only. Their own posts with the number of applications.</td></tr>
+    <tr><td class="id">createJob(user, form)</td><td>UC-05</td><td>Employers only. Validates required fields; the owner is the user and the company comes from their account.</td></tr>
+    <tr><td class="id">updateJob(user, jobId, form)</td><td>UC-06</td><td>Employers only, and only the owner. Validates, then saves.</td></tr>
+    <tr><td class="id">getApplicationsForJob(user, jobId)</td><td>UC-07</td><td>Employers only, and only the owner. Applications with applicant name and email, newest first.</td></tr>
+  </tbody>
+</table>
+<p class="sub">Repositories underneath: <span class="id">usersRepo</span> (findByEmail, findById), <span class="id">sessionsRepo</span> (create, find, delete), <span class="id">jobsRepo</span> (search, findById, listByOwner, insert, update), <span class="id">applicationsRepo</span> (insert, exists, findByApplicant, findByJob). The seed script uses these same repositories.</p>
+
+<h4 id="i1-frontend-structure">Frontend: screens, routes and components</h4>
+<p>Each mockup becomes a page component. Pieces that appear on several mockups (the header, a job card, a form field, a notice, an empty state) become shared components, which is the main reason to use React.</p>
+<table>
+  <thead><tr><th>Screen</th><th>Page component</th><th>Route</th><th>Who may open it</th></tr></thead>
+  <tbody>
+    <tr><td class="id">S-01</td><td>HomePage</td><td><code>/</code></td><td>Anyone</td></tr>
+    <tr><td class="id">S-02</td><td>JobDetailPage</td><td><code>/jobs/:id</code></td><td>Anyone</td></tr>
+    <tr><td class="id">S-03</td><td>ApplyPage</td><td><code>/jobs/:id/apply</code></td><td>Seeker (others are sent to Sign in)</td></tr>
+    <tr><td class="id">S-04</td><td>MyApplicationsPage</td><td><code>/my-applications</code></td><td>Seeker</td></tr>
+    <tr><td class="id">S-05</td><td>EmployerJobsPage</td><td><code>/employer/jobs</code></td><td>Employer</td></tr>
+    <tr><td class="id">S-06</td><td>JobFormPage (create and edit)</td><td><code>/employer/jobs/new</code>, <code>/employer/jobs/:id/edit</code></td><td>Employer</td></tr>
+    <tr><td class="id">S-07</td><td>ApplicationsPage</td><td><code>/employer/jobs/:id/applications</code></td><td>Employer, owner of the job</td></tr>
+    <tr><td class="id">S-08</td><td>SignInPage</td><td><code>/sign-in</code></td><td>Anyone</td></tr>
+  </tbody>
+</table>
+<ul>
+  <li><b>Who is signed in</b> is kept in one place, an <code>AuthContext</code> filled from <code>GET /auth/me</code>. The header and a <code>ProtectedRoute</code> wrapper read it. The server still checks every request; hiding a link is only a courtesy.</li>
+  <li><b>One door to the server:</b> a single typed <code>api.ts</code> is the only code that calls <code>fetch</code>. Pages call functions such as <code>searchJobs()</code>, never raw URLs.</li>
+  <li><b>Routing:</b> React Router. <b>Styling:</b> the signed-off <code>style.css</code>, reused as it is, with the same class names as the mockups.</li>
+</ul>
+
+<h4 id="i1-structure">Project structure</h4>
+<pre class="diagram">app/
+  package.json            npm workspaces: shared, server, web
+  Dockerfile              one image: builds the web app, runs the server
+  README.md               how to run, reset the seed data, demo accounts
+  shared/
+    src/types.ts          User, Job, Application, request and response types
+  server/
+    src/
+      index.ts            starts Express
+      app.ts              builds the app: middleware, routes, built web files
+      config.ts           reads environment variables (port, database, secret)
+      routes/             auth.ts, jobs.ts, applications.ts
+      middleware/         requireUser.ts, requireRole.ts, errorHandler.ts
+      services/           authService.ts, jobService.ts, applicationService.ts
+      repositories/       usersRepo.ts, sessionsRepo.ts, jobsRepo.ts, applicationsRepo.ts
+      db/                 knex.ts, migrations/ (one file per schema change)
+    seed/                 seed-data.json, seed.ts  (npm run seed)
+    openapi.yaml          the API contract
+    tests/                API and service tests (Vitest)
+  web/
+    index.html
+    vite.config.ts        development server, forwards /api to Express
+    src/
+      main.tsx, App.tsx   start-up and the route table
+      api.ts              the only code that calls the server
+      auth/               AuthContext.tsx, ProtectedRoute.tsx
+      pages/              HomePage.tsx ... SignInPage.tsx (S-01 to S-08)
+      components/         Header, JobCard, SearchForm, FormField, Notice, EmptyState
+      style.css           copied from docs/iteration-1/static-design/
+  e2e/                    browser tests (Playwright)</pre>
+<p class="sub">Folder and file names are a proposal. They follow T-2 (Express), T-3 (Knex and migrations), T-5 (React) and the layers above.</p>
+
+<details class="draft">
+<summary>Superseded draft for browser-only (Option A) – architecture, functions, structure. Kept for the record; replaced by the sections above.</summary>
+<h4>Architecture: three layers</h4>
+<p>Splitting the code into layers means each part has one job. This is also why a later move to a server replaces only the bottom layer.</p>
+<pre class="diagram">PAGES       s01 ... s07 (HTML + one script each)   what the user sees and clicks
+  |  call
+  v
+RULES       jobs.js, applications.js               search, validation, duplicate check
+  |  call
+  v
+STORAGE     storage.js                             the only code that touches local storage
+  |
+  v
+BROWSER     localStorage                           keys: jb.jobs, jb.applications</pre>
+<div class="note">
+  <b>The rule that keeps it tidy:</b> a layer may only call the layer directly below it. A page never reads local storage itself. If we later add a server (Option B), only <code>storage.js</code> changes.
+</div>
+
+<h4>Functions to build</h4>
+<p>Every use case needs a small number of functions in the rules layer. Listing them now tells us what Stage 3 consists of and what Stage 4 will test.</p>
+<table>
+  <thead><tr><th>Function</th><th>Use cases</th><th>What it does</th></tr></thead>
+  <tbody>
+    <tr><td class="id">searchJobs(keyword, location)</td><td>UC-01</td><td>Case-insensitive match of the keyword against title, skills and company, and of the location. Both empty returns all jobs, newest first.</td></tr>
+    <tr><td class="id">getJob(id)</td><td>UC-02, UC-03, UC-06</td><td>Returns one job, or nothing if it does not exist (the "not found" state).</td></tr>
+    <tr><td class="id">applyToJob(jobId, form)</td><td>UC-03</td><td>Validates the form, refuses a second application with the same email for the same job, and stamps <span class="id">appliedAt</span>.</td></tr>
+    <tr><td class="id">getApplicationsByEmail(email)</td><td>UC-04</td><td>Returns that email's applications, each with its job title.</td></tr>
+    <tr><td class="id">listJobs()</td><td>UC-05, UC-06, UC-07</td><td>All job posts with their number of applications, for the employer's list.</td></tr>
+    <tr><td class="id">saveJob(job)</td><td>UC-05, UC-06</td><td>Validates required fields. Creates a new job if there is no <span class="id">id</span>, otherwise updates the existing one.</td></tr>
+    <tr><td class="id">getApplicationsForJob(jobId)</td><td>UC-07</td><td>Returns all applications for one job, newest first.</td></tr>
+  </tbody>
+</table>
+
+<h4>Project structure</h4>
+<pre class="diagram">app/
+  index.html            S-01 Home / search
+  job.html              S-02 Job detail
+  apply.html            S-03 Apply form
+  my-applications.html  S-04 My applications
+  employer/
+    jobs.html           S-05 My job posts
+    job-form.html       S-06 Job form (create / edit)
+    applications.html   S-07 Applications for a job
+  css/style.css         copied from docs/iteration-1/static-design/
+  js/
+    storage.js          read / write local storage, seed data (T-7)
+    jobs.js             searchJobs, getJob, listJobs, saveJob
+    applications.js     applyToJob, getApplicationsByEmail, getApplicationsForJob
+    validate.js         shared checks (T-6)
+    pages/              one small script per page</pre>
+<p class="sub">Folder and file names are a proposal. They follow T-2 (multi-page), T-4 (modules) and the layers above.</p>
+</details>
+
+<h3 id="i1-design-testplan" class="phase">Phase 2C – Test plan <span class="tag could">proposed</span></h3>
+<p class="sub">How we will prove the system works, planned before any code is written. Everything here is a proposal for the class to review.</p>
+<div class="note">
+  <b>Test plan document:</b> the same plan is saved as a stand-alone page in the iteration folder: <a href="iteration-1/test-plan/test-plan.html">open the test plan</a>. Results of each test run will be saved next to it in <code>iteration-1/test-result/</code>.
+</div>
+
+<h4 id="i1-testplan-when">When is the test plan done?</h4>
+<table>
+  <thead><tr><th>Activity</th><th>Stage</th><th>Why</th></tr></thead>
+  <tbody>
+    <tr><td><b>Write the plan</b></td><td>Stage 2 – Design (this phase)</td><td>The use cases already define what "correct" means, so the plan can be written now. Planning early checks that the design is testable and stops testing being squeezed into the end.</td></tr>
+    <tr><td><b>Write the tests</b></td><td>Stage 3 – Implementation</td><td>Each use case is built together with its tests.</td></tr>
+    <tr><td><b>Run the tests and report</b></td><td>Stage 4 – Testing</td><td>Run everything, record results, send failures back.</td></tr>
+  </tbody>
+</table>
+
+<h4>Scope</h4>
+<div class="cols">
+  <div class="card">
+    <b>In scope</b>
+    <ul>
+      <li>UC-01 to UC-09, including every alternative flow</li>
+      <li>Role and ownership permissions</li>
+      <li>Security basics: hashed passwords, server-side checks, parameterised queries</li>
+    </ul>
+  </div>
+  <div class="card">
+    <b>Out of scope (iteration 1)</b>
+    <ul>
+      <li>Performance and load testing</li>
+      <li>Accessibility audit</li>
+      <li>Browsers other than Chrome</li>
+      <li>Email, file upload, anything deferred in Stage 1</li>
+    </ul>
+  </div>
+</div>
+
+<h4>Test levels and tools</h4>
+<table>
+  <thead><tr><th>Level</th><th>What it checks</th><th>Tool</th><th>Written when</th></tr></thead>
+  <tbody>
+    <tr><td><b>Unit (U)</b></td><td>Small rules in isolation: validation, the duplicate-application rule, ownership checks, search matching</td><td>Vitest</td><td>With each service, in Stage 3</td></tr>
+    <tr><td><b>API (A)</b></td><td>Every endpoint through HTTP, including <span class="id">401</span>, <span class="id">403</span>, <span class="id">404</span>, <span class="id">409</span> and <span class="id">422</span></td><td>Vitest + HTTP requests</td><td>With each endpoint, in Stage 3</td></tr>
+    <tr><td><b>End-to-end (E)</b></td><td>Each use case in a real browser, as a user would do it</td><td>Playwright</td><td>When the use case is built, in Stage 3</td></tr>
+    <tr><td><b>Manual</b></td><td>Match to the mockups, narrow screen, keyboard use, wording of messages</td><td>A checklist</td><td>In Stage 4</td></tr>
+  </tbody>
+</table>
+
+<h4>Test environment and data</h4>
+<ul>
+  <li>Tests run against a <b>temporary SQLite database</b> created for each run and loaded with the <b>seed data</b> (5 employers, 8 seekers, 30 jobs, about 45 applications). It is re-seeded before every run, so a result never depends on test order.</li>
+  <li>Demo accounts share the password <code>demo1234</code> (demo only). Tests refer to accounts by role, for example "a seeker who has applied to nothing", chosen when the seed data is written.</li>
+  <li>End-to-end tests start the whole app (Express serving the built React files) on a test port.</li>
+</ul>
+
+<h4>Entry and exit criteria</h4>
+<div class="cols">
+  <div class="card">
+    <b>Entry: start Stage 4 when</b>
+    <ul>
+      <li>All Must use cases are built</li>
+      <li>The app starts with one command</li>
+      <li>The seed script runs cleanly</li>
+    </ul>
+  </div>
+  <div class="card">
+    <b>Exit: Stage 4 is done when</b>
+    <ul>
+      <li>Every test case below passes</li>
+      <li>Every security and permission test passes</li>
+      <li>The manual checklist is completed</li>
+      <li>No known bug blocks a use case</li>
+    </ul>
+  </div>
+</div>
+<p class="sub">A failure goes back to Stage 3 if the code is wrong, or to Stage 1 if the requirement was wrong.</p>
+
+<h4 id="i1-testcases">Test cases by use case</h4>
+<p>Every main flow and alternative flow written in Stage 1 becomes at least one numbered test case. Levels: <b>U</b> unit, <b>A</b> API, <b>E</b> end-to-end. The ids are stable, so the traceability table can link use cases to them.</p>
+<table>
+  <thead><tr><th>Use case</th><th>Id</th><th>Test case</th><th>Levels</th></tr></thead>
+  <tbody>
+    <tr><td rowspan="5"><span class="id">UC-01</span><br>Search for jobs</td><td class="id">TC-01-1</td><td>Keyword matches jobs by title, description or company; only matching jobs are listed</td><td>U, A, E</td></tr>
+    <tr><td class="id">TC-01-2</td><td>Location filter narrows the result; keyword and location combine</td><td>A, E</td></tr>
+    <tr><td class="id">TC-01-3</td><td>Both fields empty lists all jobs, newest first</td><td>A, E</td></tr>
+    <tr><td class="id">TC-01-4</td><td>Nothing matches: a "no results" message is shown <i>(alternative flow)</i></td><td>A, E</td></tr>
+    <tr><td class="id">TC-01-5</td><td>Search ignores upper and lower case</td><td>U</td></tr>
+    <tr><td rowspan="3"><span class="id">UC-02</span><br>View job details</td><td class="id">TC-02-1</td><td>Job page shows title, company, location, work type, salary, description and requirements</td><td>A, E</td></tr>
+    <tr><td class="id">TC-02-2</td><td>A job with no salary displays correctly</td><td>E</td></tr>
+    <tr><td class="id">TC-02-3</td><td>Unknown job id gives 404 and a "job not found" page <i>(alternative flow)</i></td><td>A, E</td></tr>
+    <tr><td rowspan="5"><span class="id">UC-03</span><br>Apply for a job</td><td class="id">TC-03-1</td><td>Signed-in seeker submits phone and cover letter; confirmation shown; application saved with its date</td><td>U, A, E</td></tr>
+    <tr><td class="id">TC-03-2</td><td>Signed out: Apply sends the user to Sign in, and after signing in returns to the application form</td><td>E</td></tr>
+    <tr><td class="id">TC-03-3</td><td>Cover letter missing: error shown, typed values kept, nothing saved (422)</td><td>U, A, E</td></tr>
+    <tr><td class="id">TC-03-4</td><td>Applying to the same job a second time is refused (409) with a clear message</td><td>U, A, E</td></tr>
+    <tr><td class="id">TC-03-5</td><td>An employer cannot apply (403)</td><td>A</td></tr>
+    <tr><td rowspan="3"><span class="id">UC-04</span><br>View my applications</td><td class="id">TC-04-1</td><td>Seeker sees only their own applications, with job title and company</td><td>A, E</td></tr>
+    <tr><td class="id">TC-04-2</td><td>Seeker with no applications sees the empty state</td><td>A, E</td></tr>
+    <tr><td class="id">TC-04-3</td><td>Signed out: redirected to Sign in (401 from the API)</td><td>A, E</td></tr>
+    <tr><td rowspan="3"><span class="id">UC-05</span><br>Post a job</td><td class="id">TC-05-1</td><td>Employer fills the form; the job is saved, owned by them, and found in search under their company</td><td>U, A, E</td></tr>
+    <tr><td class="id">TC-05-2</td><td>Required field missing: errors shown next to the fields, nothing saved (422)</td><td>U, A, E</td></tr>
+    <tr><td class="id">TC-05-3</td><td>A seeker cannot post (403)</td><td>A</td></tr>
+    <tr><td rowspan="3"><span class="id">UC-06</span><br>Edit a job post</td><td class="id">TC-06-1</td><td>Owner edits a post; the change shows on the job page and in search</td><td>A, E</td></tr>
+    <tr><td class="id">TC-06-2</td><td>Required field emptied: save blocked with errors (422)</td><td>U, A, E</td></tr>
+    <tr><td class="id">TC-06-3</td><td>Editing another employer's post is refused (403)</td><td>U, A</td></tr>
+    <tr><td rowspan="3"><span class="id">UC-07</span><br>View applications for a job</td><td class="id">TC-07-1</td><td>Owner sees applicants (name, email, date) and can open one to read the cover letter</td><td>A, E</td></tr>
+    <tr><td class="id">TC-07-2</td><td>A post with no applications shows the empty state</td><td>A, E</td></tr>
+    <tr><td class="id">TC-07-3</td><td>Another employer's applications are refused (403)</td><td>U, A</td></tr>
+    <tr><td rowspan="5"><span class="id">UC-08</span><br>Sign in</td><td class="id">TC-08-1</td><td>Seeker signs in and lands on the home page; the header shows their name</td><td>A, E</td></tr>
+    <tr><td class="id">TC-08-2</td><td>Employer signs in and lands on "My job posts"</td><td>A, E</td></tr>
+    <tr><td class="id">TC-08-3</td><td>Wrong password and unknown email give the <b>same</b> generic message (401)</td><td>U, A, E</td></tr>
+    <tr><td class="id">TC-08-4</td><td>Empty fields are highlighted and nothing is sent</td><td>E</td></tr>
+    <tr><td class="id">TC-08-5</td><td><code>GET /auth/me</code> returns the user when signed in and "nobody" when not</td><td>A</td></tr>
+    <tr><td rowspan="2"><span class="id">UC-09</span><br>Sign out</td><td class="id">TC-09-1</td><td>Sign out ends the session and shows the confirmation</td><td>A, E</td></tr>
+    <tr><td class="id">TC-09-2</td><td>After sign out, protected pages and endpoints ask for sign-in again</td><td>A, E</td></tr>
+  </tbody>
+</table>
+
+<h4>Permission and security tests</h4>
+<table>
+  <thead><tr><th>Id</th><th>Test</th><th>Level</th></tr></thead>
+  <tbody>
+    <tr><td class="id">SEC-1</td><td>Every protected endpoint returns 401 with no session and 403 with the wrong role. Checked by calling the API directly, not through the page.</td><td>A</td></tr>
+    <tr><td class="id">SEC-2</td><td>No endpoint ever returns a password hash</td><td>A</td></tr>
+    <tr><td class="id">SEC-3</td><td>The session cookie is <code>HttpOnly</code>; a session id that was signed out no longer works</td><td>A</td></tr>
+    <tr><td class="id">SEC-4</td><td>A search for <code>' OR 1=1 --</code> returns no extra rows and no error (parameterised queries)</td><td>A</td></tr>
+    <tr><td class="id">SEC-5</td><td>Passwords in the database are hashes, not the text <code>demo1234</code></td><td>A</td></tr>
+    <tr><td class="id">SEC-6</td><td>Input is validated on the server even if the browser checks are bypassed</td><td>A</td></tr>
+  </tbody>
+</table>
+
+<h4>Manual checklist (Stage 4)</h4>
+<ul>
+  <li>Each screen matches its mockup (layout, wording, empty states)</li>
+  <li>Screens are usable in a narrow, phone-width window</li>
+  <li>Forms can be completed with the keyboard only</li>
+  <li>Error and confirmation messages are clear and polite</li>
+  <li>The demo accounts box on Sign in lists working accounts</li>
+</ul>
+
+<h4>Reporting</h4>
+<p>Stage 4 results are saved in <code>iteration-1/test-result/</code>, one file per run: date, build, pass or fail for each test case id, bugs found and their fix status.</p>
+
+<h2 id="i1-stage3">Stage 3 – Implementation <span class="tag wont">not started</span></h2>
+<p><b>Question answered:</b> <i>Can we build it?</i></p>
+<table>
+  <thead><tr><th>Use case</th><th>Status</th><th>Files / notes</th></tr></thead>
+  <tbody><tr><td class="id">UC-xx</td><td>Not started</td><td class="dash">—</td></tr></tbody>
+</table>
+<p class="sub">Build one use case at a time, in priority order, and write its tests from the test plan as you go. A use case is done when its main flow works in the browser and its tests pass.</p>
+<h2 id="i1-stage4">Stage 4 – Testing <span class="tag wont">not started</span></h2>
+<p><b>Question answered:</b> <i>Does it do what the requirements said?</i></p>
+<table>
+  <thead><tr><th>Use case</th><th>Flow tested</th><th>Result</th><th>Notes</th></tr></thead>
+  <tbody><tr><td class="id">UC-xx</td><td>Main flow / alternative flow id</td><td>Pass / Fail</td><td class="dash">—</td></tr></tbody>
+</table>
+<p class="sub">Each flow written in Stage 1 becomes one test case. The plan was made in Phase 2C of Stage 2 (see Test plan) and the tests were written in Stage 3; this stage runs them and reports the results. A failure either sends us back to fix code, or back to Stage 1 if the requirement was wrong.</p>
+<h2 id="i1-stage5">Stage 5 – Deployment <span class="tag wont">not started</span></h2>
+<p><b>Question answered:</b> <i>How do real users get it?</i></p>
+<table>
+  <tbody>
+    <tr><th>Where</th><td class="dash">—</td></tr>
+    <tr><th>URL</th><td class="dash">—</td></tr>
+    <tr><th>How it was published</th><td class="dash">—</td></tr>
+  </tbody>
+</table>
+<h2 id="i1-stage6">Stage 6 – Review &amp; Maintenance <span class="tag wont">not started</span></h2>
+<p><b>Question answered:</b> <i>What did we learn, and what comes next?</i></p>
+<div class="cols">
+  <div class="card"><b>What went well</b><p class="dash" style="margin:6px 0 0">—</p></div>
+  <div class="card"><b>What to change next time</b><p class="dash" style="margin:6px 0 0">—</p></div>
+</div>
+<p class="sub">Anything deferred, or discovered along the way, becomes the starting point of the next iteration.</p>
+
+<!-- ============================ TRACEABILITY ============================ -->
+<h2 id="i1-traceability">Traceability (filled in as we go)</h2>
+<p>Traceability means being able to follow a requirement through every later stage. It started empty and fills up as we move around the cycle – a good way to see that nothing was forgotten.</p>
+<table>
+  <thead><tr><th>Use case</th><th>Priority</th><th>Design (Stage 2)</th><th>Code (Stage 3)</th><th>Test (Stage 4)</th><th>Deployed (Stage 5)</th></tr></thead>
+  <tbody>
+    <tr><td><span class="id">UC-01</span> Search for jobs</td><td><span class="tag must">Must</span></td><td><a href="iteration-1/static-design/s01-search.html">S-01</a></td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td></tr>
+    <tr><td><span class="id">UC-02</span> View job details</td><td><span class="tag must">Must</span></td><td><a href="iteration-1/static-design/s02-job-detail.html">S-02</a></td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td></tr>
+    <tr><td><span class="id">UC-03</span> Apply for a job</td><td><span class="tag must">Must</span></td><td><a href="iteration-1/static-design/s03-apply.html">S-03</a>, <a href="iteration-1/static-design/s08-sign-in.html">S-08</a></td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td></tr>
+    <tr><td><span class="id">UC-04</span> View my applications</td><td><span class="tag must">Must</span></td><td><a href="iteration-1/static-design/s04-my-applications.html">S-04</a>, <a href="iteration-1/static-design/s08-sign-in.html">S-08</a></td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td></tr>
+    <tr><td><span class="id">UC-05</span> Post a job</td><td><span class="tag must">Must</span></td><td><a href="iteration-1/static-design/s05-employer-jobs.html">S-05</a>, <a href="iteration-1/static-design/s06-job-form.html">S-06</a></td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td></tr>
+    <tr><td><span class="id">UC-06</span> Edit a job post</td><td><span class="tag must">Must</span></td><td><a href="iteration-1/static-design/s05-employer-jobs.html">S-05</a>, <a href="iteration-1/static-design/s06-job-form.html">S-06</a></td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td></tr>
+    <tr><td><span class="id">UC-07</span> View applications for a job</td><td><span class="tag must">Must</span></td><td><a href="iteration-1/static-design/s05-employer-jobs.html">S-05</a>, <a href="iteration-1/static-design/s07-applications.html">S-07</a></td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td></tr>
+    <tr><td><span class="id">UC-08</span> Sign in</td><td><span class="tag must">Must</span></td><td><a href="iteration-1/static-design/s08-sign-in.html">S-08</a></td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td></tr>
+    <tr><td><span class="id">UC-09</span> Sign out</td><td><span class="tag must">Must</span></td><td><a href="iteration-1/static-design/s08-sign-in.html">S-08</a></td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td></tr>
+  </tbody>
+</table>
+
+<h2 id="i1-next">Next step</h2>
+<div class="note">
+  <b>Phase 2A:</b> done, the eight mockups are signed off (S-08 added for sign-in). <b>Phase 2B:</b> technology decisions are made. Stage 1, Phase 2A and the data model are now updated for sign-in, and the architecture, API and file structure are proposed for review. <b>Phase 2C:</b> the test plan is proposed for review. Record every change in the decision log. When all three phases are agreed, we mark Stage 2 complete and move to <b>Stage 3 – Implementation</b>, building one use case at a time.
+</div>
+
+
+</section>
+
+<section class="panel" id="template">
+<h1>Iteration template</h1>
+<p class="sub">The blank skeleton every iteration starts from.</p>
+<div class="note"><b>Starting a new iteration:</b> copy this panel, give it the id <code>iteration-N</code>, add a tab for it in the sidebar, prefix every id inside it with <code>iN-</code> so links stay unique, and replace everything in [brackets]. Keep the sections in this order.</div>
+
+<h1>Iteration N – [Name]</h1>
+<p class="sub"><b>Goal:</b> [one sentence describing what this iteration should achieve]</p>
+<ol class="stages" aria-label="Development stages">
+  <li class="current"><span class="n">Stage 1</span><b><a href="#tpl-requirements">Requirements</a></b><span class="state">● We are here</span></li>
+  <li class="multi"><span class="n">Stage 2</span><b>Design</b><span class="links"><a href="#tpl-design-graphic" data-bar="Graphic design">Graphic</a><a href="#tpl-design-software" data-bar="Software design">Software</a><a href="#tpl-design-testplan" data-bar="Test plan">Test plan</a></span><span class="state">Planned</span></li>
+  <li><span class="n">Stage 3</span><b><a href="#tpl-stage3">Implementation</a></b><span class="state">Planned</span></li>
+  <li><span class="n">Stage 4</span><b><a href="#tpl-stage4">Testing</a></b><span class="state">Planned</span></li>
+  <li><span class="n">Stage 5</span><b><a href="#tpl-stage5">Deployment</a></b><span class="state">Planned</span></li>
+  <li><span class="n">Stage 6</span><b><a href="#tpl-stage6">Review &amp; Maintenance</a></b><span class="state">Planned</span></li>
+</ol>
+
+<h2 id="tpl-requirements">Stage 1 – Requirements (use cases) <span class="tag could">current</span></h2>
+<p><b>Question answered:</b> <i>What should the system do, and for whom?</i></p>
+
+<h3>Carried over from the previous iteration</h3>
+<p class="dash">[Deferred ideas, failed tests and review notes that are now in scope. Write "none" for the first iteration.]</p>
+
+<h3>Actors</h3>
+<table>
+  <thead><tr><th>Actor</th><th>Who they are</th><th>In this iteration?</th></tr></thead>
+  <tbody><tr><td><b>[Actor]</b></td><td>[Description]</td><td>[Yes / No]</td></tr></tbody>
+</table>
+
+<h3>Scope</h3>
+<div class="cols">
+  <div class="card"><b>[Actor] can…</b><ul style="margin:6px 0 0"><li>[goal]</li></ul></div>
+  <div class="card"><b>[Actor] can…</b><ul style="margin:6px 0 0"><li>[goal]</li></ul></div>
+</div>
+
+<h3>Use case overview</h3>
+<table>
+  <thead><tr><th>ID</th><th>Use case</th><th>Actor</th><th>Priority</th></tr></thead>
+  <tbody>
+    <tr><td class="id">UC-xx</td><td>[Use case name]</td><td>[Actor]</td><td><span class="tag must">Must</span></td></tr>
+  </tbody>
+</table>
+<p class="sub">Priorities: <span class="tag must">Must</span> <span class="tag should">Should</span> <span class="tag could">Could</span> <span class="tag wont">Won't (yet)</span>. Use case IDs are stable and never reused, even across iterations.</p>
+
+<h3>Use case details</h3>
+<details class="uc" open>
+  <summary><span class="id">UC-xx</span><span class="title">[Use case name]</span><span class="tag must">Must</span></summary>
+  <div class="uc-body"><dl>
+    <dt>Actor</dt><dd>[Who wants the goal]</dd>
+    <dt>Goal</dt><dd>[One sentence]</dd>
+    <dt>Preconditions</dt><dd>[What must be true before it starts]</dd>
+    <dt>Main flow</dt><dd><ol><li>[Step]</li><li>[Step]</li></ol></dd>
+    <dt>Alternative flows</dt><dd><ul><li><b>[Step id]a. [Condition]:</b> [what happens]</li></ul></dd>
+    <dt>Postconditions</dt><dd>[What is true when it ends successfully]</dd>
+  </dl></div>
+</details>
+
+<h3>Deferred (not in this iteration)</h3>
+<table>
+  <thead><tr><th>Idea</th><th>Priority</th><th>Why deferred</th></tr></thead>
+  <tbody><tr><td>[Idea]</td><td><span class="tag wont">Won't (yet)</span></td><td>[Reason]</td></tr></tbody>
+</table>
+
+<h3>Open questions for the client</h3>
+<div class="card"><ol style="margin:0"><li>[Question]</li></ol></div>
+
+<h3>Decision log</h3>
+<table>
+  <thead><tr><th>#</th><th>Stage</th><th>Decision</th><th>Why</th></tr></thead>
+  <tbody><tr><td>1</td><td>Requirements</td><td>[Decision]</td><td>[Reason]</td></tr></tbody>
+</table>
+
+<h2 id="tpl-design">Stage 2 – Design <span class="tag wont">not started</span></h2>
+<p><b>Question answered:</b> <i>How will it be structured and what will it look like?</i> Done in two phases.</p>
+
+<h3 id="tpl-design-graphic" class="phase">Phase 2A – Graphic design</h3>
+<p class="sub">What the user sees and how they move around.</p>
+
+<h4>Screens</h4>
+<table>
+  <thead><tr><th>ID</th><th>Screen</th><th>Used by</th><th>Shows / does</th><th>Use cases</th><th>Mockup</th></tr></thead>
+  <tbody><tr><td class="id">S-xx</td><td>[Screen]</td><td>[Actor]</td><td>[Content and actions]</td><td>UC-xx</td><td>[Link]</td></tr></tbody>
+</table>
+<p class="sub">Check both ways: every use case appears on a screen, and every screen serves a use case.</p>
+
+<h4>Navigation</h4>
+<pre class="diagram">[Text diagram of how screens link together]</pre>
+
+<h4>Static mockups</h4>
+<p class="dash">[One clickable HTML page per screen, in docs/design/iteration-N/. Include the alternative states.]</p>
+
+<h3 id="tpl-design-software" class="phase">Phase 2B – Software design</h3>
+<p class="sub">What the code is made of, and the web technology decisions.</p>
+
+<h4>Data model</h4>
+<table>
+  <thead><tr><th colspan="3">[Entity]</th></tr></thead>
+  <tbody><tr><td class="id">[field]</td><td>[type]</td><td>[required / optional]</td></tr></tbody>
+</table>
+<p class="sub">[Relationships and rules between entities.]</p>
+
+<h4>Technology decisions</h4>
+<table>
+  <thead><tr><th>ID</th><th>Question</th><th>Options</th><th>Proposal and reason</th><th>Status</th></tr></thead>
+  <tbody><tr><td class="id">T-x</td><td>[Question]</td><td>[Option A / Option B]</td><td>[Proposal and why]</td><td>[Proposed / Decided]</td></tr></tbody>
+</table>
+<p class="sub">Typical questions: architecture, backend, database, API style, frontend, authentication, authorization, hosting. Give each option pros and cons, mark a recommendation, and record the final choice in the decision log.</p>
+
+<h4>Architecture and functions</h4>
+<pre class="diagram">[Layers and what each one may call]</pre>
+<table>
+  <thead><tr><th>Function</th><th>Use cases</th><th>What it does</th></tr></thead>
+  <tbody><tr><td class="id">[name(args)]</td><td>UC-xx</td><td>[Behaviour]</td></tr></tbody>
+</table>
+
+<h4>Project structure</h4>
+<pre class="diagram">[Folders and files of the app]</pre>
+
+<h3 id="tpl-design-testplan" class="phase">Phase 2C – Test plan</h3>
+<p class="sub">How we will prove it works. Write the plan in design, write the tests in implementation, run them in testing.</p>
+
+<h4>Test levels and tools</h4>
+<table>
+  <thead><tr><th>Level</th><th>What it checks</th><th>Tool</th><th>Written when</th></tr></thead>
+  <tbody><tr><td>[Unit / API / End-to-end / Manual]</td><td>[What]</td><td>[Tool]</td><td>[Stage]</td></tr></tbody>
+</table>
+
+<h4>Test cases by use case</h4>
+<table>
+  <thead><tr><th>Use case</th><th>Id</th><th>Test case</th><th>Levels</th></tr></thead>
+  <tbody><tr><td>UC-xx</td><td class="id">TC-xx-1</td><td>[Main flow, then each alternative flow]</td><td>[U, A, E]</td></tr></tbody>
+</table>
+<p class="sub">Also plan the test data, entry and exit criteria, security and permission tests, and a manual checklist.</p>
+
+<h2 id="tpl-stage3">Stage 3 – Implementation <span class="tag wont">not started</span></h2>
+<p><b>Question answered:</b> <i>Can we build it?</i></p>
+<table>
+  <thead><tr><th>Use case</th><th>Status</th><th>Files / notes</th></tr></thead>
+  <tbody><tr><td class="id">UC-xx</td><td>Not started</td><td class="dash">—</td></tr></tbody>
+</table>
+<p class="sub">Build one use case at a time, in priority order, and write its tests from the test plan as you go. A use case is done when its main flow works in the browser and its tests pass.</p>
+<h2 id="tpl-stage4">Stage 4 – Testing <span class="tag wont">not started</span></h2>
+<p><b>Question answered:</b> <i>Does it do what the requirements said?</i></p>
+<table>
+  <thead><tr><th>Use case</th><th>Flow tested</th><th>Result</th><th>Notes</th></tr></thead>
+  <tbody><tr><td class="id">UC-xx</td><td>Main flow / alternative flow id</td><td>Pass / Fail</td><td class="dash">—</td></tr></tbody>
+</table>
+<p class="sub">Each flow written in Stage 1 becomes one test case. The plan was made in Phase 2C of Stage 2 (see Test plan) and the tests were written in Stage 3; this stage runs them and reports the results. A failure either sends us back to fix code, or back to Stage 1 if the requirement was wrong.</p>
+<h2 id="tpl-stage5">Stage 5 – Deployment <span class="tag wont">not started</span></h2>
+<p><b>Question answered:</b> <i>How do real users get it?</i></p>
+<table>
+  <tbody>
+    <tr><th>Where</th><td class="dash">—</td></tr>
+    <tr><th>URL</th><td class="dash">—</td></tr>
+    <tr><th>How it was published</th><td class="dash">—</td></tr>
+  </tbody>
+</table>
+<h2 id="tpl-stage6">Stage 6 – Review &amp; Maintenance <span class="tag wont">not started</span></h2>
+<p><b>Question answered:</b> <i>What did we learn, and what comes next?</i></p>
+<div class="cols">
+  <div class="card"><b>What went well</b><p class="dash" style="margin:6px 0 0">—</p></div>
+  <div class="card"><b>What to change next time</b><p class="dash" style="margin:6px 0 0">—</p></div>
+</div>
+<p class="sub">Anything deferred, or discovered along the way, becomes the starting point of the next iteration.</p>
+
+<h2 id="tpl-traceability">Traceability</h2>
+<table>
+  <thead><tr><th>Use case</th><th>Priority</th><th>Design (Stage 2)</th><th>Code (Stage 3)</th><th>Test (Stage 4)</th><th>Deployed (Stage 5)</th></tr></thead>
+  <tbody>
+    <tr><td><span class="id">UC-xx</span> [Name]</td><td><span class="tag must">Must</span></td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td></tr>
+  </tbody>
+</table>
+
+<h2 id="tpl-next">Next step</h2>
+<div class="note">[What must happen before the current stage can be marked done, and what comes next.]</div>
+
+</section>
+
+</main>
+
+<footer>Job Board prototype · teaching demo · living document, updated at the end of each stage.</footer>
+</div>
+</div>
+
+<script>
+(function () {
+  document.documentElement.classList.add('js');
+  var panels = Array.prototype.slice.call(document.querySelectorAll('.panel'));
+  var tabs = Array.prototype.slice.call(document.querySelectorAll('.tab'));
+
+  var bar = document.createElement('nav');
+  bar.className = 'stagebar';
+  bar.setAttribute('aria-label', 'Jump to stage');
+  document.querySelector('.content').prepend(bar);
+  var watcher = 'IntersectionObserver' in window ? new IntersectionObserver(function (entries) {
+    bar.classList.toggle('visible', !entries[0].isIntersecting);
+  }) : null;
+
+  function setupBar(panel) {
+    if (watcher) watcher.disconnect();
+    bar.classList.remove('visible');
+    bar.innerHTML = '';
+    var tracker = panel.querySelector('.stages');
+    if (!tracker || !watcher) return;
+    Array.prototype.forEach.call(tracker.querySelectorAll('li'), function (li) {
+      var sub = li.querySelectorAll('.links a');
+      if (sub.length) {
+        var grp = document.createElement('span');
+        grp.className = 'grp';
+        Array.prototype.forEach.call(sub, function (l) {
+          var b = document.createElement('a');
+          b.href = l.getAttribute('href');
+          b.textContent = l.getAttribute('data-bar');
+          b.className = l.getAttribute('data-state') || '';
+          grp.appendChild(b);
+        });
+        bar.appendChild(grp);
+        return;
+      }
+      var a = document.createElement('a');
+      a.href = li.querySelector('a').getAttribute('href');
+      a.textContent = li.querySelector('b').textContent;
+      a.className = li.className;
+      bar.appendChild(a);
+    });
+    watcher.observe(tracker);
+  }
+
+  function show(id) {
+    panels.forEach(function (p) { p.hidden = p.id !== id; });
+    setupBar(document.getElementById(id));
+    tabs.forEach(function (t) {
+      var on = t.getAttribute('href') === '#' + id;
+      t.classList.toggle('active', on);
+      if (on) t.setAttribute('aria-current', 'page'); else t.removeAttribute('aria-current');
+    });
+  }
+
+  function route() {
+    var id = decodeURIComponent(location.hash.slice(1));
+    var target = id ? document.getElementById(id) : null;
+    var panel = target ? target.closest('.panel') : null;
+    if (!panel) { show('iteration-1'); return; }
+    show(panel.id);
+    if (target === panel) { window.scrollTo(0, 0); return; }
+    if (target.tagName === 'DETAILS') target.open = true;
+    target.scrollIntoView();
+  }
+
+  window.addEventListener('hashchange', route);
+  route();
+})();
+</script>
+
+</body>
+</html>

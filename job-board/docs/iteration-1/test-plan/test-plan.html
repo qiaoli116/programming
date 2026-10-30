@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Job Board – Iteration 1 – Test plan</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --card: #ffffff; --text: #1d2330; --muted: #5d6677; --line: #dde1e8;
+    --accent: #2563eb; --accent-soft: #e3ecff;
+    --must: #b42318; --must-bg: #fde8e6;
+    --should: #b54708; --should-bg: #fdf0dc;
+    --could: #175cd3; --could-bg: #e3ecff;
+    --good: #067647; --good-bg: #dcf5e7;
+    --wont: #5d6677; --wont-bg: #eceef2;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12151c; --card: #1a1f2a; --text: #e6e9ef; --muted: #9aa3b5; --line: #2c3342;
+      --accent: #6b9bff; --accent-soft: #1d2a47;
+      --must: #ff9a8f; --must-bg: #3a1f1d;
+      --should: #f5b46a; --should-bg: #3a2c17;
+      --could: #8ab4ff; --could-bg: #1d2a47;
+      --good: #4ade80; --good-bg: #17301f;
+      --wont: #9aa3b5; --wont-bg: #262c39;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+  a { color: var(--accent); }
+  code { font: .85em ui-monospace, Consolas, monospace; background: var(--wont-bg); padding: 1px 5px; border-radius: 4px; }
+  main { max-width: 980px; margin: 0 auto; padding: 0 28px 60px; }
+  h2, h3 { scroll-margin-top: 64px; }
+  h2 { font-size: 1.35rem; margin: 40px 0 6px; }
+  h3 { font-size: 1.05rem; margin: 28px 0 8px; display: flex; align-items: center; gap: 10px; }
+  p { max-width: 70ch; }
+  .sub { color: var(--muted); }
+
+  /* ---- top nav ---- */
+  .nav { position: sticky; top: 0; z-index: 10; background: var(--card); border-bottom: 1px solid var(--line);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, .08); }
+  .nav .in { max-width: 980px; margin: 0 auto; padding: 8px 28px; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .nav a { padding: 3px 11px; border: 1px solid var(--line); border-radius: 8px; font-size: .85rem; font-weight: 600;
+    text-decoration: none; color: var(--text); white-space: nowrap; }
+  .nav a:hover { border-color: var(--accent); }
+  .nav a.back { margin-right: 10px; color: var(--accent); border-color: transparent; }
+
+  /* ---- header ---- */
+  header.top { padding: 36px 0 8px; }
+  header.top .crumb { font-size: .85rem; color: var(--muted); }
+  header.top h1 { margin: 4px 0 10px; font-size: 2rem; line-height: 1.2; }
+  .tag { display: inline-block; padding: 1px 10px; border-radius: 999px; font-size: .78rem; font-weight: 700; vertical-align: middle; }
+  .tag.proposed { background: var(--could-bg); color: var(--could); }
+  .tag.must { background: var(--must-bg); color: var(--must); }
+
+  /* ---- summary cards ---- */
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 22px 0 6px; }
+  .stat { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .stat b { display: block; font-size: 1.9rem; line-height: 1.1; color: var(--accent); }
+  .stat span { font-size: .85rem; color: var(--muted); }
+
+  /* ---- tables ---- */
+  .tbl { background: var(--card); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; margin: 10px 0 6px; }
+  table { border-collapse: collapse; width: 100%; font-size: .95rem; }
+  th { text-align: left; font-size: .72rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted);
+    background: var(--bg); padding: 9px 14px; border-bottom: 1px solid var(--line); }
+  td { padding: 9px 14px; border-top: 1px solid var(--line); vertical-align: top; }
+  tr:first-child td { border-top: 0; }
+  td.id { font: .85em ui-monospace, Consolas, monospace; color: var(--muted); white-space: nowrap; }
+  td.lv { white-space: nowrap; width: 1%; }
+  .tbl.cases table { table-layout: fixed; }
+  .tbl.cases th:first-child { width: 96px; }
+  .tbl.cases th:last-child { width: 118px; }
+  .tbl.cases td.lv { width: auto; }
+
+  /* ---- level pills ---- */
+  .lv span { display: inline-block; min-width: 22px; text-align: center; padding: 0 6px; margin-right: 3px; border-radius: 6px;
+    font-size: .75rem; font-weight: 700; }
+  .lv .U { background: var(--should-bg); color: var(--should); }
+  .lv .A { background: var(--good-bg); color: var(--good); }
+  .lv .E { background: var(--could-bg); color: var(--could); }
+  .legend { font-size: .85rem; color: var(--muted); }
+  .legend span { display: inline-block; padding: 0 6px; border-radius: 6px; font-weight: 700; margin: 0 2px 0 8px; }
+  .legend .U { background: var(--should-bg); color: var(--should); }
+  .legend .A { background: var(--good-bg); color: var(--good); }
+  .legend .E { background: var(--could-bg); color: var(--could); }
+
+  /* ---- timeline of stages ---- */
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 14px 0; }
+  .step { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; border-top: 4px solid var(--line); }
+  .step.now { border-top-color: var(--accent); }
+  .step small { color: var(--muted); font-weight: 600; text-transform: uppercase; font-size: .72rem; letter-spacing: .05em; }
+  .step b { display: block; margin: 2px 0 4px; }
+  .step p { margin: 0; font-size: .92rem; color: var(--muted); }
+  @media (max-width: 700px) { .steps { grid-template-columns: 1fr; } }
+
+  /* ---- notes and lists ---- */
+  .note { background: var(--accent-soft); border-left: 4px solid var(--accent); border-radius: 8px; padding: 12px 16px; margin: 14px 0; max-width: 78ch; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 12px 0; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px 18px; }
+  .card h4 { margin: 0 0 6px; }
+  .card ul { margin: 0; padding-left: 20px; }
+  .card.ok { border-top: 4px solid var(--good); }
+  .card.fail { border-top: 4px solid var(--must); }
+  @media (max-width: 700px) { .cols { grid-template-columns: 1fr; } }
+  .check { list-style: none; padding: 0; margin: 10px 0; }
+  .check li { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 8px 14px 8px 40px; margin-bottom: 6px; position: relative; }
+  .check li::before { content: ""; position: absolute; left: 14px; top: 12px; width: 14px; height: 14px; border: 2px solid var(--muted); border-radius: 4px; }
+</style>
+</head>
+<body>
+
+<nav class="nav"><div class="in">
+  <a class="back" href="../../process.html#i1-design-testplan">← Development process</a>
+  <a href="#when">When</a>
+  <a href="#scope">Scope</a>
+  <a href="#levels">Levels</a>
+  <a href="#env">Environment</a>
+  <a href="#criteria">Criteria</a>
+  <a href="#cases">Test cases</a>
+  <a href="#security">Security</a>
+  <a href="#manual">Manual</a>
+  <a href="#reporting">Reporting</a>
+</div></nav>
+
+<main>
+
+<header class="top">
+  <div class="crumb">Job Board · Iteration 1 · Stage 2 Design · Phase 2B Software design</div>
+  <h1>Test plan</h1>
+  <span class="tag proposed">Proposed</span>
+  <span class="sub">&nbsp;To be reviewed with the class before Stage 2 is marked complete.</span>
+  <p class="sub">Based on the use cases in Stage 1 and the mockups in <a href="../static-design/s01-search.html">static-design</a>. Results of each run go in the <code>test-result</code> folder next to this one.</p>
+  <div class="stats">
+    <div class="stat"><b>9</b><span>use cases covered (all Must)</span></div>
+    <div class="stat"><b>32</b><span>numbered test cases</span></div>
+    <div class="stat"><b>6</b><span>security and permission tests</span></div>
+    <div class="stat"><b>3</b><span>automated levels plus a manual check</span></div>
+  </div>
+</header>
+
+<h2 id="when">1. When the test plan is done</h2>
+<div class="steps">
+  <div class="step now"><small>Stage 2 · Design</small><b>Write the plan</b><p>This document. Done now, from the use cases.</p></div>
+  <div class="step"><small>Stage 3 · Implementation</small><b>Write the tests</b><p>Alongside each use case, as it is built.</p></div>
+  <div class="step"><small>Stage 4 · Testing</small><b>Run and report</b><p>Run everything, record results, send bugs back.</p></div>
+</div>
+<div class="note"><b>Why plan in design?</b> The use cases already define what "correct" means, so the plan can be written now. Writing it early checks that the design is testable (for example, that every permission rule has an API a test can call) and stops testing being squeezed into the end.</div>
+
+<h2 id="scope">2. Scope</h2>
+<div class="cols">
+  <div class="card ok"><h4>In scope</h4>
+    <ul>
+      <li>UC-01 to UC-09, including every alternative flow</li>
+      <li>Role and ownership permissions</li>
+      <li>Security basics: hashed passwords, server-side checks, parameterised queries</li>
+    </ul>
+  </div>
+  <div class="card fail"><h4>Out of scope (iteration 1)</h4>
+    <ul>
+      <li>Performance and load testing</li>
+      <li>Accessibility audit</li>
+      <li>Browsers other than Chrome</li>
+      <li>Email, file upload, anything deferred in Stage 1</li>
+    </ul>
+  </div>
+</div>
+
+<h2 id="levels">3. Test levels and tools</h2>
+<div class="tbl"><table>
+  <thead><tr><th>Level</th><th>What it checks</th><th>Tool</th><th>Written when</th></tr></thead>
+  <tbody>
+    <tr><td class="lv"><span style="display:none"></span><b>Unit</b></td><td>Small rules in isolation: validation, duplicate-application rule, ownership check, search matching</td><td>Vitest</td><td>With each service (Stage 3)</td></tr>
+    <tr><td class="lv"><b>API</b></td><td>Each endpoint over HTTP, including <code>401</code> <code>403</code> <code>404</code> <code>409</code> <code>422</code></td><td>Vitest + HTTP requests</td><td>With each endpoint (Stage 3)</td></tr>
+    <tr><td class="lv"><b>End-to-end</b></td><td>Each use case in a real browser, as a user would do it</td><td>Playwright</td><td>When the use case is built (Stage 3)</td></tr>
+    <tr><td class="lv"><b>Manual</b></td><td>Match to the mockups, narrow screen, keyboard use, message wording</td><td>Checklist (section 8)</td><td>Stage 4</td></tr>
+  </tbody>
+</table></div>
+
+<h2 id="env">4. Test environment and data</h2>
+<ul>
+  <li>Tests run against a <b>temporary SQLite database</b> created for each run and loaded with the <b>seed data</b>: 5 employers, 8 seekers, 30 jobs, about 45 applications. It is re-seeded before every run, so a result never depends on test order.</li>
+  <li>Demo accounts share the password <code>demo1234</code> (demo only). Tests refer to accounts by role, for example "a seeker who has applied to nothing", chosen when the seed data is written.</li>
+  <li>End-to-end tests start the whole app (Express serving the built React files) on a test port.</li>
+</ul>
+
+<h2 id="criteria">5. Entry and exit criteria</h2>
+<div class="cols">
+  <div class="card"><h4>Entry: start Stage 4 when</h4>
+    <ul>
+      <li>All Must use cases are built</li>
+      <li>The app starts with one command</li>
+      <li>The seed script runs cleanly</li>
+    </ul>
+  </div>
+  <div class="card"><h4>Exit: Stage 4 is done when</h4>
+    <ul>
+      <li>Every test case in section 6 passes</li>
+      <li>Every test in section 7 passes</li>
+      <li>The manual checklist is completed</li>
+      <li>No known bug blocks a use case</li>
+    </ul>
+  </div>
+</div>
+<p class="sub">A failure goes back to <b>Stage 3</b> if the code is wrong, or to <b>Stage 1</b> if the requirement was wrong.</p>
+
+<h2 id="cases">6. Test cases by use case</h2>
+<p class="legend">Levels: <span class="U">U</span>unit <span class="A">A</span>API <span class="E">E</span>end-to-end. Test case ids are stable; the traceability table in the process document links use cases to them.</p>
+
+<h3>UC-01 Search for jobs <span class="tag must">Must</span></h3>
+<div class="tbl cases"><table>
+  <thead><tr><th>Id</th><th>Test case</th><th>Levels</th></tr></thead>
+  <tbody>
+    <tr><td class="id">TC-01-1</td><td>Keyword matches jobs by title, description or company; only matching jobs are listed</td><td class="lv"><span class="U">U</span><span class="A">A</span><span class="E">E</span></td></tr>
+    <tr><td class="id">TC-01-2</td><td>Location filter narrows the result; keyword and location combine</td><td class="lv"><span class="A">A</span><span class="E">E</span></td></tr>
+    <tr><td class="id">TC-01-3</td><td>Both fields empty lists all jobs, newest first</td><td class="lv"><span class="A">A</span><span class="E">E</span></td></tr>
+    <tr><td class="id">TC-01-4</td><td>Nothing matches: a "no results" message is shown <i>(alternative flow)</i></td><td class="lv"><span class="A">A</span><span class="E">E</span></td></tr>
+    <tr><td class="id">TC-01-5</td><td>Search ignores upper and lower case</td><td class="lv"><span class="U">U</span></td></tr>
+  </tbody>
+</table></div>
+
+<h3>UC-02 View job details <span class="tag must">Must</span></h3>
+<div class="tbl cases"><table>
+  <thead><tr><th>Id</th><th>Test case</th><th>Levels</th></tr></thead>
+  <tbody>
+    <tr><td class="id">TC-02-1</td><td>Job page shows title, company, location, work type, salary, description and requirements</td><td class="lv"><span class="A">A</span><span class="E">E</span></td></tr>
+    <tr><td class="id">TC-02-2</td><td>A job with no salary displays correctly</td><td class="lv"><span class="E">E</span></td></tr>
+    <tr><td class="id">TC-02-3</td><td>Unknown job id gives <code>404</code> and a "job not found" page <i>(alternative flow)</i></td><td class="lv"><span class="A">A</span><span class="E">E</span></td></tr>
+  </tbody>
+</table></div>
+
+<h3>UC-03 Apply for a job <span class="tag must">Must</span></h3>
+<div class="tbl cases"><table>
+  <thead><tr><th>Id</th><th>Test case</th><th>Levels</th></tr></thead>
+  <tbody>
+    <tr><td class="id">TC-03-1</td><td>Signed-in seeker submits phone and cover letter; confirmation shown; application saved with its date</td><td class="lv"><span class="U">U</span><span class="A">A</span><span class="E">E</span></td></tr>
+    <tr><td class="id">TC-03-2</td><td>Signed out: Apply sends the user to Sign in, and after signing in returns to the application form</td><td class="lv"><span class="E">E</span></td></tr>
+    <tr><td class="id">TC-03-3</td><td>Cover letter missing: error shown, typed values kept, nothing saved (<code>422</code>)</td><td class="lv"><span class="U">U</span><span class="A">A</span><span class="E">E</span></td></tr>
+    <tr><td class="id">TC-03-4</td><td>Applying to the same job a second time is refused (<code>409</code>) with a clear message</td><td class="lv"><span class="U">U</span><span class="A">A</span><span class="E">E</span></td></tr>
+    <tr><td class="id">TC-03-5</td><td>An employer cannot apply (<code>403</code>)</td><td class="lv"><span class="A">A</span></td></tr>
+  </tbody>
+</table></div>
+
+<h3>UC-04 View my applications <span class="tag must">Must</span></h3>
+<div class="tbl cases"><table>
+  <thead><tr><th>Id</th><th>Test case</th><th>Levels</th></tr></thead>
+  <tbody>
+    <tr><td class="id">TC-04-1</td><td>Seeker sees only their own applications, with job title and company</td><td class="lv"><span class="A">A</span><span class="E">E</span></td></tr>
+    <tr><td class="id">TC-04-2</td><td>Seeker with no applications sees the empty state</td><td class="lv"><span class="A">A</span><span class="E">E</span></td></tr>
+    <tr><td class="id">TC-04-3</td><td>Signed out: redirected to Sign in (<code>401</code> from the API)</td><td class="lv"><span class="A">A</span><span class="E">E</span></td></tr>
+  </tbody>
+</table></div>
+
+<h3>UC-05 Post a job <span class="tag must">Must</span></h3>
+<div class="tbl cases"><table>
+  <thead><tr><th>Id</th><th>Test case</th><th>Levels</th></tr></thead>
+  <tbody>
+    <tr><td class="id">TC-05-1</td><td>Employer fills the form; the job is saved, owned by them, and found in search under their company</td><td class="lv"><span class="U">U</span><span class="A">A</span><span class="E">E</span></td></tr>
+    <tr><td class="id">TC-05-2</td><td>Required field missing: errors shown next to the fields, nothing saved (<code>422</code>)</td><td class="lv"><span class="U">U</span><span class="A">A</span><span class="E">E</span></td></tr>
+    <tr><td class="id">TC-05-3</td><td>A seeker cannot post (<code>403</code>)</td><td class="lv"><span class="A">A</span></td></tr>
+  </tbody>
+</table></div>
+
+<h3>UC-06 Edit a job post <span class="tag must">Must</span></h3>
+<div class="tbl cases"><table>
+  <thead><tr><th>Id</th><th>Test case</th><th>Levels</th></tr></thead>
+  <tbody>
+    <tr><td class="id">TC-06-1</td><td>Owner edits a post; the change shows on the job page and in search</td><td class="lv"><span class="A">A</span><span class="E">E</span></td></tr>
+    <tr><td class="id">TC-06-2</td><td>Required field emptied: save blocked with errors (<code>422</code>)</td><td class="lv"><span class="U">U</span><span class="A">A</span><span class="E">E</span></td></tr>
+    <tr><td class="id">TC-06-3</td><td>Editing another employer's post is refused (<code>403</code>)</td><td class="lv"><span class="U">U</span><span class="A">A</span></td></tr>
+  </tbody>
+</table></div>
+
+<h3>UC-07 View applications for a job <span class="tag must">Must</span></h3>
+<div class="tbl cases"><table>
+  <thead><tr><th>Id</th><th>Test case</th><th>Levels</th></tr></thead>
+  <tbody>
+    <tr><td class="id">TC-07-1</td><td>Owner sees applicants (name, email, date) and can open one to read the cover letter</td><td class="lv"><span class="A">A</span><span class="E">E</span></td></tr>
+    <tr><td class="id">TC-07-2</td><td>A post with no applications shows the empty state</td><td class="lv"><span class="A">A</span><span class="E">E</span></td></tr>
+    <tr><td class="id">TC-07-3</td><td>Another employer's applications are refused (<code>403</code>)</td><td class="lv"><span class="U">U</span><span class="A">A</span></td></tr>
+  </tbody>
+</table></div>
+
+<h3>UC-08 Sign in <span class="tag must">Must</span></h3>
+<div class="tbl cases"><table>
+  <thead><tr><th>Id</th><th>Test case</th><th>Levels</th></tr></thead>
+  <tbody>
+    <tr><td class="id">TC-08-1</td><td>Seeker signs in and lands on the home page; the header shows their name</td><td class="lv"><span class="A">A</span><span class="E">E</span></td></tr>
+    <tr><td class="id">TC-08-2</td><td>Employer signs in and lands on "My job posts"</td><td class="lv"><span class="A">A</span><span class="E">E</span></td></tr>
+    <tr><td class="id">TC-08-3</td><td>Wrong password and unknown email give the <b>same</b> generic message (<code>401</code>)</td><td class="lv"><span class="U">U</span><span class="A">A</span><span class="E">E</span></td></tr>
+    <tr><td class="id">TC-08-4</td><td>Empty fields are highlighted and nothing is sent</td><td class="lv"><span class="E">E</span></td></tr>
+    <tr><td class="id">TC-08-5</td><td><code>GET /auth/me</code> returns the user when signed in and "nobody" when not</td><td class="lv"><span class="A">A</span></td></tr>
+  </tbody>
+</table></div>
+
+<h3>UC-09 Sign out <span class="tag must">Must</span></h3>
+<div class="tbl cases"><table>
+  <thead><tr><th>Id</th><th>Test case</th><th>Levels</th></tr></thead>
+  <tbody>
+    <tr><td class="id">TC-09-1</td><td>Sign out ends the session and shows the confirmation</td><td class="lv"><span class="A">A</span><span class="E">E</span></td></tr>
+    <tr><td class="id">TC-09-2</td><td>After sign out, protected pages and endpoints ask for sign-in again</td><td class="lv"><span class="A">A</span><span class="E">E</span></td></tr>
+  </tbody>
+</table></div>
+
+<h2 id="security">7. Permission and security tests</h2>
+<div class="tbl cases"><table>
+  <thead><tr><th>Id</th><th>Test</th><th>Level</th></tr></thead>
+  <tbody>
+    <tr><td class="id">SEC-1</td><td>Every protected endpoint returns <code>401</code> with no session and <code>403</code> with the wrong role. Checked by calling the API directly, not through the page.</td><td class="lv"><span class="A">A</span></td></tr>
+    <tr><td class="id">SEC-2</td><td>No endpoint ever returns a password hash</td><td class="lv"><span class="A">A</span></td></tr>
+    <tr><td class="id">SEC-3</td><td>The session cookie is <code>HttpOnly</code>; a session id that was signed out no longer works</td><td class="lv"><span class="A">A</span></td></tr>
+    <tr><td class="id">SEC-4</td><td>A search for <code>' OR 1=1 --</code> returns no extra rows and no error (parameterised queries)</td><td class="lv"><span class="A">A</span></td></tr>
+    <tr><td class="id">SEC-5</td><td>Passwords in the database are hashes, not the text <code>demo1234</code></td><td class="lv"><span class="A">A</span></td></tr>
+    <tr><td class="id">SEC-6</td><td>Input is validated on the server even if the browser checks are bypassed</td><td class="lv"><span class="A">A</span></td></tr>
+  </tbody>
+</table></div>
+
+<h2 id="manual">8. Manual checklist (Stage 4)</h2>
+<ul class="check">
+  <li>Each screen matches its mockup in <a href="../static-design/s01-search.html">static-design</a> (layout, wording, empty states)</li>
+  <li>Screens are usable in a narrow, phone-width window</li>
+  <li>Forms can be completed with the keyboard only</li>
+  <li>Error and confirmation messages are clear and polite</li>
+  <li>The demo accounts box on Sign in lists working accounts</li>
+</ul>
+
+<h2 id="reporting">9. Reporting</h2>
+<p>Stage 4 results are saved in the <code>test-result</code> folder, one file per run: date, build, pass or fail for each test case id, bugs found and their fix status.</p>
+
+</main>
+</body>
+</html>
