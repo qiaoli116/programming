@@ -1,0 +1,5 @@
+**/node_modules
+**/dist
+server/data
+e2e/report
+e2e/test-results

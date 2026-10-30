@@ -1,0 +1,8 @@
+node_modules/
+dist/
+*.sqlite
+*.sqlite-journal
+server/data/
+e2e/report/
+e2e/test-results/
+.env
