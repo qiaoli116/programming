@@ -178,7 +178,7 @@
   <div class="group-label">Guide</div>
   <a class="tab" href="#overview"><b>Process overview</b><span>The six stages</span></a>
   <div class="group-label">Iterations</div>
-  <a class="tab" href="#iteration-1"><b>Iteration 1</b><span>Minimal prototype · Stage 2 Design (2A / 2B / 2C)</span></a>
+  <a class="tab" href="#iteration-1"><b>Iteration 1</b><span>Minimal prototype · Stage 3 Implementation</span></a>
   <div class="group-label">Reuse</div>
   <a class="tab" href="#template"><b>Template</b><span>Blank skeleton for new iterations</span></a>
 </nav>
@@ -236,8 +236,8 @@
 <p class="sub"><b>Goal:</b> the smallest complete loop – an employer posts a job, a seeker finds it and applies, and both can see the result.</p>
 <ol class="stages" aria-label="Development stages">
     <li class="done"><span class="n">Stage 1</span><b><a href="#i1-requirements">Requirements</a></b><span class="state">✓ Done</span></li>
-    <li class="current multi"><span class="n">Stage 2</span><b>Design</b><span class="links"><a href="#i1-design-graphic" data-bar="Graphic design" data-state="done">Graphic</a><a href="#i1-design-software" data-bar="Software design" data-state="current">Software</a><a href="#i1-design-testplan" data-bar="Test plan">Test plan</a></span><span class="state">2A ✓ · 2B ● · 2C ●</span></li>
-    <li><span class="n">Stage 3</span><b><a href="#i1-stage3">Implementation</a></b><span class="state">Planned</span></li>
+    <li class="done multi"><span class="n">Stage 2</span><b>Design</b><span class="links"><a href="#i1-design-graphic" data-bar="Graphic design" data-state="done">Graphic</a><a href="#i1-design-software" data-bar="Software design" data-state="done">Software</a><a href="#i1-design-testplan" data-bar="Test plan" data-state="done">Test plan</a></span><span class="state">✓ Done</span></li>
+    <li class="current"><span class="n">Stage 3</span><b><a href="#i1-stage3">Implementation</a></b><span class="state">● We are here</span></li>
     <li><span class="n">Stage 4</span><b><a href="#i1-stage4">Testing</a></b><span class="state">Planned</span></li>
     <li><span class="n">Stage 5</span><b><a href="#i1-stage5">Deployment</a></b><span class="state">Planned</span></li>
     <li><span class="n">Stage 6</span><b><a href="#i1-stage6">Review &amp; Maintenance</a></b><span class="state">Planned</span></li>
@@ -561,19 +561,21 @@
     <tr><td>18</td><td>Requirements, Design</td><td>Sign-in applied to the signed-off stages. <b>Stage 1:</b> UC-08 Sign in and UC-09 Sign out added; UC-03 to UC-07 revised for signed-in users and ownership; UC-03 no longer asks for name and email; UC-04 no longer asks for an email. <b>Phase 2A:</b> new screen S-08 Sign in; S-02 to S-07 and every header updated. <b>Data model:</b> User added, a Job has an owner, an Application has an applicant. Demo accounts share the password <code>demo1234</code>.</td><td>Follows from decisions 13 and 15. Supersedes decision 4 (no accounts) and the email lookup in UC-04. Fixes the privacy risk behind open question 1, because seekers see only their own applications and employers only their own posts. Stage 1 and Phase 2A were signed off, so the change is recorded here rather than made silently.</td></tr>
     <tr><td>19</td><td>Design</td><td>The <b>test plan is part of Phase 2B</b>. It is written in design, the tests are written in Stage 3 alongside each use case, and they are run and reported in Stage 4. Test levels: unit and API tests (Vitest), end-to-end tests (Playwright), a manual checklist.</td><td>Every use case flow already is a test case. Planning early makes the design testable and stops testing being squeezed into the last hour. Stage 4 stays the place where results are reported and bugs are fixed.</td></tr>
     <tr><td>20</td><td>Design</td><td>The test plan is its own <b>Phase 2C</b> of Stage 2 (after 2A Graphic design and 2B Software design), not a part of 2B. It supersedes the wording of decision 19; the timing in decision 19 is unchanged.</td><td>The test plan is a design deliverable in its own right and is reviewed on its own. Giving it a phase makes it visible in the stage bar and in the checklist.</td></tr>
+    <tr><td>21</td><td>Design</td><td><b>Stage 2 Design signed off</b>: Phase 2A graphic design, Phase 2B software design and Phase 2C test plan. Work moves to Stage 3 – Implementation, in <code>job-board/app/</code>.</td><td>All three phases are accepted. The design is frozen for this cycle; further changes go through the decision log.</td></tr>
     <tr><td class="dash" colspan="4"><i>Add rows as the class makes decisions…</i></td></tr>
   </tbody>
 </table>
 
 
 <!-- ============================ DESIGN ============================ -->
-<h2 id="i1-design">Stage 2 – Design <span class="tag could">current</span></h2>
-<p>Requirements said <i>what</i> the system does. Design decides <i>how it is shaped</i>. For a web application that is two different jobs, so we do it in two phases, and we also plan the testing before we build. We still write no code. Everything here is a <b>proposal</b> for the class to discuss.</p>
+<h2 id="i1-design">Stage 2 – Design <span class="tag done">done</span></h2>
+<div class="note"><b>Stage 2 signed off.</b> The design below is agreed for this cycle: the mockups (2A), the technology decisions, data model, architecture, API and file structure (2B), and the test plan (2C). Changes from now on go through the decision log (decisions 12, 13 and 18 show how a revision is recorded).</div>
+<p>Requirements said <i>what</i> the system does. Design decides <i>how it is shaped</i>. For a web application that is two different jobs, so we do it in two phases, and we also plan the testing before we build. We wrote no code in this stage.</p>
 
 <ol class="phases">
   <li><span class="n">Phase 2A · <span class="tag done">done</span></span><b><a href="#i1-design-graphic">Graphic design</a></b><p>What the user sees and clicks: screens, navigation, visual style, static mockups.</p></li>
-  <li><span class="n">Phase 2B</span><b><a href="#i1-design-software">Software design</a></b><p>How it is built: data model, database, backend, frontend, sign-in and permissions, hosting.</p></li>
-  <li><span class="n">Phase 2C</span><b><a href="#i1-design-testplan">Test plan</a></b><p>How we prove it works: test levels and tools, and a test case for every use case flow.</p></li>
+  <li><span class="n">Phase 2B · <span class="tag done">done</span></span><b><a href="#i1-design-software">Software design</a></b><p>How it is built: data model, database, backend, frontend, sign-in and permissions, hosting.</p></li>
+  <li><span class="n">Phase 2C · <span class="tag done">done</span></span><b><a href="#i1-design-testplan">Test plan</a></b><p>How we prove it works: test levels and tools, and a test case for every use case flow.</p></li>
 </ol>
 
 <h4>Design checklist</h4>
@@ -584,11 +586,11 @@
     <tr><td>2A Graphic</td><td>Visual style</td><td><span class="tag done">Done – teal accent</span></td></tr>
     <tr><td>2A Graphic</td><td>Static mockups (one page per screen)</td><td><span class="tag done">Done – reviewed</span></td></tr>
     <tr><td>2A Graphic</td><td>Sign in screen (S-08) and sign-in changes to S-02 to S-07</td><td><span class="tag done">Done – decision 18</span></td></tr>
-    <tr><td>2B Software</td><td>Data model (with User, owner and applicant)</td><td><span class="tag could">Proposed</span></td></tr>
-    <tr><td>2B Software</td><td>Technology decisions T-1 to T-8, and the stack and migration plan</td><td><span class="tag done">Decided – stack for review</span></td></tr>
-    <tr><td>2B Software</td><td>Seed data plan</td><td><span class="tag could">Proposed</span></td></tr>
-    <tr><td>2B Software</td><td><a href="#i1-architecture">Architecture</a>, <a href="#i1-api">API</a>, <a href="#i1-functions">functions</a>, <a href="#i1-frontend-structure">frontend routes</a> and <a href="#i1-structure">file structure</a></td><td><span class="tag could">Proposed</span></td></tr>
-    <tr><td>2C Test plan</td><td><a href="#i1-design-testplan">Test plan</a> (levels, tools, 32 test cases, security tests)</td><td><span class="tag could">Proposed</span></td></tr>
+    <tr><td>2B Software</td><td>Data model (with User, owner and applicant)</td><td><span class="tag done">Done – agreed</span></td></tr>
+    <tr><td>2B Software</td><td>Technology decisions T-1 to T-8, and the stack and migration plan</td><td><span class="tag done">Done – decided</span></td></tr>
+    <tr><td>2B Software</td><td>Seed data plan</td><td><span class="tag done">Done – agreed</span></td></tr>
+    <tr><td>2B Software</td><td><a href="#i1-architecture">Architecture</a>, <a href="#i1-api">API</a>, <a href="#i1-functions">functions</a>, <a href="#i1-frontend-structure">frontend routes</a> and <a href="#i1-structure">file structure</a></td><td><span class="tag done">Done – agreed</span></td></tr>
+    <tr><td>2C Test plan</td><td><a href="#i1-design-testplan">Test plan</a> (levels, tools, 32 test cases, security tests)</td><td><span class="tag done">Done – agreed</span></td></tr>
   </tbody>
 </table>
 
@@ -649,7 +651,7 @@ After sign-in: a seeker goes back to where they were heading (else S-01); an emp
 </div>
 
 
-<h3 id="i1-design-software" class="phase">Phase 2B – Software design <span class="tag should">decisions made</span></h3>
+<h3 id="i1-design-software" class="phase">Phase 2B – Software design <span class="tag done">done</span></h3>
 <p><b>Question answered:</b> <i>What will the code be made of, and which web technologies do we choose?</i> Once code exists, changing these decisions is expensive. That is why we make them now, in the open, with reasons.</p>
 <p>This is a <b>multi-user application</b>, so besides the screens and the data we must also decide the database, the backend, the frontend, how users sign in, and who may do what.</p>
 
@@ -913,7 +915,7 @@ After sign-in: a seeker goes back to where they were heading (else S-01); an emp
 </div>
 
 <h4 id="i1-architecture">Architecture: four layers and the browser</h4>
-<p>Splitting the code into layers means each part has one job. This is also why the database (SQLite now, PostgreSQL later) and the frontend can be replaced without touching the rest. Everything below is a <b>proposal</b> for the class to review; no code exists yet.</p>
+<p>Splitting the code into layers means each part has one job. This is also why the database (SQLite now, PostgreSQL later) and the frontend can be replaced without touching the rest. This is the design agreed for iteration 1; no code exists yet.</p>
 <pre class="diagram">BROWSER        React app (Vite, TypeScript)        screens S-01 to S-08 built from components
   |  HTTP + JSON, session cookie, under /api/v1       the only contract between the two halves
   v
@@ -1023,7 +1025,7 @@ DATABASE       SQLite file now, PostgreSQL later</pre>
       components/         Header, JobCard, SearchForm, FormField, Notice, EmptyState
       style.css           copied from docs/iteration-1/static-design/
   e2e/                    browser tests (Playwright)</pre>
-<p class="sub">Folder and file names are a proposal. They follow T-2 (Express), T-3 (Knex and migrations), T-5 (React) and the layers above.</p>
+<p class="sub">Folder and file names follow T-2 (Express), T-3 (Knex and migrations), T-5 (React) and the layers above. Small changes during Stage 3 go through the decision log.</p>
 
 <details class="draft">
 <summary>Superseded draft for browser-only (Option A) – architecture, functions, structure. Kept for the record; replaced by the sections above.</summary>
@@ -1078,8 +1080,8 @@ BROWSER     localStorage                           keys: jb.jobs, jb.application
 <p class="sub">Folder and file names are a proposal. They follow T-2 (multi-page), T-4 (modules) and the layers above.</p>
 </details>
 
-<h3 id="i1-design-testplan" class="phase">Phase 2C – Test plan <span class="tag could">proposed</span></h3>
-<p class="sub">How we will prove the system works, planned before any code is written. Everything here is a proposal for the class to review.</p>
+<h3 id="i1-design-testplan" class="phase">Phase 2C – Test plan <span class="tag done">done</span></h3>
+<p class="sub">How we will prove the system works, planned before any code is written. Agreed at the Stage 2 sign-off.</p>
 <div class="note">
   <b>Test plan document:</b> the same plan is saved as a stand-alone page in the iteration folder: <a href="iteration-1/test-plan/test-plan.html">open the test plan</a>. Results of each test run will be saved next to it in <code>iteration-1/test-result/</code>.
 </div>
@@ -1220,7 +1222,7 @@ BROWSER     localStorage                           keys: jb.jobs, jb.application
 <h4>Reporting</h4>
 <p>Stage 4 results are saved in <code>iteration-1/test-result/</code>, one file per run: date, build, pass or fail for each test case id, bugs found and their fix status.</p>
 
-<h2 id="i1-stage3">Stage 3 – Implementation <span class="tag wont">not started</span></h2>
+<h2 id="i1-stage3">Stage 3 – Implementation <span class="tag could">current</span></h2>
 <p><b>Question answered:</b> <i>Can we build it?</i></p>
 <table>
   <thead><tr><th>Use case</th><th>Status</th><th>Files / notes</th></tr></thead>
@@ -1271,7 +1273,7 @@ BROWSER     localStorage                           keys: jb.jobs, jb.application
 
 <h2 id="i1-next">Next step</h2>
 <div class="note">
-  <b>Phase 2A:</b> done, the eight mockups are signed off (S-08 added for sign-in). <b>Phase 2B:</b> technology decisions are made. Stage 1, Phase 2A and the data model are now updated for sign-in, and the architecture, API and file structure are proposed for review. <b>Phase 2C:</b> the test plan is proposed for review. Record every change in the decision log. When all three phases are agreed, we mark Stage 2 complete and move to <b>Stage 3 – Implementation</b>, building one use case at a time.
+  <b>Stage 2 is done</b> (decision 21). Next is <b>Stage 3 – Implementation</b> in <code>job-board/app/</code>. We start with the project skeleton: the <code>shared</code>, <code>server</code> and <code>web</code> workspaces, the database migrations for User, Job, Application and Session, and the seed script. Then we build one use case at a time, writing its tests from the test plan as we go. Record every change in the decision log.
 </div>
 
 
