@@ -132,3 +132,38 @@ table.data .actions { text-align: right; white-space: nowrap; }
 .field.error select { border-color: var(--danger); }
 .skip-link { position: absolute; left: -999px; }
 .skip-link:focus { left: 8px; top: 8px; background: #fff; padding: 6px 10px; z-index: 10; }
+
+/* ================= Iteration 2: AI match scoring ================= */
+:root { --warn: #92600a; --warn-soft: #fdf3dc; }
+
+.score-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+.score-bar .actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.btn[disabled], .btn.disabled { opacity: .5; pointer-events: none; }
+.disclaimer { font-size: .84rem; color: var(--muted); border-left: 3px solid var(--line); padding: 2px 0 2px 10px; margin: 0 0 14px; }
+
+.match { display: inline-flex; align-items: baseline; gap: 4px; padding: 2px 12px; border-radius: 99px; font-weight: 700; background: var(--ok-soft); color: var(--ok); white-space: nowrap; }
+.match small { font-weight: 600; opacity: .75; }
+.match.mid { background: var(--warn-soft); color: var(--warn); }
+.match.low { background: var(--danger-soft); color: var(--danger); }
+.match.none, .job-card.scoring .match { background: #eceff0; color: var(--muted); }
+.job-card .top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+
+.criteria { margin: 10px 0 0; padding: 0; list-style: none; border-top: 1px solid var(--line); }
+.criteria li { display: grid; grid-template-columns: 1fr auto; gap: 2px 14px; padding: 9px 0; border-bottom: 1px solid var(--line); }
+.criteria li:last-child { border-bottom: 0; }
+.criteria .name { font-weight: 600; }
+.criteria .reason { grid-column: 1 / -1; color: var(--muted); font-size: .9rem; }
+.level { display: inline-block; padding: 1px 10px; border-radius: 99px; font-size: .8rem; font-weight: 700; white-space: nowrap; }
+.level.meets { background: var(--ok-soft); color: var(--ok); }
+.level.partly { background: var(--warn-soft); color: var(--warn); }
+.level.no { background: var(--danger-soft); color: var(--danger); }
+.level.unknown { background: #eceff0; color: var(--muted); }
+
+.profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 14px; }
+@media (max-width: 800px) { .profile-grid { grid-template-columns: 1fr; } }
+textarea.profile { min-height: 420px; font: .9rem/1.5 ui-monospace, Consolas, monospace; }
+.preview h2 { font-size: 1.05rem; margin: 12px 0 4px; }
+.preview h2:first-child { margin-top: 0; }
+.preview ul { margin: 0 0 8px; padding-left: 20px; }
+.criteria .level { align-self: start; }
+.criteria .name { overflow-wrap: anywhere; }

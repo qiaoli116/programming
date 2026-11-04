@@ -182,6 +182,7 @@
   <a class="tab" href="#overview"><b>Process overview</b><span>The six stages</span></a>
   <div class="group-label">Iterations</div>
   <a class="tab" href="#iteration-1"><b>Iteration 1</b><span>Minimal prototype · Complete (all six stages)</span></a>
+  <a class="tab" href="#iteration-2"><b>Iteration 2</b><span>AI match scoring · Complete (all six stages)</span></a>
   <div class="group-label">Reuse</div>
   <a class="tab" href="#template"><b>Template</b><span>Blank skeleton for new iterations</span></a>
 </nav>
@@ -1349,6 +1350,238 @@ BROWSER     localStorage                           keys: jb.jobs, jb.application
   <b>Iteration 1 is complete</b> (all six stages, decisions 1 to 35). Read the <a href="iteration-1/summary-report.html">summary report</a>. Next is <b>iteration 2</b>: start from the blank <a href="#template">template</a>, write its goal and use cases (Stage 1), and take the deferred items listed in Stage 6 as candidates. The iteration 1 work is not committed yet.
 </div>
 
+
+</section>
+
+<section class="panel" id="iteration-2">
+<h1>Iteration 2 – AI match scoring</h1>
+<p class="sub"><b>Goal:</b> after the keyword search returns its list, an AI reads each job, builds up to five criteria from the posting itself, matches them one by one against the seeker's profile, and shows a score per criterion and an overall match.</p>
+<p class="sub"><b>Devlogs (the details):</b> <a href="../devlog/iteration-2/20261104-01-ai-match-scoring.md">AI match scoring</a> · <a href="../devlog/iteration-2/20261104-02-ai-provider.md">AI provider decision (Claude Haiku 5.5)</a> · <a href="../devlog/README.md">devlog index</a> · <a href="iteration-2/summary-report.html">summary report</a> · <a href="../devlog/iteration-2/assets/sample-profile-alex-chen.md">sample profile</a></p>
+<ol class="stages has-summary" aria-label="Development stages">
+  <li class="done"><span class="n">Stage 1</span><b><a href="#i2-requirements">Requirements</a></b><span class="state">✓ Agreed</span></li>
+  <li class="done multi"><span class="n">Stage 2</span><b>Design</b><span class="links"><a href="#i2-design-graphic" data-bar="Graphic design" data-state="done">Graphic</a><a href="#i2-design-software" data-bar="Software design" data-state="done">Software</a><a href="#i2-design-testplan" data-bar="Test plan" data-state="done">Test plan</a></span><span class="state">✓ Done</span></li>
+  <li class="done"><span class="n">Stage 3</span><b><a href="#i2-stage3">Implementation</a></b><span class="state">✓ Done</span></li>
+  <li class="done"><span class="n">Stage 4</span><b><a href="#i2-stage4">Testing</a></b><span class="state">✓ Done</span></li>
+  <li class="done"><span class="n">Stage 5</span><b><a href="#i2-stage5">Deployment</a></b><span class="state">✓ Done</span></li>
+  <li class="done"><span class="n">Stage 6</span><b><a href="#i2-stage6">Review &amp; Maintenance</a></b><span class="state">✓ Done</span></li>
+  <li class="summary"><span class="n">Report</span><b><a href="iteration-2/summary-report.html">Summary</a></b><span class="state">Open report →</span></li>
+</ol>
+
+<h2 id="i2-requirements">Stage 1 – Requirements (use cases) <span class="tag done">agreed</span></h2>
+<div class="note">This iteration's requirements were agreed in discussion on 2026-11-04. The full reasoning, open questions Q1–Q8 and their answers live in the <a href="../devlog/iteration-2/20261104-01-ai-match-scoring.md">AI match scoring devlog</a>; this page keeps the summary.</div>
+
+<h3>Carried over from the previous iteration</h3>
+<ul>
+  <li><b>Profile and résumé</b> (deferred in iteration 1): a free-text profile is now in scope, because the AI needs something to match against. File upload stays out.</li>
+  <li><b>Sort search results</b> (deferred in iteration 1): a sort by AI match is in scope (UC-13).</li>
+  <li>Still deferred: tables on phones as cards, publishing online, <code>npm audit</code> warnings.</li>
+</ul>
+
+<h3>Actors</h3>
+<table>
+  <thead><tr><th>Actor</th><th>Who they are</th><th>In this iteration?</th></tr></thead>
+  <tbody>
+    <tr><td><b>Job Seeker</b></td><td>Signed in, with a profile. Scoring needs a sign-in because it uses the profile.</td><td>Yes</td></tr>
+    <tr><td><b>Employer</b></td><td>Unchanged. Does not see scores.</td><td class="dash">No change</td></tr>
+    <tr><td><b>Administrator</b></td><td>Still not in the prototype.</td><td class="dash">No</td></tr>
+  </tbody>
+</table>
+
+<h3>Scope</h3>
+<div class="cols">
+  <div class="card"><b>Job Seeker can…</b><ul style="margin:6px 0 0"><li>write and keep a free-text Markdown profile</li><li>press "Score these results" on a search list</li><li>see an overall match and up to five criteria per job, each with a level and a reason</li><li>sort the list by match</li></ul></div>
+  <div class="card"><b>Rules</b><ul style="margin:6px 0 0"><li>Keyword search stays first; the AI only reads the list</li><li>Criteria are not predefined: the AI builds them from each posting (max five)</li><li>Levels: Meets, Partly, Does not meet, Unknown</li><li>Overall = simple average; advisory only</li></ul></div>
+</div>
+
+<h3>Use case overview</h3>
+<table>
+  <thead><tr><th>ID</th><th>Use case</th><th>Actor</th><th>Priority</th></tr></thead>
+  <tbody>
+    <tr><td class="id">UC-10</td><td><a href="#i2-uc-10">Keep my profile</a></td><td>Job Seeker</td><td><span class="tag must">Must</span></td></tr>
+    <tr><td class="id">UC-11</td><td><a href="#i2-uc-11">Score my search results</a></td><td>Job Seeker</td><td><span class="tag must">Must</span></td></tr>
+    <tr><td class="id">UC-12</td><td><a href="#i2-uc-12">See the criteria breakdown</a></td><td>Job Seeker</td><td><span class="tag must">Must</span></td></tr>
+    <tr><td class="id">UC-13</td><td><a href="#i2-uc-13">Sort results by match</a></td><td>Job Seeker</td><td><span class="tag should">Should</span></td></tr>
+    <tr><td class="id">UC-14</td><td><a href="#i2-uc-14">Failure and empty cases</a></td><td>Job Seeker</td><td><span class="tag must">Must</span></td></tr>
+    <tr><td class="id">UC-15</td><td>Correct my profile after a wrong match</td><td>Job Seeker</td><td><span class="tag could">Could</span></td></tr>
+  </tbody>
+</table>
+<p class="sub">UC-15 is a flow between UC-12 and UC-10 (read a reason, edit the profile, score again) and needs no new screen.</p>
+
+<h3>Use case details</h3>
+<details class="uc" id="i2-uc-10" open>
+  <summary><span class="id">UC-10</span><span class="title">Keep my profile</span><span class="tag must">Must</span></summary>
+  <div class="uc-body"><dl>
+    <dt>Actor</dt><dd>Job Seeker (signed in)</dd>
+    <dt>Goal</dt><dd>Describe my skills, experience and preferences once, so jobs can be matched against them.</dd>
+    <dt>Preconditions</dt><dd>The seeker is signed in (UC-08).</dd>
+    <dt>Main flow</dt><dd><ol>
+      <li>The seeker opens "My profile".</li>
+      <li>The system shows one free-text box (Markdown) and a preview, with the privacy notice.</li>
+      <li>The seeker writes or edits the text and saves.</li>
+      <li>The system saves it and confirms.</li>
+    </ol></dd>
+    <dt>Alternative flows</dt><dd><ul>
+      <li><b>1a. Not signed in:</b> the system sends the seeker to sign in.</li>
+      <li><b>4a. Text is empty:</b> it is saved empty; scoring will ask for it (UC-14).</li>
+    </ul></dd>
+    <dt>Postconditions</dt><dd>The profile belongs to the seeker; employers and other seekers cannot see it.</dd>
+  </dl></div>
+</details>
+<details class="uc" id="i2-uc-11">
+  <summary><span class="id">UC-11</span><span class="title">Score my search results</span><span class="tag must">Must</span></summary>
+  <div class="uc-body"><dl>
+    <dt>Actor</dt><dd>Job Seeker (signed in)</dd>
+    <dt>Goal</dt><dd>See how well I fit each job in my results, so I spend time on the likely ones.</dd>
+    <dt>Preconditions</dt><dd>The seeker is signed in and has a profile (UC-10) and a result list (UC-01).</dd>
+    <dt>Main flow</dt><dd><ol>
+      <li>The seeker searches as in UC-01; the usual list appears.</li>
+      <li>The seeker chooses "Score these results".</li>
+      <li>The system shows progress while each job is scored; the list stays visible.</li>
+      <li>Each card gains its overall match as soon as its scoring finishes.</li>
+    </ol></dd>
+    <dt>Alternative flows</dt><dd><ul><li>See UC-14.</li></ul></dd>
+    <dt>Postconditions</dt><dd>No job is added or removed; scores are shown for this visit only (no cache).</dd>
+  </dl></div>
+</details>
+<details class="uc" id="i2-uc-12">
+  <summary><span class="id">UC-12</span><span class="title">See the criteria breakdown</span><span class="tag must">Must</span></summary>
+  <div class="uc-body"><dl>
+    <dt>Actor</dt><dd>Job Seeker (signed in)</dd>
+    <dt>Goal</dt><dd>See how each criterion was scored, to trust the match and know what I lack.</dd>
+    <dt>Preconditions</dt><dd>The job was scored (UC-11).</dd>
+    <dt>Main flow</dt><dd><ol>
+      <li>The seeker opens a scored job (UC-02).</li>
+      <li>The system shows up to five criteria taken from the posting, each with a level and a one-line reason naming the profile evidence.</li>
+    </ol></dd>
+    <dt>Alternative flows</dt><dd><ul>
+      <li><b>2a. The profile says nothing about a criterion:</b> it shows "Unknown", not a zero.</li>
+    </ul></dd>
+    <dt>Postconditions</dt><dd>No data is changed. Only the overall score is comparable between jobs.</dd>
+  </dl></div>
+</details>
+<details class="uc" id="i2-uc-13">
+  <summary><span class="id">UC-13</span><span class="title">Sort results by match</span><span class="tag should">Should</span></summary>
+  <div class="uc-body"><dl>
+    <dt>Actor</dt><dd>Job Seeker (signed in)</dd>
+    <dt>Goal</dt><dd>Put the best matches first.</dd>
+    <dt>Preconditions</dt><dd>At least one job in the list has been scored.</dd>
+    <dt>Main flow</dt><dd><ol><li>The seeker chooses "Sort by match".</li><li>The system shows the same jobs, highest match first. Unscored jobs go last; ties keep the keyword order.</li></ol></dd>
+    <dt>Postconditions</dt><dd>Sorting is opt-in; the keyword order remains the default.</dd>
+  </dl></div>
+</details>
+<details class="uc" id="i2-uc-14">
+  <summary><span class="id">UC-14</span><span class="title">Failure and empty cases</span><span class="tag must">Must</span></summary>
+  <div class="uc-body"><dl>
+    <dt>Actor</dt><dd>Job Seeker (signed in)</dd>
+    <dt>Goal</dt><dd>Understand what happened when scoring cannot run or cannot finish.</dd>
+    <dt>Alternative flows</dt><dd><ul>
+      <li><b>Profile empty:</b> the system asks the seeker to complete the profile first; nothing is sent to the AI.</li>
+      <li><b>AI unavailable or timeout:</b> the unscored list stays, with a message; results are never lost.</li>
+      <li><b>One job fails:</b> that card says "Not scored"; the others still show.</li>
+      <li><b>Posting has little to read:</b> only the criteria it supports, or "No criteria found". The AI must not pad to five or invent a score.</li>
+    </ul></dd>
+    <dt>Postconditions</dt><dd>Applying is never blocked by scoring.</dd>
+  </dl></div>
+</details>
+
+<h3>Deferred (not in this iteration)</h3>
+<table>
+  <thead><tr><th>Idea</th><th>Priority</th><th>Why deferred</th></tr></thead>
+  <tbody>
+    <tr><td>Ranking applicants for employers</td><td><span class="tag wont">Won't (yet)</span></td><td>Different actor, and fairness questions beyond a demo.</td></tr>
+    <tr><td>Résumé upload and structured profile fields</td><td><span class="tag wont">Won't (yet)</span></td><td>Free text is enough for the AI and avoids file storage.</td></tr>
+    <tr><td>Caching scores, automatic scoring on every search</td><td><span class="tag wont">Won't (yet)</span></td><td>A button shows the stages better in class; cost is not a concern.</td></tr>
+    <tr><td>Keeping criteria stable between runs (e.g. a type-safe model)</td><td><span class="tag wont">Won't (yet)</span></td><td>We want to see the raw result first.</td></tr>
+  </tbody>
+</table>
+
+<h3>Decision log</h3>
+<table>
+  <thead><tr><th>#</th><th>Stage</th><th>Decision</th><th>Why</th></tr></thead>
+  <tbody>
+    <tr><td>36</td><td>Requirements</td><td>Iteration 2 adds AI match scoring on top of the keyword search. Details are kept in <a href="../devlog/iteration-2/20261104-01-ai-match-scoring.md">devlogs</a>, not here.</td><td>The iteration holds the milestone; devlogs hold design detail.</td></tr>
+    <tr><td>37</td><td>Requirements</td><td>Criteria are not predefined: the AI builds up to five per job from the posting.</td><td>Different jobs matter for different reasons.</td></tr>
+    <tr><td>38</td><td>Requirements</td><td>The seeker keeps a free-text Markdown profile (UC-10), with fictional sample data.</td><td>Iteration 1 has no profile; free text is rich and cheap.</td></tr>
+    <tr><td>39</td><td>Requirements</td><td>Four levels (Meets, Partly, Does not meet, Unknown); overall = simple average with Unknown left out; a one-line reason is shown per criterion.</td><td>Simple to explain and to check; shows the concept first.</td></tr>
+    <tr><td>40</td><td>Requirements</td><td>Scoring runs on a "Score these results" button and is not cached. Sorting by match is opt-in.</td><td>Better for a class demonstration stage by stage; cost is not a concern.</td></tr>
+    <tr><td>41</td><td>Requirements</td><td>The profile page and the Score button show a notice that data goes to an external AI company.</td><td>Fictional data makes it harmless here, but the information belongs in the design.</td></tr>
+    <tr><td>42</td><td>Design</td><td>Model: Claude Haiku 5.5, called from the server. See the <a href="../devlog/iteration-2/20261104-02-ai-provider.md">decision record</a>.</td><td>Reads text and explains its reasoning; the TypeSafe Jev model gives no reasons and cannot write criteria.</td></tr>
+    <tr><td>43</td><td>Design</td><td>Phase 2A started: screens S-09 (new), S-01 and S-02 (revised) drafted as mockups in <code>docs/iteration-2/static-design/</code>.</td><td>Follows the same method as iteration 1.</td></tr>
+    <tr><td>44</td><td>Design</td><td>Phase 2A signed off (S-09, revised S-01 and S-02). Spec phase of the match-scoring devlog written: <code>profiles</code> table, <code>GET/PUT /me/profile</code>, <code>POST /scoring</code> (one reply after all jobs finish), a fork/join agent, a provider interface with a fake for tests, six phases.</td><td>Mockups accepted by the user. Spec awaits review; the one-reply choice (devlog Q9) was accepted and UC-11 step 3 reworded. Software design (Phase 2B) signed off after review.</td></tr>
+    <tr><td>45</td><td>Design</td><td><b>Stage 2 Design signed off</b> for iteration 2: Phase 2A mockups, Phase 2B software design (the devlog Spec phase) and Phase 2C test plan (33 test cases, 5 security tests). Work moves to Stage 3 – Implementation.</td><td>All three phases accepted. The design is frozen for this cycle; changes go through the decision log.</td></tr>
+      <tr><td>46</td><td>Implementation</td><td><b>Stage 3 built</b>: UC-10 to UC-14, the profile and scoring endpoints, the agent with a fake and a real (Claude Haiku 5.5) provider, the screens S-09, S-01 and S-02.</td><td>Everything planned for iteration 2 exists and its tests pass.</td></tr>
+    <tr><td>47</td><td>Implementation</td><td>Only the first 20 results are scored in one click; scores live in the browser only and disappear on reload or sign-out.</td><td>Keeps one click quick and cheap, and nothing about the AI is stored, which matches the privacy notice.</td></tr>
+    <tr><td>48</td><td>Testing</td><td>Automated tests use the fake provider (titles with [FAIL], [NONE], [BAD], [HANG], [SLOW] make it misbehave on purpose); the real model is checked by a manual live check.</td><td>A real model gives different words each time, so it cannot be an automated pass/fail test.</td></tr>
+    <tr><td>49</td><td>Testing</td><td><b>Stage 4 Testing signed off.</b> 150 tests, 0 failed, 42 plan items passing (<a href="iteration-2/test-result/test-result-20261104-130858.html">20261104-130858</a>).</td><td>Every exit criterion in the test plan is met.</td></tr>
+    <tr><td>50</td><td>Deployment</td><td>Iteration 2 is <b>deployed to local host only</b>; the key comes from the git-ignored <code>app/.env</code>.</td><td>Same reason as iteration 1; the key must never be committed or sent to the browser.</td></tr>
+    <tr><td>51</td><td>Review</td><td><b>Stage 6 signed off, iteration 2 closed.</b> Deferred items are listed in Stage 6.</td><td>The idea was shown end to end; further tuning belongs to a new cycle.</td></tr>
+  </tbody>
+</table>
+
+<h2 id="i2-design">Stage 2 – Design <span class="tag done">done</span></h2>
+<p><b>Question answered:</b> <i>How will it be structured and what will it look like?</i></p>
+
+<h3 id="i2-design-graphic" class="phase">Phase 2A – Graphic design <span class="tag done">signed off</span></h3>
+<table>
+  <thead><tr><th>ID</th><th>Screen</th><th>Used by</th><th>Shows / does</th><th>Use cases</th><th>Mockup</th></tr></thead>
+  <tbody>
+    <tr><td class="id">S-09</td><td>My profile (new)</td><td>Job Seeker</td><td>Markdown text box, preview, save, privacy notice</td><td>UC-10</td><td><a href="iteration-2/static-design/s09-profile.html">s09-profile.html</a></td></tr>
+    <tr><td class="id">S-01</td><td>Search results (revised)</td><td>Job Seeker</td><td>"Score these results" button, notice, overall match on cards, "Sort by match", progress and failure states</td><td>UC-11, UC-13, UC-14</td><td><a href="iteration-2/static-design/s01-search-scored.html">s01-search-scored.html</a></td></tr>
+    <tr><td class="id">S-02</td><td>Job details (revised)</td><td>Job Seeker</td><td>"Match with your profile" card: overall and up to five criteria with level and reason</td><td>UC-12, UC-14</td><td><a href="iteration-2/static-design/s02-job-detail-scored.html">s02-job-detail-scored.html</a></td></tr>
+  </tbody>
+</table>
+<p class="sub">The header gains a "My profile" link for seekers. UC-15 reuses S-02 → S-09 → S-01 and needs no new screen.</p>
+
+<h3 id="i2-design-software" class="phase">Phase 2B – Software design <span class="tag done">signed off</span></h3>
+<p class="sub">Written in the <a href="../devlog/iteration-2/20261104-01-ai-match-scoring.md">AI match scoring devlog</a> (Spec phase): profile data model, profile and scoring endpoints, the agent and its provider interface, six phases with tests, and the implementation order. See also the <a href="../devlog/iteration-2/assets/agent-architecture.html">agent diagram</a> and the <a href="../devlog/iteration-2/assets/choosing-how-to-build-an-agent.html">build-level tutorial</a>.</p>
+
+<h3 id="i2-design-testplan" class="phase">Phase 2C – Test plan <span class="tag done">signed off</span></h3>
+<p class="sub"><a href="iteration-2/test-plan/test-plan.html">Test plan</a>: 33 test cases for UC-10 to UC-14, 5 security tests, and how the non-repeatable AI is tested (fake provider plus a manual live read). The approach comes from the <a href="../devlog/iteration-2/20261104-02-ai-provider.md">AI provider decision record</a>.</p>
+
+<h2 id="i2-stage3">Stage 3 – Implementation <span class="tag done">done</span></h2>
+<p><b>Question answered:</b> <i>Can we build it?</i></p>
+<table>
+  <thead><tr><th>Use case</th><th>Status</th><th>Main files</th></tr></thead>
+  <tbody>
+    <tr><td><span class="id">UC-10</span> My profile</td><td><span class="tag done">built</span></td><td><code>GET/PUT /me/profile</code>, <code>ProfilePage</code> (sanitised Markdown preview)</td></tr>
+    <tr><td><span class="id">UC-11</span> Score the results</td><td><span class="tag done">built</span></td><td><code>POST /scoring</code>, <code>scoring/matchAgent.ts</code>, <code>AnthropicProvider</code> (Claude Haiku 5.5), <code>HomePage</code></td></tr>
+    <tr><td><span class="id">UC-12</span> Criteria breakdown</td><td><span class="tag done">built</span></td><td><code>JobDetailPage</code> (match box), <code>scores.tsx</code></td></tr>
+    <tr><td><span class="id">UC-13</span> Sort by match</td><td><span class="tag done">built</span></td><td><code>sortJobs</code> in <code>scores.tsx</code></td></tr>
+    <tr><td><span class="id">UC-14</span> When scoring cannot work</td><td><span class="tag done">built</span></td><td>per-job failure, timeout and validation in <code>matchAgent.ts</code>; notices in <code>HomePage</code></td></tr>
+  </tbody>
+</table>
+<p class="sub">The agent is a fixed workflow (level 1): code decides every step, the AI only answers. Each job is scored in its own parallel lane with a 30 s timeout, the answer is validated, and the overall score is computed in code. The API key stays on the server in <code>app/.env</code>. See the <a href="../devlog/iteration-2/20261104-01-ai-match-scoring.md">devlog</a> for the phases.</p>
+
+<h2 id="i2-stage4">Stage 4 – Testing <span class="tag done">done</span></h2>
+<p><b>Question answered:</b> <i>Does it do what the requirements said?</i></p>
+<div class="note"><b>Result:</b> <a href="iteration-2/test-result/test-result-20261104-130858.html">test-result-20261104-130858</a>. 150 tests ran, 0 failed. All 42 plan items (33 test cases, 5 security tests, 4 manual checks) are matched to a passing test or a recorded manual check. The automated tests use a fake AI, so they are repeatable; the real model was read by hand (below).</div>
+<table>
+  <thead><tr><th>Area</th><th>Tests</th><th>Result</th></tr></thead>
+  <tbody>
+    <tr><td>Scoring rules, agent, profile and scoring API, key handling (Vitest)</td><td>95 server tests (all iterations)</td><td><span class="tag done">Pass</span></td></tr>
+    <tr><td>Browser tests for UC-10 to UC-14 (Playwright)</td><td>TC-10 … TC-14, SEC-10</td><td><span class="tag done">Pass</span></td></tr>
+    <tr><td>Security: key never in responses, files or built web files; <code>.env</code> git-ignored; Markdown sanitised</td><td>SEC-7, SEC-10, SEC-11</td><td><span class="tag done">Pass</span></td></tr>
+    <tr><td>Manual checklist: mockups, phone width, readable without colour, wording</td><td>MC2-1 … MC2-4</td><td><span class="tag done">Pass</span></td></tr>
+  </tbody>
+</table>
+<p><b>Live check with the real model</b> (<code>npm run live-check -w server</code>): 20 jobs scored in 6.3 s. The reasons quote the sample profile, or say it is silent. Observations, not defects: with only one criterion checked the overall can look extreme (0 or 10); the AI sometimes adds generic criteria such as the cover letter. Both are recorded as tickets: <a href="iteration-2/tickets/JB-003.html">JB-003</a> (extreme score) and <a href="iteration-2/tickets/JB-004.html">JB-004</a> (generic criteria), open and deferred.</p>
+<p class="sub">One visual bug found while building: the level pill stretched in the narrow sidebar; fixed in <code>style.css</code> before the final run.</p>
+
+<h2 id="i2-stage5">Stage 5 – Deployment <span class="tag done">done</span></h2>
+<p><b>Question answered:</b> <i>How do real users get it?</i></p>
+<p>Local host only, as in iteration 1. Put <code>ANTHROPIC_API_KEY=...</code> in <code>app/.env</code> (copy <code>.env.example</code>; the file is git-ignored), then start the server as before. <code>SCORING_PROVIDER=fake</code> runs the app with no key and no network, which is how the tests run. Without a key the Score button shows "Scoring is not available right now."</p>
+
+<h2 id="i2-stage6">Stage 6 – Review &amp; Maintenance <span class="tag done">done</span></h2>
+<p><b>Question answered:</b> <i>What did we learn, and what comes next?</i></p>
+<ul>
+  <li><b>Went well:</b> keeping the AI behind a small interface made the whole feature testable offline; a per-job lane meant one bad answer never spoiled the list.</li>
+  <li><b>Learned:</b> the AI part cannot be tested for "correct", only for "well-formed and safe"; the real answers were judged by reading. A plain average is easy to explain but gives extreme results when few criteria can be checked.</li>
+  <li><b>Deferred (next cycle):</b> weighted criteria (must-have vs nice-to-have), cache by job and profile version, streaming results, a larger model, UC-15 correct a wrong match, tuning the prompt against generic criteria (<a href="iteration-2/tickets/JB-004.html">JB-004</a>), and showing low confidence when few criteria are checked (<a href="iteration-2/tickets/JB-003.html">JB-003</a>).</li>
+  <li><b>Maintenance:</b> none planned; the prototype ends here, as iteration 1 did.</li>
+</ul>
+
+<h2 id="i2-next">Next step</h2>
+<div class="note">Iteration 2 is closed. The deferred items above are the starting point for iteration 3.</div>
 
 </section>
 

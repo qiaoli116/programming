@@ -1,7 +1,7 @@
 // Repositories hold all the SQL (T-3). Everything above this layer works with plain objects,
 // so moving from SQLite to PostgreSQL only touches this folder.
 import type { Knex } from 'knex';
-import type { Application, Job, JobApplicant, MyApplication, Role, User, WorkType } from '@jobboard/shared';
+import type { Application, Job, JobApplicant, MyApplication, Profile, Role, User, WorkType } from '@jobboard/shared';
 
 export interface UserRecord extends User {
   passwordHash: string;
@@ -154,6 +154,10 @@ export function createRepos(db: Knex) {
           .orderBy(NEWEST_FIRST('jobs', 'posted_at'));
         return rows.map((r: any) => ({ ...toJob(r), applicationCount: Number(r.application_count) }));
       },
+      async findByIds(ids: number[]): Promise<Job[]> {
+        const rows = await jobsQuery().whereIn('jobs.id', ids);
+        return rows.map(toJob);
+      },
       async insert(job: NewJob): Promise<number> {
         const [row] = await db('jobs')
           .insert({
@@ -217,9 +221,24 @@ export function createRepos(db: Knex) {
       },
     },
 
+    profiles: {
+      async find(userId: number): Promise<Profile | undefined> {
+        const row = await db('profiles').where({ user_id: userId }).first();
+        return row && { body: row.body, updatedAt: row.updated_at };
+      },
+      /** One profile per user: saving replaces the old one. */
+      async save(userId: number, body: string, updatedAt: string): Promise<Profile> {
+        await db('profiles')
+          .insert({ user_id: userId, body, updated_at: updatedAt })
+          .onConflict('user_id')
+          .merge();
+        return { body, updatedAt };
+      },
+    },
+
     /** Used by the seed script to start from an empty database. */
     async clearAll(): Promise<void> {
-      for (const table of ['applications', 'sessions', 'jobs', 'users']) await db(table).del();
+      for (const table of ['applications', 'sessions', 'profiles', 'jobs', 'users']) await db(table).del();
     },
   };
 }

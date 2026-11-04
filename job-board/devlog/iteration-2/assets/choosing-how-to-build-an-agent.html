@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Choosing how to build an agent</title>
+<style>
+  :root { --bg:#f4f7f7; --card:#fff; --text:#1b2a2a; --muted:#5b6b6b; --line:#cbd6d6; --accent:#0f766e; --soft:#e0f2f0; --warn:#fdf3dc; --warnline:#c9a227; --code:#eef3f3; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#141b1b; --card:#1d2727; --text:#e6efef; --muted:#9db0b0; --line:#3a4c4c; --accent:#4fd1c5; --soft:#173a37; --warn:#3a3114; --warnline:#b8932a; --code:#232f2f; } }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:16px/1.6 system-ui,"Segoe UI",sans-serif; }
+  main { max-width:1000px; margin:0 auto; padding:24px 16px 56px; }
+  h1 { font-size:1.7rem; margin:0 0 6px; }
+  h2 { font-size:1.25rem; margin:34px 0 10px; }
+  h3 { font-size:1.05rem; margin:20px 0 6px; }
+  p { margin:0 0 10px; }
+  .muted { color:var(--muted); }
+  a { color:var(--accent); }
+  .lead { font-size:1.08rem; background:var(--soft); border-left:4px solid var(--accent); padding:12px 16px; border-radius:6px; }
+  .tablewrap { overflow-x:auto; }
+  table { width:100%; border-collapse:collapse; background:var(--card); border:1px solid var(--line); border-radius:8px; overflow:hidden; font-size:.93rem; }
+  th, td { padding:9px 12px; text-align:left; vertical-align:top; border-bottom:1px solid var(--line); }
+  th { background:var(--code); font-size:.76rem; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); }
+  tr:last-child td { border-bottom:0; }
+  tr.ours td { background:var(--soft); }
+  .lvl { display:inline-block; min-width:1.8em; text-align:center; font-weight:800; color:var(--accent); }
+  /* ladder */
+  .ladder { display:grid; gap:8px; margin:14px 0; }
+  .rung { display:grid; grid-template-columns:48px 1fr auto; gap:12px; align-items:center; background:var(--card); border:1px solid var(--line); border-radius:10px; padding:10px 14px; }
+  .rung .n { font-size:1.5rem; font-weight:800; color:var(--accent); text-align:center; }
+  .rung b { display:block; }
+  .rung span.d { color:var(--muted); font-size:.9rem; }
+  .rung .who { font-size:.8rem; font-weight:700; padding:2px 10px; border-radius:99px; background:var(--code); white-space:nowrap; }
+  .rung.ours { border:2px solid var(--accent); background:var(--soft); }
+  .axis { display:flex; justify-content:space-between; color:var(--muted); font-size:.82rem; margin:0 4px; }
+  /* loops */
+  svg { width:100%; height:auto; background:var(--card); border:1px solid var(--line); border-radius:10px; }
+  svg text { fill:var(--text); font-family:system-ui,"Segoe UI",sans-serif; font-size:13px; }
+  svg .b { font-weight:700; } svg .m { fill:var(--muted); font-size:12px; }
+  svg .bx { fill:var(--card); stroke:var(--text); stroke-width:1.6; }
+  svg .llm { fill:var(--warn); stroke:var(--warnline); stroke-width:2; stroke-dasharray:6 4; }
+  svg .ln { stroke:var(--text); stroke-width:1.6; fill:none; marker-end:url(#ar); }
+  svg .lb { fill:var(--accent); font-weight:800; font-size:14px; }
+  .q { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:12px 18px 12px 38px; margin:10px 0; counter-increment:q; position:relative; }
+  .q::before { content:counter(q); position:absolute; left:12px; top:12px; width:20px; height:20px; border-radius:50%; background:var(--accent); color:var(--card); font-size:.8rem; font-weight:800; text-align:center; line-height:20px; }
+  .qs { counter-reset:q; }
+  .q b.a { color:var(--accent); }
+  ul { margin:6px 0 10px; padding-left:22px; } li { margin-bottom:4px; }
+  .note { background:var(--warn); border:1px solid var(--warnline); border-radius:8px; padding:10px 16px; margin:14px 0; }
+  .summary li { margin-bottom:6px; }
+  code { background:var(--code); padding:1px 6px; border-radius:4px; font-size:.9em; }
+</style>
+</head>
+<body>
+<main>
+<h1>Choosing how to build an agent</h1>
+<p class="muted">A brief tutorial. Companion to <a href="agent-architecture.html">agent-architecture.html</a>.</p>
+
+<p class="lead"><b>An agent is software that calls an LLM on your behalf, possibly many times.</b> The LLM is stateless, so every call must carry everything it needs. Whoever writes the code around those calls is "the agent". The only real question is <b>how much of that code you write yourself</b>.</p>
+
+<h2>The ladder: six ways to get an agent</h2>
+<div class="axis"><span>▲ most of your own code, most control</span></div>
+<div class="ladder">
+  <div class="rung"><div class="n">0</div><div><b>One call</b><span class="d">Prompt in, text out. "Summarise this posting."</span></div><span class="who">you write it all</span></div>
+  <div class="rung ours"><div class="n">1</div><div><b>Fixed workflow, from scratch &nbsp;← our match scoring</b><span class="d">Your code calls the LLM at set steps and decides what happens next.</span></div><span class="who">you write it all</span></div>
+  <div class="rung"><div class="n">2</div><div><b>Own agent loop, from scratch</b><span class="d">The LLM picks a tool, your code runs it, you call again with the result, until done.</span></div><span class="who">you write the loop</span></div>
+  <div class="rung"><div class="n">3</div><div><b>Agent SDK</b><span class="d">A library with a ready loop, built-in tools and context handling. You add your own tools. Example: the Claude Agent SDK.</span></div><span class="who">you configure it</span></div>
+  <div class="rung"><div class="n">4</div><div><b>Framework &nbsp;(example: LangGraph)</b><span class="d">A library for wiring many steps or agents into a graph with shared state, often across model providers. You define the graph; it can be a fixed path (like level 1) or let the LLM choose the path (like level 2).</span></div><span class="who">you wire it</span></div>
+  <div class="rung"><div class="n">5</div><div><b>Ready-made agent &nbsp;(example: Claude Code, Codex)</b><span class="d">A finished product you use as is. Not recommended for end-user products: see the note below.</span></div><span class="who">you just use it</span></div>
+</div>
+<div class="axis"><span>▼ least of your own code, fastest start</span></div>
+<div class="note"><b>Why level 5 is not recommended: ready-made agents (Claude Code, Codex).</b> These are finished products that <i>you</i>, the developer, use at your own desk, to write code, edit documents or run local tasks. They are tools for building software, not building blocks for software that real users will use: end users get your product, not your coding assistant on your machine. (This project is itself built with one.) Use them to build your product, not as your product.</div>
+<p class="muted" style="margin-top:8px">Levels 3 and 4 are not strictly above or below each other: an SDK gives you one good agent, a framework coordinates steps or agents. Teams often combine them.</p>
+
+<h2>What you write and what you get</h2>
+<div class="tablewrap"><table>
+  <thead><tr><th>Level</th><th>You write</th><th>You get for free</th></tr></thead>
+  <tbody>
+    <tr><td><span class="lvl">0</span> One call</td><td>The prompt, the parsing</td><td>The LLM's reading and writing</td></tr>
+    <tr class="ours"><td><span class="lvl">1</span> Fixed workflow</td><td>The steps, checks, parallelism, error handling</td><td>The LLM's reading and writing</td></tr>
+    <tr><td><span class="lvl">2</span> Own loop</td><td>The loop, tools, history, stop rules, safety limits</td><td>Tool-calling support in the API</td></tr>
+    <tr><td><span class="lvl">3</span> Agent SDK</td><td>Your tools, prompt, permissions</td><td>The loop, built-in tools (files, shell, web), context management, sessions</td></tr>
+    <tr><td><span class="lvl">4</span> Framework (e.g. LangGraph)</td><td>The graph, the nodes, the state</td><td>Orchestration, branching, retries, saved state, often many providers</td></tr>
+    <tr><td><span class="lvl">5</span> Ready-made agent</td><td>Nothing; you just use it</td><td>A finished agent for developers (not recommended for end-user products)</td></tr>
+      </tbody>
+</table></div>
+
+<h2>The key difference: who decides the next step?</h2>
+<svg viewBox="0 0 960 330" role="img" aria-label="Fixed workflow versus agent loop">
+  <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" style="fill:var(--text)"/></marker></defs>
+
+  <!-- Level 1 -->
+  <text class="b" x="20" y="28" style="font-size:15px">Level 1 · fixed workflow: YOUR CODE decides the steps</text>
+  <rect class="bx" x="20" y="95" width="110" height="50" rx="6"/><text class="b" x="75" y="118" text-anchor="middle">Your code</text><text class="m" x="75" y="134" text-anchor="middle">plan is fixed</text>
+  <rect class="llm" x="400" y="46" width="130" height="40" rx="6"/><text x="465" y="71" text-anchor="middle">LLM call A</text>
+  <rect class="llm" x="400" y="104" width="130" height="40" rx="6"/><text x="465" y="129" text-anchor="middle">LLM call B</text>
+  <rect class="llm" x="400" y="162" width="130" height="40" rx="6"/><text x="465" y="187" text-anchor="middle">LLM call C</text>
+  <path class="ln" d="M130 110 L398 68"/><path class="ln" d="M130 120 L398 124"/><path class="ln" d="M130 130 L398 180"/>
+  <rect class="bx" x="660" y="95" width="150" height="50" rx="6"/><text class="b" x="735" y="118" text-anchor="middle">Your code</text><text class="m" x="735" y="134" text-anchor="middle">check + combine</text>
+  <path class="ln" d="M530 68 L658 110"/><path class="ln" d="M530 124 L658 120"/><path class="ln" d="M530 180 L658 130"/>
+  <text class="m" x="840" y="115">same steps</text><text class="m" x="840" y="131">every time</text>
+
+  <!-- Level 2+ -->
+  <text class="b" x="20" y="238" style="font-size:15px">Level 2 and up · agent loop: the LLM decides the steps</text>
+  <rect class="bx" x="20" y="262" width="150" height="50" rx="6"/><text class="b" x="95" y="285" text-anchor="middle">Your loop / SDK</text><text class="m" x="95" y="301" text-anchor="middle">runs the tools</text>
+  <rect class="llm" x="420" y="262" width="150" height="50" rx="6"/><text x="495" y="292" text-anchor="middle">LLM call</text>
+  <path class="ln" d="M170 276 L418 276"/><text class="m" x="205" y="270">question + tool list + history</text>
+  <path class="ln" d="M418 300 L172 300"/><text class="m" x="205" y="316">"use tool X" or "done"</text>
+  <path class="ln" d="M95 262 C95 236 150 236 150 260" style="stroke-dasharray:4 3"/>
+  <text class="m" x="600" y="280">repeat until the LLM says done.</text><text class="m" x="600" y="297">The number of steps is not known in advance.</text>
+</svg>
+<p style="margin-top:10px"><b>This is what "agentic" means.</b> From level 2 on the LLM chooses what happens next. That is where cost, risk and unpredictability grow, and where tests get harder (at level 1 you can fake the LLM and test your code exactly).</p>
+
+<h2>How to choose: ask in this order</h2>
+<div class="qs">
+  <div class="q"><b>Are the steps known in advance?</b><br><b class="a">Yes</b> → no agent loop needed. Level 0 or 1: cheaper, faster, predictable, easy to test.<br><b class="a">No</b>, the model must explore (open web research, many files) → level 2 or higher.</div>
+  <div class="q"><b>Is the work for you, the developer, on your own machine?</b> (writing code, editing documents, local automation) → just use a ready-made agent such as Claude Code or Codex; there is nothing to build. <b>Is it for your product's users?</b> → build one with levels 1 to 4 (level 5 is not recommended). If you need a Claude Code-like agent inside your product, use level 3 (an agent SDK).</div>
+  <div class="q"><b>Is it part of your own product, running on your server?</b> → level 1, 2 or 3, depending on question 1.</div>
+  <div class="q"><b>Does it need several coordinated steps, branches, human approval pauses, or progress saved across hours?</b> → a framework (level 4), or an SDK that offers it.</div>
+  <div class="q"><b>Must you be able to switch model providers?</b> → a framework, or your own thin interface (level 1 or 2).</div>
+  <div class="q"><b>How much control do you need?</b> Exact prompts, limits and tests → lower levels. Speed to a working result → higher levels.</div>
+</div>
+
+<h3>Rules of thumb</h3>
+<ul>
+  <li><b>Start at the lowest level that works.</b> Move up only when you feel a specific pain, such as rewriting a loop, trimming history, or adding retries.</li>
+  <li><b>Don't rebuild a general loop that someone has built well.</b> The hard parts are context limits, tool errors, permissions and cancelling, not the loop itself.</li>
+  <li><b>Don't use a loop for a fixed pipeline.</b> Autonomy adds cost and risk and removes repeatability.</li>
+  <li><b>Frameworks add concepts to learn</b> (graphs, state). They pay off when orchestration is the hard part, not when the job is one prompt.</li>
+</ul>
+
+<h3>Quick table</h3>
+<div class="tablewrap"><table>
+  <thead><tr><th>Situation</th><th>Pick</th></tr></thead>
+  <tbody>
+    <tr><td>Classify, extract, summarise, score</td><td>Level 0 or 1</td></tr>
+    <tr><td>Same task for many items, in parallel</td><td>Level 1</td></tr>
+    <tr><td>The LLM must look things up or run actions, unknown number of steps, inside your server</td><td>Level 2 or 3</td></tr>
+    <tr><td>You want a Claude Code-like agent inside your own app</td><td>Level 3</td></tr>
+    <tr><td>Multi-step, branching, resumable, several agents or models</td><td>Level 4</td></tr>
+    <tr><td>You, a developer, want help with code today</td><td>Not a build choice: use a ready-made agent (Claude Code, Codex)</td></tr>
+  </tbody>
+</table></div>
+
+<h2>Where our job board lands</h2>
+<p><b>Level 1: a fixed workflow written from scratch.</b> Load the profile and jobs, build one prompt per job, run all calls in parallel, check each answer, compute the score ourselves, reply. See <a href="agent-architecture.html">the flowchart</a>.</p>
+<ul>
+  <li>The steps are known in advance, so the LLM never needs to choose one.</li>
+  <li>Our code checks the answer and does the arithmetic; the LLM only reads and explains.</li>
+  <li>Tests use a fake LLM and are exact (see the <a href="../20261104-02-ai-provider.md">AI provider decision</a>).</li>
+  <li>A class can see every piece, with no framework hiding it.</li>
+</ul>
+<h3>Later features that would move us up a level</h3>
+<div class="tablewrap"><table>
+  <thead><tr><th>Feature</th><th>Why it needs a loop</th><th>Level</th></tr></thead>
+  <tbody>
+    <tr><td>The AI fetches the employer's other postings or the seeker's applications before scoring</td><td>It must decide which data to ask for</td><td>2 or 3</td></tr>
+    <tr><td>A "career coach" chat that can search, score and draft a cover letter</td><td>Open-ended, many tools</td><td>3</td></tr>
+    <tr><td>Score, then ask an employer to approve, then email</td><td>Pauses, branches, saved state</td><td>4</td></tr>
+  </tbody>
+</table></div>
+
+<h2>Summary</h2>
+<ul class="summary">
+  <li>An agent is your software calling a stateless LLM, perhaps many times.</li>
+  <li>The ladder: one call → fixed workflow → own loop → SDK → framework. Ready-made agents (Claude Code, Codex) are tools for developers, not part of the ladder.</li>
+  <li>The deciding question: <b>who decides the next step, your code or the LLM?</b></li>
+  <li>Pick the lowest level that does the job. We chose level 1 because our steps never change.</li>
+</ul>
+</main>
+</body>
+</html>

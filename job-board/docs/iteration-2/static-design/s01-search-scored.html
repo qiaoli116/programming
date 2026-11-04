@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Search jobs, scored – Job Board (design mockup)</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="mockbar">
+  <span>Design mockup · iteration 2</span>
+  <b>S-01 Search results (revised)</b>
+  <span>Use cases: UC-11, UC-13, UC-14</span>
+  <span class="spacer"></span>
+  <a href="s02-job-detail-scored.html">S-02 ▸</a>
+  <a href="../../process.html#iteration-2">Process document ↗</a>
+</div>
+<header class="site-header"><div class="inner">
+  <a class="brand" href="s01-search-scored.html">Job<span>Board</span></a>
+  <nav>
+    <a href="s01-search-scored.html" class="current">Find jobs</a>
+    <a href="../../iteration-1/static-design/s04-my-applications.html">My applications</a>
+    <a href="s09-profile.html">My profile</a>
+  </nav>
+  <div class="user"><span class="who">Alex Chen</span> <span class="chip">Seeker</span> <a class="btn secondary small" href="../../iteration-1/static-design/s08-sign-in.html#signed-out">Sign out</a></div>
+</div></header>
+<div class="search-band"><div class="inner">
+  <h1>Find your next job</h1>
+  <form class="search-form" onsubmit="return false">
+    <input type="text" aria-label="Keyword" value="developer"><input type="text" aria-label="Location" value="">
+    <a class="btn" href="#">Search</a>
+  </form>
+</div></div>
+<main>
+  <div class="score-bar">
+    <div><h2 style="margin:0">Results for “developer”</h2><span class="muted">4 jobs found · scored · highest match first</span></div>
+    <div class="actions"><a class="btn secondary" href="#">Sort by match</a><a class="btn" href="#">Score these results</a></div>
+  </div>
+  <p class="disclaimer">Your profile and the job descriptions are sent to an external AI company (Anthropic) to be scored. This is a prototype with fictional data, so that is fine here, but do not enter real personal details.</p>
+  <div class="card job-card">
+    <div class="top"><div><h3><a href="s02-job-detail-scored.html">Frontend Developer</a></h3><div class="company">Northwind Digital</div></div><span class="match">8.5<small>/ 10</small></span></div>
+    <div class="meta"><span>📍 Melbourne VIC</span><span class="chip">Full-time</span><span>💰 $90k – $110k</span></div>
+    <p class="small" style="margin:0">Build customer-facing web apps with a small product team.</p>
+  </div>
+
+  <div class="card job-card">
+    <div class="top"><div><h3><a href="s02-job-detail-scored.html">Full-stack Developer</a></h3><div class="company">Harbour Insurance</div></div><span class="match mid">6<small>/ 10</small></span></div>
+    <div class="meta"><span>📍 Sydney NSW</span><span class="chip">Full-time</span></div>
+    <p class="small" style="margin:0">Own features across a TypeScript and Node codebase.</p>
+  </div>
+
+  <div class="card job-card">
+    <div class="top"><div><h3><a href="s02-job-detail-scored.html">Java Developer</a></h3><div class="company">QuickShip Logistics</div></div><span class="match low">2<small>/ 10</small></span></div>
+    <div class="meta"><span>📍 Perth WA</span><span class="chip">Full-time</span></div>
+    <p class="small" style="margin:0">Maintain legacy Java services; on-call roster.</p>
+  </div>
+
+  <div class="card job-card">
+    <div class="top"><div><h3><a href="s02-job-detail-scored.html">Junior Developer</a></h3><div class="company">Studio Mono</div></div><span class="match none">Not scored</span></div>
+    <div class="meta"><span>📍 Melbourne VIC</span><span class="chip">Contract</span></div>
+    <p class="small" style="margin:0">Short contract building marketing sites.</p>
+  </div>
+
+
+<div class="design-notes"><h2>Design notes</h2>
+<div class="state"><span class="label">State 1 · before scoring (the default after a search, UC-11 step 1)</span>
+  <div class="score-bar"><span class="muted">4 jobs found · newest first</span><div class="actions"><a class="btn" href="#">Score these results</a></div></div>
+  <p class="disclaimer">Your profile and the job descriptions are sent to an external AI company (Anthropic) to be scored. This is a prototype with fictional data, so that is fine here, but do not enter real personal details.</p>
+  <div class="card job-card"><h3>Frontend Developer</h3><div class="company">Northwind Digital</div><div class="meta"><span>📍 Melbourne VIC</span><span class="chip">Full-time</span><span>💰 $90k – $110k</span></div></div>
+</div>
+<div class="state"><span class="label">State 2 · scoring in progress (UC-11 steps 2–3)</span>
+  <div class="score-bar"><span class="muted">Scoring 4 jobs… 2 done</span><div class="actions"><span class="btn disabled">Scoring…</span></div></div>
+  <div class="card job-card"><div class="top"><div><h3>Frontend Developer</h3><div class="company">Northwind Digital</div></div><span class="match">8.5<small>/ 10</small></span></div></div>
+  <div class="card job-card scoring"><div class="top"><div><h3>Full-stack Developer</h3><div class="company">Harbour Insurance</div></div><span class="match">Scoring…</span></div></div>
+</div>
+<div class="state"><span class="label">UC-14 · profile empty</span>
+  <div class="notice info">Your profile is empty. <a href="s09-profile.html">Write your profile</a> first, then score your results.</div></div>
+<div class="state"><span class="label">UC-14 · AI unavailable or timed out (all jobs)</span>
+  <div class="notice err">Scoring is not available right now. Your search results are unchanged. Try again in a moment.</div></div>
+<div class="state"><span class="label">UC-14 · one job failed</span>
+  <div class="card job-card"><div class="top"><div><h3>Junior Developer</h3><div class="company">Studio Mono</div></div><span class="match none">Not scored</span></div><p class="small muted" style="margin:0">Scoring failed for this job.</p></div></div>
+<div class="state"><span class="label">Signed out</span>
+  <div class="notice info">Sign in to score your results against your profile.</div></div>
+<ul class="notes-list">
+  <li>Scoring is opt-in: the list first appears exactly as in iteration 1, then the seeker chooses "Score these results".</li>
+  <li>The overall score is a number out of 10: the average of the criteria (Meets 1, Partly 0.5, Does not meet 0, Unknown ignored). Green 7 and above, amber 4 to 7, red below 4.</li>
+  <li>"Sort by match" appears only after scoring. Jobs with no score sort last; ties keep the keyword order.</li>
+  <li>Scoring never removes a job and never blocks Apply.</li>
+  <li>The disclaimer sits beside the button as well as on the profile screen.</li>
+</ul></div>
+</main>
+<div class="site-footer">Static design mockup – sample data only, nothing here is saved.</div>
+</body>
+</html>

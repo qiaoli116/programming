@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>My profile – Job Board (design mockup)</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="mockbar">
+  <span>Design mockup · iteration 2</span>
+  <b>S-09 My profile</b>
+  <span>Use cases: UC-10, UC-14</span>
+  <span class="spacer"></span>
+  <a href="s01-search-scored.html">S-01 ▸</a>
+  <a href="../../process.html#iteration-2">Process document ↗</a>
+</div>
+<header class="site-header"><div class="inner">
+  <a class="brand" href="s01-search-scored.html">Job<span>Board</span></a>
+  <nav>
+    <a href="s01-search-scored.html">Find jobs</a>
+    <a href="../../iteration-1/static-design/s04-my-applications.html">My applications</a>
+    <a href="s09-profile.html" class="current">My profile</a>
+  </nav>
+  <div class="user"><span class="who">Alex Chen</span> <span class="chip">Seeker</span> <a class="btn secondary small" href="../../iteration-1/static-design/s08-sign-in.html#signed-out">Sign out</a></div>
+</div></header>
+<main>
+  <div class="page-head"><div><h1>My profile</h1><p class="muted" style="margin:0">Write about your skills, experience and what you want. The more you write, the better the matches.</p></div></div>
+  <p class="disclaimer">Your profile and the job descriptions are sent to an external AI company (Anthropic) to be scored. This is a prototype with fictional data, so that is fine here, but do not enter real personal details.</p>
+  <div class="profile-grid">
+    <div class="field"><label for="p">Profile (Markdown)</label>
+<textarea id="p" class="profile">## Summary
+Web developer with 4 years of experience, mostly frontend...
+
+## Location and availability
+- Lives in Melbourne VIC. Open to remote roles in Australia.
+
+## Work preferences
+- Full-time preferred. Salary $95k-$115k.
+
+## Experience
+### Frontend Developer, Brightside Retail (fictional)
+*Mar 2023 - present*
+- Own the checkout and account pages (React, TypeScript)...
+
+## Skills
+- **Strong:** JavaScript, TypeScript, React, accessibility
+- **No experience:** Java, C#, AWS</textarea>
+      <div class="hint">Plain text with Markdown headings and bullets. <a href="../../../devlog/iteration-2/assets/sample-profile-alex-chen.md">See a full example</a>.</div></div>
+    <div><label>Preview</label><div class="card preview">
+      <h2>Summary</h2><p>Web developer with 4 years of experience, mostly frontend...</p>
+      <h2>Location and availability</h2><ul><li>Lives in Melbourne VIC. Open to remote roles in Australia.</li></ul>
+      <h2>Work preferences</h2><ul><li>Full-time preferred. Salary $95k-$115k.</li></ul>
+      <h2>Skills</h2><ul><li><b>Strong:</b> JavaScript, TypeScript, React, accessibility</li><li><b>No experience:</b> Java, C#, AWS</li></ul>
+    </div></div>
+  </div>
+  <a class="btn" href="s09-profile.html">Save profile</a>
+
+<div class="design-notes"><h2>Design notes</h2>
+<div class="state"><span class="label">Alternative state · saved</span>
+  <div class="notice ok">Your profile has been saved.</div></div>
+<ul class="notes-list">
+  <li>New screen for UC-10. One free-text box; the preview shows how the Markdown will look.</li>
+  <li>The disclaimer is always visible here.</li>
+  <li>The profile belongs to the signed-in seeker; nobody else sees it, and employers never do.</li>
+  <li>The header gains a "My profile" link for seekers.</li>
+  <li>An empty profile is allowed to be saved; scoring then asks for it to be filled in (see S-01, UC-14).</li>
+</ul></div>
+</main>
+<div class="site-footer">Static design mockup – sample data only, nothing here is saved.</div>
+</body>
+</html>

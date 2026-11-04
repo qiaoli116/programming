@@ -67,3 +67,32 @@ export interface EmployerJob extends Job {
 export interface ApiError {
   error: { code: string; message: string; fields?: Record<string, string> };
 }
+
+// ---- Iteration 2: AI match scoring
+
+export const MATCH_LEVELS = ['Meets', 'Partly', 'Does not meet', 'Unknown'] as const;
+export type MatchLevel = (typeof MATCH_LEVELS)[number];
+
+/** A seeker's free-text Markdown profile. updatedAt is null when it was never saved. */
+export interface Profile {
+  body: string;
+  updatedAt: string | null;
+}
+
+export interface Criterion {
+  criterion: string;
+  level: MatchLevel;
+  reason: string;
+}
+
+export interface JobScore {
+  jobId: number;
+  status: 'scored' | 'no_criteria' | 'not_scored';
+  criteria: Criterion[]; // 0 to 5; empty unless status is 'scored'
+  overall: number | null; // 0 to 1; null when nothing could be checked
+  checked: number; // criteria whose level is not Unknown
+}
+
+export const MAX_CRITERIA = 5;
+export const MAX_PROFILE_LENGTH = 20000;
+export const MAX_JOBS_PER_SCORING = 20;

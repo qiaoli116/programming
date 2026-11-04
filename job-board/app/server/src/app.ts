@@ -6,6 +6,7 @@ import type { Knex } from 'knex';
 import { errorHandler, loadUser, notFoundHandler } from './middleware';
 import { createRepos } from './repositories';
 import { createApiRouter } from './routes';
+import type { ScoringProvider } from './scoring/provider';
 import { createServices } from './services';
 
 export interface AppOptions {
@@ -14,10 +15,13 @@ export interface AppOptions {
   secureCookie?: boolean;
   /** Folder with the built React app. When it exists, Express serves it (single-image deployment, T-8). */
   webDist?: string;
+  /** The AI used by match scoring. Omit it and scoring answers 503. */
+  scoring?: ScoringProvider;
+  scoringTimeoutMs?: number;
 }
 
-export function createApp({ db, sessionDays = 7, secureCookie = false, webDist }: AppOptions) {
-  const services = createServices(createRepos(db), { sessionDays });
+export function createApp({ db, sessionDays = 7, secureCookie = false, webDist, scoring, scoringTimeoutMs }: AppOptions) {
+  const services = createServices(createRepos(db), { sessionDays, scoring, scoringTimeoutMs });
   const app = express();
 
   app.disable('x-powered-by');

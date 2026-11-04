@@ -1,7 +1,8 @@
 // Small building blocks that use the CSS classes from the Stage 2 mockups.
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import type { Job } from '@jobboard/shared';
+import type { Job, JobScore } from '@jobboard/shared';
+import { matchClass, outOfTen } from '../scores';
 import { summarise, timeAgo } from '../format';
 
 export const Page = ({ children }: { children: ReactNode }) => <main id="main">{children}</main>;
@@ -76,13 +77,42 @@ export function JobMeta({ job, withPosted = true }: { job: Job; withPosted?: boo
   );
 }
 
-export function JobCard({ job }: { job: Job }) {
+/** The round badge with the overall number, or why there is none. */
+export function MatchBadge({ score, scoring }: { score?: JobScore; scoring?: boolean }) {
+  if (scoring) return <span className="match">Scoring…</span>;
+  if (!score) return null;
+  if (score.status === 'not_scored') return <span className="match none">Not scored</span>;
+  if (score.status === 'no_criteria') return <span className="match none">No criteria</span>;
+  if (score.overall === null) return <span className="match none">Nothing to check</span>;
   return (
-    <Link className="card job-card" to={`/jobs/${job.id}`}>
-      <h3>{job.title}</h3>
-      <div className="company">{job.company}</div>
+    <span className={`match${matchClass(score.overall)}`} aria-label={`Match ${outOfTen(score.overall)} out of 10`}>
+      {outOfTen(score.overall)}
+      <small>/ 10</small>
+    </span>
+  );
+}
+
+export function JobCard({ job, score, scoring }: { job: Job; score?: JobScore; scoring?: boolean }) {
+  const note =
+    score?.status === 'not_scored'
+      ? 'Scoring failed for this job.'
+      : score?.status === 'no_criteria'
+        ? 'No criteria found in this posting.'
+        : score?.status === 'scored' && score.checked < score.criteria.length
+          ? `${score.checked} of ${score.criteria.length} criteria could be checked.`
+          : null;
+  return (
+    <Link className={`card job-card${scoring ? ' scoring' : ''}`} to={`/jobs/${job.id}`}>
+      <div className="top">
+        <div>
+          <h3>{job.title}</h3>
+          <div className="company">{job.company}</div>
+        </div>
+        <MatchBadge score={score} scoring={scoring} />
+      </div>
       <JobMeta job={job} />
       <p className="small summary">{summarise(job.description)}</p>
+      {note && <p className="small muted" style={{ margin: '6px 0 0' }}>{note}</p>}
     </Link>
   );
 }
@@ -100,3 +130,10 @@ export function NotFoundCard({ title = 'Job not found', children }: { title?: st
     </div>
   );
 }
+
+/** Shown wherever a profile or job text is about to go to the AI company (S-01, S-09). */
+export const Disclaimer = () => (
+  <p className="disclaimer">
+    Your profile and the job descriptions are sent to an external AI company (Anthropic) to be scored. This is a prototype with fictional data, so that is fine here, but do not enter real personal details.
+  </p>
+);

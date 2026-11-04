@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Job details, scored – Job Board (design mockup)</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="mockbar">
+  <span>Design mockup · iteration 2</span>
+  <b>S-02 Job details (revised)</b>
+  <span>Use cases: UC-12, UC-14</span>
+  <span class="spacer"></span>
+  <a href="s01-search-scored.html">◂ S-01</a><a href="s09-profile.html">S-09 ▸</a>
+  <a href="../../process.html#iteration-2">Process document ↗</a>
+</div>
+<header class="site-header"><div class="inner">
+  <a class="brand" href="s01-search-scored.html">Job<span>Board</span></a>
+  <nav>
+    <a href="s01-search-scored.html" class="current">Find jobs</a>
+    <a href="../../iteration-1/static-design/s04-my-applications.html">My applications</a>
+    <a href="s09-profile.html">My profile</a>
+  </nav>
+  <div class="user"><span class="who">Alex Chen</span> <span class="chip">Seeker</span> <a class="btn secondary small" href="../../iteration-1/static-design/s08-sign-in.html#signed-out">Sign out</a></div>
+</div></header>
+<main>
+  <div class="crumbs"><a href="s01-search-scored.html">◂ Back to results</a></div>
+  <div class="detail">
+    <div>
+      <div class="card">
+        <h1>Frontend Developer</h1><div class="company"><b>Northwind Digital</b></div>
+        <div class="meta"><span>📍 Melbourne VIC</span><span class="chip">Full-time</span><span>💰 $90k – $110k</span></div>
+        <h2>Description</h2><p>Build and maintain customer-facing web apps with a small, friendly product team.</p>
+        <h2>Requirements</h2><ul><li>3+ years of React and TypeScript</li><li>Experience with accessibility (WCAG)</li><li>Automated testing</li><li>Hybrid, 2 office days in Melbourne</li></ul>
+      </div>
+    </div>
+    <aside>
+      <div class="card"><a class="btn" href="../../iteration-1/static-design/s03-apply.html" style="display:block;text-align:center">Apply</a></div>
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center"><b>Match with your profile</b><span class="match">8.5<small>/ 10</small></span></div>
+        <ul class="criteria">
+          <li><span class="name">3+ years of React and TypeScript</span><span class="level meets">Meets</span><span class="reason">4 years, owns checkout pages in React and TypeScript.</span></li>
+          <li><span class="name">Accessibility experience (WCAG)</span><span class="level meets">Meets</span><span class="reason">Raised the site score from 71 to 96; WCAG 2.1 listed as a strong skill.</span></li>
+          <li><span class="name">Automated testing</span><span class="level meets">Meets</span><span class="reason">Jest, Testing Library and Cypress; coverage 40% to 70%.</span></li>
+          <li><span class="name">Hybrid, 2 office days in Melbourne</span><span class="level meets">Meets</span><span class="reason">Lives in Melbourne; prefers at most 2 office days.</span></li>
+          <li><span class="name">Salary $90k–$110k</span><span class="level partly">Partly</span><span class="reason">Range overlaps your $95k–$115k expectation.</span></li>
+        </ul>
+        <p class="small muted" style="margin:10px 0 0">Scored by AI from your profile. Advisory only.</p>
+      </div>
+    </aside>
+  </div>
+
+<div class="design-notes"><h2>Design notes</h2>
+<div class="state"><span class="label">Level styles (UC-12)</span>
+  <p><span class="level meets">Meets</span> <span class="level partly">Partly</span> <span class="level no">Does not meet</span> <span class="level unknown">Unknown</span></p></div>
+<div class="state"><span class="label">A criterion the profile says nothing about</span>
+  <ul class="criteria"><li><span class="name">Experience with AWS</span><span class="level unknown">Unknown</span><span class="reason">Not mentioned in your profile.</span></li></ul></div>
+<div class="state"><span class="label">UC-14 · job not scored, or no criteria found</span>
+  <div class="card"><b>Match with your profile</b><p class="muted small" style="margin:6px 0 0">This job has not been scored. Go back to the results and choose "Score these results".</p></div>
+  <div class="card"><b>Match with your profile</b><p class="muted small" style="margin:6px 0 0">No criteria found in this posting.</p></div></div>
+<ul class="notes-list">
+  <li>The breakdown is a new card in the existing sidebar, under Apply. Criteria differ per job, so only the overall score is comparable between jobs.</li>
+  <li>Each row: the criterion in the AI's words, its level, and a one-line reason that names the profile evidence or says it is missing.</li>
+  <li>At most five rows. The card is shown only for jobs scored in the current visit.</li>
+</ul></div>
+</main>
+<div class="site-footer">Static design mockup – sample data only, nothing here is saved.</div>
+</body>
+</html>

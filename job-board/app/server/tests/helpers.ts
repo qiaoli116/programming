@@ -19,10 +19,12 @@ export interface TestContext {
 }
 
 /** A fresh in-memory database, migrated and seeded. Call reseed() before each test. */
-export async function createContext(): Promise<TestContext & { reseed: () => Promise<void> }> {
+export async function createContext(
+  options: Pick<Parameters<typeof createApp>[0], 'scoring' | 'scoringTimeoutMs'> = {},
+): Promise<TestContext & { reseed: () => Promise<void> }> {
   const db = createDb(':memory:');
   await migrate(db);
-  const app = createApp({ db });
+  const app = createApp({ db, ...options });
   const reseed = async () => {
     await seedDatabase(db, { rounds: 4 });
   };

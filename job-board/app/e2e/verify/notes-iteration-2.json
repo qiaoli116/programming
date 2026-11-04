@@ -1,0 +1,14 @@
+{
+  "TC-11-10": {
+    "status": "pass",
+    "note": "Live run on 2026-11-04 with Claude Haiku 5.5 (npm run live-check -- 20): the 20 seeded jobs were scored with the sample profile of Alex Chen in 6.3 s. Every job came back 'scored' with up to five criteria taken from its own posting, for example Frontend Developer: 4 criteria checked, overall 9/10; Registered Nurse: 0/10; Forklift Operator: all criteria Unknown, so no overall score."
+  },
+  "TC-12-6": {
+    "status": "pass",
+    "note": "Read by hand (2026-11-04). Reasons quote the profile ('Raised the accessibility score of the site from 71 to 96', 'Barista and shift supervisor, Corner Beans Cafe, 2018-2021') or say it is silent ('The profile is silent on a forklift licence'). No invented evidence was found in the 20 jobs read. Observation, not a defect: when only one criterion can be checked the overall is extreme (Barista 10/10, Registered Nurse 0/10 with 1 of 3 checked); the card says '1 of 3 criteria could be checked'. Also some postings carry a generic criterion such as a short cover letter. Both are prompt-tuning items for a later iteration."
+  },
+  "MC2-1": {
+    "note": "Screenshots of S-09, S-01 and S-02 from the running app were compared with the mockups by eye on 2026-11-04 (the automated run itself ran with --no-images, so its screenshots are not attached). One difference found and fixed: the level pill stretched to the full row height in the narrow sidebar (fixed in style.css). Wording and disclaimer match.",
+    "status": "pass"
+  }
+}

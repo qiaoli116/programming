@@ -13,15 +13,16 @@ import { ID, stamp, writeReport, type Level, type Notes, type PlanItem, type Raw
 
 const e2eDir = path.resolve(import.meta.dirname, '..');
 const appDir = path.resolve(e2eDir, '..');
-const docsDir = path.resolve(appDir, '../docs/iteration-1');
-const resultDir = path.join(docsDir, 'test-result');
-const resultsTmp = path.join(e2eDir, 'results');
-
 const args = process.argv.slice(2);
 const opt = (name: string, fallback?: string) => {
   const i = args.indexOf(`--${name}`);
   return i >= 0 ? args[i + 1] : fallback;
 };
+// --iteration 2 follows docs/iteration-2/test-plan and writes docs/iteration-2/test-result (default: iteration 1)
+const iteration = Number(opt('iteration', '1'));
+const docsDir = path.resolve(appDir, `../docs/iteration-${iteration}`);
+const resultDir = path.join(docsDir, 'test-result');
+const resultsTmp = path.join(e2eDir, 'results');
 
 const ansi = (s: string) => s.replace(/\u001b\[[0-9;]*m/g, '');
 
@@ -30,7 +31,7 @@ function parsePlan(): PlanItem[] {
   const text = (s: string) => s.replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/\s+/g, ' ').trim();
   const items: PlanItem[] = [];
   let group = '';
-  const token = /<h3>(.*?)<\/h3>|<h2 id="security">(.*?)<\/h2>|<tr><td class="id">((?:TC-\d\d-\d|SEC-\d))<\/td><td>(.*?)<\/td>(.*?)<\/tr>/gs;
+  const token = /<h3>(.*?)<\/h3>|<h2 id="security">(.*?)<\/h2>|<tr><td class="id">((?:TC-\d\d-\d+|SEC-\d+))<\/td><td>(.*?)<\/td>(.*?)<\/tr>/gs;
   for (const m of html.matchAll(token)) {
     if (m[1]) group = text(m[1]).replace(/\s*(Must|Should|Could)$/, '');
     else if (m[2]) group = text(m[2]).replace(/^\d+\.\s*/, '');
@@ -42,14 +43,19 @@ function parsePlan(): PlanItem[] {
       items.push({ id: m[3], group, text: text(m[4]), levels });
     }
   }
-  const checklist = [
+  const checklist = iteration === 2 ? [
+    'Each new screen matches its mockup (S-09, S-01, S-02), including the disclaimer wording',
+    'The new screens are usable in a narrow, phone-width window',
+    'Score levels are readable without colour (the level is also written as text)',
+    'Wording of the "not scored", "unavailable" and "complete your profile" messages is clear and polite',
+  ] : [
     'Each screen matches its mockup in static-design (layout, wording, empty states)',
     'Screens are usable in a narrow, phone-width window',
     'Forms can be completed with the keyboard only',
     'Error and confirmation messages are clear and polite',
     'The demo accounts box on Sign in lists working accounts',
   ];
-  checklist.forEach((t, i) => items.push({ id: `MC-${i + 1}`, group: 'Manual checklist', text: t, levels: ['Browser'] }));
+  checklist.forEach((t, i) => items.push({ id: `${iteration === 2 ? 'MC2' : 'MC'}-${i + 1}`, group: 'Manual checklist', text: t, levels: ['Browser'] }));
   return items;
 }
 
@@ -149,6 +155,7 @@ async function main() {
     durationMs: Date.now() - started.getTime(),
     build: gitInfo(),
     settings: { slowMo, cdp },
+    iteration,
     plan: parsePlan(),
     runs: [...collectVitest(vitestFile), ...collectPlaywright(path.join(resultsTmp, 'playwright.json'))],
   };

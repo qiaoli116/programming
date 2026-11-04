@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JB-003 – Job board iteration 2</title>
+<style>
+:root{--ink:#101828;--mute:#667085;--line:#e4e7ec;--bg:#f9fafb;--pass:#067647;--passbg:#ecfdf3;--fail:#b42318;--failbg:#fef3f2;--warn:#b54708;--warnbg:#fffaeb;--blue:#175cd3}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 system-ui,sans-serif;color:var(--ink);background:var(--bg)}
+main{max-width:960px;margin:0 auto;padding:24px 16px 64px}h1{margin:4px 0 8px;font-size:24px}h2{margin:30px 0 8px;font-size:18px;border-bottom:1px solid var(--line);padding-bottom:4px}h3{margin:18px 0 4px;font-size:15px}
+a{color:var(--blue)}.small{font-size:13px;color:var(--mute)}code{background:#f2f4f7;padding:1px 5px;border-radius:4px;font-size:13px}
+.pill{display:inline-block;padding:1px 9px;border-radius:99px;font-size:12.5px;font-weight:600;white-space:nowrap}.pass{background:var(--passbg);color:var(--pass)}.fail{background:var(--failbg);color:var(--fail)}.warn{background:var(--warnbg);color:var(--warn)}
+.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:8px;overflow:hidden;margin:12px 0}
+.fields div{background:#fff;padding:8px 12px}.fields b{display:block;font-size:12px;color:var(--mute);text-transform:uppercase;letter-spacing:.04em}
+table{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--line);border-radius:8px;overflow:hidden;font-size:14px}
+th,td{padding:7px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}th{background:#f2f4f7;font-size:13px}tr:last-child td{border-bottom:0}.wrap{overflow-x:auto}
+</style>
+</head>
+<body><main>
+<p class="small"><a href="index.html">← All tickets</a> · <a href="../test-result/index.html">Test results</a> · <a href="../../process.html#i2-stage4">Process document, Stage 4</a></p>
+<h1><span class="small">JB-003</span><br>A score built from one checked criterion looks as certain as one built from five</h1>
+<p><span class="pill warn">Open</span> &nbsp; <span class="pill warn">Improvement</span> &nbsp; <span class="pill warn">Severity: low</span></p>
+
+<div class="fields">
+  <div><b>Raised by</b>Live check with the real model, after run <a href="../test-result/test-result-20261104-124626.html">20261104-124626</a> (not a failing test)</div>
+  <div><b>Assigned to</b>Not assigned (deferred to the next cycle)</div>
+  <div><b>Opened</b>4 Nov 2026</div>
+  <div><b>Closed</b>Not closed</div>
+  <div><b>Found in</b>iteration 2 working tree (not yet committed)</div>
+  <div><b>Fixed in</b>Not fixed</div>
+  <div><b>Test plan item</b>None. All automated tests use the fake AI, so this can only be seen with the real model (live check, plan section 8).</div>
+</div>
+
+<h2>1. Report</h2>
+<p>The overall match is the plain average of the criteria that could be checked; "Unknown" is left out (decision 39). When the AI can check only <b>one</b> criterion, the overall is that one criterion alone, so a job shows <b>0/10</b> or <b>10/10</b> from a single fact. The card does say "1 of 5 criteria could be checked.", but the big number looks just as sure as a score built from five criteria, and with Sort by match such a job can jump to the top or the bottom of the list.</p>
+<p>This follows the signed-off rule, so it is not a code defect. It is a weakness of the rule that the live check made visible.</p>
+<p><b>Done when:</b> a score built from very few checked criteria is shown in a way that tells the seeker it is weak, or is not used for sorting; the agreed rule is changed in the decision log first, then the rules tests and the test plan are updated.</p>
+
+<h2>2. Investigation</h2>
+<table>
+<tr><th>Question</th><th>Answer</th></tr>
+<tr><td>Where is the rule?</td><td><code>server/src/scoring/rules.ts</code> (the overall is computed in code, never by the AI), described in use case UC-11 and decision 39.</td></tr>
+<tr><td>Which cases are affected?</td><td>Any job where 4 or 5 of 5 criteria come back "Unknown" because the profile does not mention them. The live check showed it for at least one of the 20 jobs scored (the count was not recorded).</td></tr>
+<tr><td>Why was it not caught by tests?</td><td>The tests check that the average is computed correctly (for example TC-11 and the rules tests), which it is. They cannot say whether the rule is a good one.</td></tr>
+</table>
+
+<h2>3. Solution (proposed, not built)</h2>
+<p>Options, from smallest to largest. A decision is needed before any of them is built.</p>
+<div class="wrap"><table>
+<tr><th>Option</th><th>Change</th><th>Cost</th></tr>
+<tr><td>A. Say it on the card</td><td>When fewer than 3 criteria were checked, show "Low confidence" next to the score (text, not only colour).</td><td>Small: <code>MatchBadge</code> and one CSS rule. The rule is unchanged.</td></tr>
+<tr><td>B. Keep it out of the sort</td><td>Jobs with fewer than 3 checked criteria are sorted last, like unscored jobs.</td><td>Small: <code>sortJobs</code>. Changes UC-13.</td></tr>
+<tr><td>C. Change the maths</td><td>Pull the score toward the middle when few criteria are checked, or use weights (already listed as a future extension, Q3).</td><td>Larger: changes the agreed rule, UC-11 and the rules tests.</td></tr>
+</table></div>
+<p><b>Suggested:</b> option A first. It keeps the simple rule that is easy to explain in class and removes the false certainty.</p>
+
+<h2>4. Verification (planned)</h2>
+<div class="wrap"><table>
+<tr><th>Check</th><th>Result</th></tr>
+<tr><td>New rules test: 1 of 5 checked is flagged, 3 of 5 is not</td><td><span class="pill warn">Not run</span></td></tr>
+<tr><td>New browser test with the fake AI (a job with one checked criterion shows "Low confidence")</td><td><span class="pill warn">Not run</span></td></tr>
+<tr><td>Live check: the same jobs show the flag</td><td><span class="pill warn">Not run</span></td></tr>
+</table></div>
+
+<h2>5. History</h2>
+<div class="wrap"><table>
+<tr><th>When (about)</th><th>Event</th></tr>
+<tr><td>4 Nov</td><td>Live check with the real model scores 20 jobs; the single-criterion extremes are noticed and written in the devlog Outcome.</td></tr>
+<tr><td>4 Nov</td><td>Ticket opened. Deferred to the next cycle; nothing changed in the code.</td></tr>
+</table></div>
+
+<h2>Related</h2>
+<ul>
+  <li><a href="JB-004.html">JB-004</a> – generic criteria, found in the same live check.</li>
+  <li><a href="../../../devlog/iteration-2/20261104-01-ai-match-scoring.md">Match scoring devlog</a> – Outcome and the weighted-average idea (Q3).</li>
+  <li><a href="../test-plan/test-plan.html">Test plan</a> and decision 39 in the <a href="../../process.html#iteration-2">process document</a>.</li>
+</ul>
+</main></body></html>

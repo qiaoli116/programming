@@ -2,15 +2,31 @@
 // They call repositories and know nothing about HTTP.
 import crypto from 'node:crypto';
 import bcrypt from 'bcryptjs';
-import type { EmployerJob, Job, JobApplicant, MyApplication, User } from '@jobboard/shared';
+import {
+  MAX_JOBS_PER_SCORING,
+  MAX_PROFILE_LENGTH,
+  type EmployerJob,
+  type Job,
+  type JobApplicant,
+  type JobScore,
+  type MyApplication,
+  type Profile,
+  type User,
+} from '@jobboard/shared';
 import { HttpError, forbidden, invalid, notFound } from '../errors';
 import { toPublicUser, type Repos } from '../repositories';
+import { scoreJobs } from '../scoring/matchAgent';
+import type { ScoringProvider } from '../scoring/provider';
 import { validateApplicationForm, validateJobForm } from './validation';
 
 export interface ServiceOptions {
   sessionDays: number;
   /** Injectable clock so tests and the seed script control dates. */
   now?: () => Date;
+  /** The AI. When missing, scoring answers 503. */
+  scoring?: ScoringProvider;
+  /** Per-job time limit for the AI; tests shorten it. */
+  scoringTimeoutMs?: number;
 }
 
 export interface SignedIn {
@@ -32,7 +48,43 @@ export function createServices(repos: Repos, options: ServiceOptions) {
     return job;
   }
 
+  function validateJobIds(input: unknown): number[] {
+    const ids = (input as { jobIds?: unknown } | null)?.jobIds;
+    const bad = (message: string) => invalid({ jobIds: message });
+    if (!Array.isArray(ids) || ids.length === 0) throw bad('Choose at least one job to score.');
+    if (ids.length > MAX_JOBS_PER_SCORING) throw bad(`Score at most ${MAX_JOBS_PER_SCORING} jobs at a time.`);
+    if (!ids.every((id) => Number.isInteger(id) && id >= 1)) throw bad('Job ids must be positive whole numbers.');
+    if (new Set(ids).size !== ids.length) throw bad('Each job can appear only once.');
+    return ids;
+  }
+
   return {
+    // ---- Profile (UC-10)
+    async getProfile(user: User): Promise<Profile> {
+      return (await repos.profiles.find(user.id)) ?? { body: '', updatedAt: null };
+    },
+
+    async saveProfile(user: User, input: unknown): Promise<Profile> {
+      const body = (input as { body?: unknown } | null)?.body;
+      if (typeof body !== 'string') throw invalid({ body: 'Write your profile as text.' });
+      if (body.length > MAX_PROFILE_LENGTH) throw invalid({ body: `Keep the profile under ${MAX_PROFILE_LENGTH} characters.` });
+      return repos.profiles.save(user.id, body, now().toISOString());
+    },
+
+    // ---- Match scoring (UC-11, UC-12, UC-14)
+    async scoreJobs(user: User, input: unknown): Promise<JobScore[]> {
+      const ids = validateJobIds(input);
+      if (!options.scoring) throw new HttpError(503, 'SCORING_UNAVAILABLE', 'Scoring is not available right now.');
+      // The server loads the profile and the jobs itself: the browser only names the jobs.
+      const profile = await repos.profiles.find(user.id);
+      if (!profile || !profile.body.trim()) {
+        throw new HttpError(422, 'PROFILE_EMPTY', 'Complete your profile before scoring.');
+      }
+      const found = await repos.jobs.findByIds(ids);
+      const jobs = ids.map((id) => found.find((j) => j.id === id)).filter((j): j is Job => !!j);
+      return scoreJobs(jobs, profile.body, options.scoring, { timeoutMs: options.scoringTimeoutMs });
+    },
+
     // ---- Authentication (UC-08, UC-09)
     async signIn(email: unknown, password: unknown): Promise<SignedIn> {
       const fields: Record<string, string> = {};

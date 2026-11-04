@@ -21,6 +21,8 @@ export interface Raw {
   durationMs: number;
   build: { commit: string; dirty: boolean; node: string };
   settings: { slowMo: number; cdp: string };
+  /** Which iteration's test plan this run follows (1 when missing). */
+  iteration?: number;
   plan: PlanItem[];
   runs: Run[];
   /** ids of tests that carry a plan id, per run, are found by the pattern below */
@@ -28,7 +30,7 @@ export interface Raw {
 export type Notes = Record<string, { status?: Status; note?: string }>;
 export type Status = 'pass' | 'fail' | 'review' | 'incomplete' | 'notrun';
 
-export const ID = /\b(TC-\d\d-\d|SEC-\d|MC-\d)\b/g;
+export const ID = /\b(TC-\d\d-\d+|SEC-\d+|MC2?-\d)\b/g;
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const LABEL: Record<Status, string> = { pass: 'Pass', fail: 'Fail', review: 'Needs review', incomplete: 'Incomplete', notrun: 'Not run' };
 
@@ -112,7 +114,7 @@ export function render(raw: Raw, notes: Notes = {}): string {
   const count = (s: Status, ids = raw.plan) => ids.filter((p) => status.get(p.id) === s).length;
   const cases = raw.plan.filter((p) => p.id.startsWith('TC-'));
   const sec = raw.plan.filter((p) => p.id.startsWith('SEC-'));
-  const mc = raw.plan.filter((p) => p.id.startsWith('MC-'));
+  const mc = raw.plan.filter((p) => p.id.startsWith('MC-') || p.id.startsWith('MC2-'));
   const allPass = (ids: PlanItem[]) => ids.every((p) => status.get(p.id) === 'pass');
   const total = raw.plan.length;
   const failedN = count('fail');
@@ -143,13 +145,13 @@ export function render(raw: Raw, notes: Notes = {}): string {
 
   return `<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Test result ${raw.stamp} – Job board iteration 1</title>
+<title>Test result ${raw.stamp} – Job board iteration ${raw.iteration ?? 1}</title>
 <style>${CSS}</style>
 <script type="application/json" id="run-summary">${JSON.stringify(summary)}</script></head>
 <body><main>
 <p class="small"><a href="index.html">← All test runs</a> · <a href="../test-plan/test-plan.html">Test plan</a> · <a href="../../process.html#i1-stage4">Process document, Stage 4</a></p>
 <h1>Test result – ${started.toLocaleString('en-AU', { dateStyle: 'full', timeStyle: 'medium' })}</h1>
-<p class="sub">${esc(verdict)}. Job board iteration 1, run according to the test plan (Stage 4 – Testing).</p>
+<p class="sub">${esc(verdict)}. Job board iteration ${raw.iteration ?? 1}, run according to the test plan (Stage 4 – Testing).</p>
 <div class="cards">
   <div class="card"><b>${total}</b><span>plan items</span></div>
   <div class="card"><b style="color:var(--pass)">${count('pass')}</b><span>passed</span></div>
@@ -209,7 +211,7 @@ export function writeIndex(dir: string) {
     .join('');
   fs.writeFileSync(
     path.join(dir, 'index.html'),
-    `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Test runs – Job board iteration 1</title><style>${CSS}</style></head><body><main>
+    `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Test runs – Job board iteration ${/iteration-(\d+)/.exec(dir)?.[1] ?? 1}</title><style>${CSS}</style></head><body><main>
 <p class="small"><a href="../test-plan/test-plan.html">Test plan</a> · <a href="../../process.html#i1-stage4">Process document, Stage 4</a></p>
 <h1>Test runs</h1><p class="sub">One file per run of the whole test plan, named with the time the run started. Newest first.</p>
 <div class="wrap"><table><thead><tr><th>Started</th><th>Result</th><th>Passed</th><th>Failed</th><th>Duration</th><th>Build</th></tr></thead><tbody>${rows || '<tr><td colspan="6">No runs yet.</td></tr>'}</tbody></table></div>

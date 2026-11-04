@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tickets – Job board iteration 2</title>
+<style>
+:root{--ink:#101828;--mute:#667085;--line:#e4e7ec;--bg:#f9fafb;--pass:#067647;--passbg:#ecfdf3;--fail:#b42318;--failbg:#fef3f2;--warn:#b54708;--warnbg:#fffaeb;--blue:#175cd3}
+*{box-sizing:border-box}body{margin:0;font:15px/1.55 system-ui,sans-serif;color:var(--ink);background:var(--bg)}
+main{max-width:960px;margin:0 auto;padding:24px 16px 64px}h1{margin:4px 0 8px;font-size:24px}h2{margin:30px 0 8px;font-size:18px;border-bottom:1px solid var(--line);padding-bottom:4px}h3{margin:18px 0 4px;font-size:15px}
+a{color:var(--blue)}.small{font-size:13px;color:var(--mute)}code{background:#f2f4f7;padding:1px 5px;border-radius:4px;font-size:13px}
+.pill{display:inline-block;padding:1px 9px;border-radius:99px;font-size:12.5px;font-weight:600;white-space:nowrap}.pass{background:var(--passbg);color:var(--pass)}.fail{background:var(--failbg);color:var(--fail)}.warn{background:var(--warnbg);color:var(--warn)}
+.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:8px;overflow:hidden;margin:12px 0}
+.fields div{background:#fff;padding:8px 12px}.fields b{display:block;font-size:12px;color:var(--mute);text-transform:uppercase;letter-spacing:.04em}
+table{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--line);border-radius:8px;overflow:hidden;font-size:14px}
+th,td{padding:7px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}th{background:#f2f4f7;font-size:13px}tr:last-child td{border-bottom:0}.wrap{overflow-x:auto}
+</style>
+</head>
+<body><main>
+<p class="small"><a href="../test-result/index.html">Test results</a> · <a href="../../process.html#i2-stage4">Process document, Stage 4</a> · <a href="../../iteration-1/tickets/index.html">Iteration 1 tickets</a></p>
+<h1>Tickets</h1>
+<p class="small">Problems and open questions found while testing, with their investigation, fix and verification. Ticket numbers continue from iteration 1. Both tickets below came from the live check with the real AI; the automated run <a href="../test-result/test-result-20261104-124626.html">20261104-124626</a> had no failures.</p>
+<div class="wrap"><table>
+<thead><tr><th>Ticket</th><th>Title</th><th>Type</th><th>Found by</th><th>Status</th></tr></thead>
+<tbody>
+<tr><td class="id"><a href="JB-003.html">JB-003</a></td><td>A score built from one checked criterion looks as certain as one built from five</td><td><span class="pill warn">Improvement</span></td><td>Live check (real model)</td><td><span class="pill warn">Open – deferred</span></td></tr>
+<tr><td class="id"><a href="JB-004.html">JB-004</a></td><td>The AI sometimes adds generic criteria (for example the cover letter) that every job has</td><td><span class="pill warn">Improvement</span></td><td>Live check (real model)</td><td><span class="pill warn">Open – deferred</span></td></tr>
+</tbody></table></div>
+</main></body></html>

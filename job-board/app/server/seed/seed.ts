@@ -8,7 +8,7 @@ import type { Knex } from 'knex';
 import { config } from '../src/config';
 import { createDb, migrate } from '../src/db/knex';
 import { createRepos } from '../src/repositories';
-import { applicationsBySeeker, coverLetters, DEMO_PASSWORD, employers, jobs, seekers } from './data';
+import { alexProfile, applicationsBySeeker, coverLetters, DEMO_PASSWORD, employers, jobs, seekers } from './data';
 
 const HOUR = 60 * 60 * 1000;
 const DAY = 24 * HOUR;
@@ -55,6 +55,9 @@ export async function seedDatabase(db: Knex, { rounds = config.bcryptRounds, now
       }),
     );
   }
+
+  // Alex Chen (the first seeker) starts with a ready-made fictional profile, so match scoring can be tried at once.
+  await repos.profiles.save(seekerIds[0], alexProfile, now.toISOString());
 
   let n = 0;
   for (const [seekerIndex, jobIndexes] of applicationsBySeeker.entries()) {

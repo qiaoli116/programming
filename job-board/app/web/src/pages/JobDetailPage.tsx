@@ -5,7 +5,44 @@ import { api } from '../api';
 import { useAuth } from '../auth';
 import { JobMeta, Loading, Notice, NotFoundCard, Page } from '../components/ui';
 import { formatDate, lines, paragraphs } from '../format';
+import { MatchBadge } from '../components/ui';
+import { useScores } from '../scores';
 import { useLoad } from '../useLoad';
+
+const LEVEL_CLASS = { Meets: 'meets', Partly: 'partly', 'Does not meet': 'no', Unknown: 'unknown' } as const;
+
+/** UC-12: the criteria behind the overall number. Shown only for jobs scored in this visit. */
+function MatchBox({ jobId }: { jobId: number }) {
+  const { scores } = useScores();
+  const score = scores[jobId];
+  if (!score) return null;
+  return (
+    <div className="card">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <b>Match with your profile</b>
+        <MatchBadge score={score} />
+      </div>
+      {score.status === 'scored' ? (
+        <ul className="criteria">
+          {score.criteria.map((c, i) => (
+            <li key={i}>
+              <span className="name">{c.criterion}</span>
+              <span className={`level ${LEVEL_CLASS[c.level]}`}>{c.level}</span>
+              <span className="reason">{c.reason}</span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="muted small" style={{ margin: '6px 0 0' }}>
+          {score.status === 'no_criteria' ? 'No criteria found in this posting.' : 'Scoring failed for this job. Go back to the results and try again.'}
+        </p>
+      )}
+      <p className="small muted" style={{ margin: '10px 0 0' }}>
+        Scored by AI from your profile. Advisory only.
+      </p>
+    </div>
+  );
+}
 
 function ApplyBox({ job }: { job: Job }) {
   const { user } = useAuth();
@@ -113,6 +150,7 @@ export function JobDetailPage() {
         </div>
         <aside>
           <ApplyBox job={job} />
+          <MatchBox jobId={job.id} />
         </aside>
       </div>
     </Page>

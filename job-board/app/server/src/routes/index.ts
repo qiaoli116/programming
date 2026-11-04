@@ -51,6 +51,31 @@ export function createApiRouter(services: Services, options: RouterOptions): Rou
     res.json({ user: req.user ?? null });
   });
 
+  // ---- Profile and match scoring (iteration 2)
+  api.get(
+    '/me/profile',
+    requireRole('seeker'),
+    wrap(async (req, res) => {
+      res.json({ profile: await services.getProfile(me(req)) });
+    }),
+  );
+
+  api.put(
+    '/me/profile',
+    requireRole('seeker'),
+    wrap(async (req, res) => {
+      res.json({ profile: await services.saveProfile(me(req), req.body) });
+    }),
+  );
+
+  api.post(
+    '/scoring',
+    requireRole('seeker'),
+    wrap(async (req, res) => {
+      res.json({ results: await services.scoreJobs(me(req), req.body) });
+    }),
+  );
+
   // ---- Jobs
   api.get(
     '/jobs',

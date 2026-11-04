@@ -7,7 +7,9 @@ import type {
   Job,
   JobApplicant,
   JobForm,
+  JobScore,
   MyApplication,
+  Profile,
   User,
 } from '@jobboard/shared';
 
@@ -62,6 +64,10 @@ export const api = {
   apply: (jobId: number | string, form: ApplicationForm) =>
     request<{ application: MyApplication }>('POST', `/jobs/${jobId}/applications`, form).then((r) => r.application),
   myApplications: () => request<{ applications: MyApplication[] }>('GET', '/me/applications').then((r) => r.applications),
+
+  getProfile: () => request<{ profile: Profile }>('GET', '/me/profile').then((r) => r.profile),
+  saveProfile: (body: string) => request<{ profile: Profile }>('PUT', '/me/profile', { body }).then((r) => r.profile),
+  score: (jobIds: number[]) => request<{ results: JobScore[] }>('POST', '/scoring', { jobIds }).then((r) => r.results),
 
   employerJobs: () => request<{ jobs: EmployerJob[] }>('GET', '/employer/jobs').then((r) => r.jobs),
   jobApplications: (jobId: number | string) =>

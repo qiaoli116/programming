@@ -47,6 +47,11 @@ export function Header() {
                   My applications
                 </NavLink>
               )}
+              {user && (
+                <NavLink to="/profile" className={current}>
+                  My profile
+                </NavLink>
+              )}
             </>
           )}
         </nav>

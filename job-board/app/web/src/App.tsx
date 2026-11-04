@@ -8,6 +8,7 @@ import { JobApplicationsPage } from './pages/JobApplicationsPage';
 import { JobDetailPage } from './pages/JobDetailPage';
 import { JobFormPage } from './pages/JobFormPage';
 import { MyApplicationsPage } from './pages/MyApplicationsPage';
+import { ProfilePage } from './pages/ProfilePage';
 import { SignInPage } from './pages/SignInPage';
 
 // Screens S-01 to S-08 from the Stage 2 design.
@@ -30,6 +31,14 @@ export function App() {
           element={
             <RequireRole role="seeker">
               <MyApplicationsPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <RequireRole role="seeker">
+              <ProfilePage />
             </RequireRole>
           }
         />

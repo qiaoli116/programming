@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Iteration 2 summary report – Job board</title>
+<style>
+:root{--ink:#101828;--mute:#667085;--line:#e4e7ec;--bg:#f9fafb;--pass:#067647;--passbg:#ecfdf3;--warn:#b54708;--warnbg:#fffaeb;--blue:#175cd3;--accent:#0f766e}
+*{box-sizing:border-box}body{margin:0;font:15.5px/1.6 system-ui,sans-serif;color:var(--ink);background:var(--bg)}
+main{max-width:940px;margin:0 auto;padding:28px 16px 72px}h1{margin:0 0 4px;font-size:30px}h2{margin:36px 0 10px;font-size:20px;border-bottom:2px solid var(--line);padding-bottom:5px}h3{margin:18px 0 4px;font-size:15.5px}
+a{color:var(--blue)}.small{font-size:13px;color:var(--mute)}.sub{color:var(--mute);margin:0 0 18px}code{background:#f2f4f7;padding:1px 5px;border-radius:4px;font-size:13px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin:16px 0}
+.card{background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px 14px}.card b{display:block;font-size:28px;line-height:1.2;color:var(--accent)}.card span{color:var(--mute);font-size:13px}
+table{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--line);border-radius:8px;overflow:hidden;font-size:14px}
+th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}th{background:#f2f4f7;font-size:13px}tr:last-child td{border-bottom:0}.wrap{overflow-x:auto}
+.pill{display:inline-block;padding:1px 9px;border-radius:99px;font-size:12.5px;font-weight:600;white-space:nowrap}.pass{background:var(--passbg);color:var(--pass)}.warn{background:var(--warnbg);color:var(--warn)}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}.box{background:#fff;border:1px solid var(--line);border-radius:8px;padding:6px 16px 10px}.box ul{margin:4px 0;padding-left:20px}
+.flow{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0;padding:0;list-style:none}.flow li{background:#fff;border:1px solid var(--line);border-left:4px solid var(--pass);border-radius:6px;padding:6px 12px;font-size:14px}.flow li span{display:block;font-size:12px;color:var(--mute)}
+.id{font-family:ui-monospace,Consolas,monospace;font-weight:600;white-space:nowrap}
+</style>
+</head>
+<body><main>
+<p class="small"><a href="../process.html#iteration-2">Process document</a> · <a href="tickets/index.html">Tickets</a> · <a href="test-result/index.html">Test results</a> · <a href="../iteration-1/summary-report.html">Iteration 1 report</a></p>
+<h1>Iteration 2 – summary report</h1>
+<p class="sub">Job board, AI match scoring · all six stages complete · Wednesday 4 November 2026</p>
+
+<h2>In one paragraph</h2>
+<p>Iteration 2 added AI match scoring on top of the keyword search. A seeker writes a profile, searches, and presses "Score these results"; an AI (Claude Haiku 5.5, called from the server) reads each job, derives up to five criteria from the posting and scores each one against the profile, and the app shows a score per criterion and an overall match. Sorting by match is opt-in. It went through all six stages. The final run passed all 42 items of the test plan, using a fake AI so the result can be repeated; the real model was checked by hand and scored 20 jobs in 6.3 seconds. Two weaknesses seen in that live check are open tickets, deferred to the next cycle. The prototype runs on local host only.</p>
+
+<div class="cards">
+  <div class="card"><b>5</b><span>new use cases (UC-10 to UC-14)</span></div>
+  <div class="card"><b>3</b><span>screens built (1 new, 2 revised)</span></div>
+  <div class="card"><b>42 / 42</b><span>plan items pass (final run)</span></div>
+  <div class="card"><b>2</b><span>tickets, both open (deferred)</span></div>
+  <div class="card"><b>16</b><span>decisions recorded (36 to 51)</span></div>
+</div>
+
+<h2>Goal and result</h2>
+<div class="wrap"><table>
+<tr><th style="width:22%">Goal</th><td>After the keyword search returns its list, an AI reads each job, builds up to five criteria from the posting, matches them one by one against the seeker's profile, and shows a score per criterion and an overall match.</td></tr>
+<tr><th>Result</th><td><span class="pill pass">Goal met</span> All five use cases work and are tested: keep a profile, score the results, see the criteria breakdown, sort by match, and handle the cases where scoring cannot work (empty profile, one job failing, every job failing, no criteria found).</td></tr>
+<tr><th>How the AI is kept safe</th><td>The AI only answers; code decides every step (a fixed workflow). Each job is scored in its own parallel lane with a 30 second limit, each answer is checked (at most five criteria, valid levels, no empty text), and the overall is computed in code. A bad answer for one job becomes "Not scored" and never spoils the others. The API key stays on the server in a git-ignored <code>.env</code> file.</td></tr>
+<tr><th>Where it runs</th><td>Local host only, <code>http://localhost:3000</code>, with <code>ANTHROPIC_API_KEY</code> in <code>app/.env</code>. <code>SCORING_PROVIDER=fake</code> runs it with no key and no network.</td></tr>
+<tr><th>Status</th><td>Closed. No maintenance is planned. Two open tickets are the starting point for iteration 3.</td></tr>
+</table></div>
+
+<h2>How the six stages went</h2>
+<ol class="flow">
+  <li>Stage 1<span>Requirements · 5 use cases</span></li>
+  <li>Stage 2<span>Design · 3 mockups, software design, test plan</span></li>
+  <li>Stage 3<span>Implementation · agent, API, screens</span></li>
+  <li>Stage 4<span>Testing · 42 / 42, live check</span></li>
+  <li>Stage 5<span>Deployment · local host</span></li>
+  <li>Stage 6<span>Review · closed</span></li>
+</ol>
+<div class="wrap"><table>
+<tr><th>Stage</th><th>What was produced</th><th>Signed off</th></tr>
+<tr><td>1 Requirements</td><td>Use cases UC-10 to UC-14 with main and alternative flows. Two items deferred from iteration 1 came in (a profile, and sorting). Open questions Q1 to Q9 answered in the devlog.</td><td>Decisions 36 to 41</td></tr>
+<tr><td>2 Design</td><td>Phase 2A three mockups (S-09 new, S-01 and S-02 revised); Phase 2B software design (profile table, two profile endpoints, scoring endpoint, the agent and its provider interface, the AI model decision); Phase 2C test plan of 33 test cases, 5 security tests and a 4-item manual checklist.</td><td>Decision 45</td></tr>
+<tr><td>3 Implementation</td><td>Profiles migration, profile and scoring endpoints, the match agent with a fake and a real provider, the profile page, score bar, sort and criteria box, and the tests.</td><td>Decision 46</td></tr>
+<tr><td>4 Testing</td><td>Two saved runs; the final one passes everything. A live check with the real model. Tickets JB-003 and JB-004.</td><td>Decision 49</td></tr>
+<tr><td>5 Deployment</td><td>Run on local host with the key in <code>.env</code>. Alex Chen's profile is part of the demo data, so scoring can be tried straight away.</td><td>Decision 50</td></tr>
+<tr><td>6 Review &amp; Maintenance</td><td>This report and the Stage 6 section of the process document.</td><td>Decision 51</td></tr>
+</table></div>
+
+<h2>What was built</h2>
+<div class="cols">
+  <div class="box"><h3>Technology (new this iteration)</h3><ul>
+    <li>Claude Haiku 5.5, called from the server with structured output; the key never reaches the browser</li>
+    <li>A provider interface with a real and a fake implementation, so the tests need no network</li>
+    <li>Markdown profile with a live preview, cleaned of scripts (marked and DOMPurify)</li>
+    <li>Scores are kept in the browser only and disappear on reload or sign-out</li>
+  </ul></div>
+  <div class="box"><h3>Size of the whole app (lines of code)</h3><ul>
+    <li>Server: about 1,100 (iteration 1: about 750)</li>
+    <li>Web app including styles: about 1,900 (iteration 1: about 1,500)</li>
+    <li>Shared types: about 100</li>
+    <li>Tests (server about 1,000, browser about 1,000)</li>
+  </ul><p class="small">Counted from the source files of <code>job-board/app/</code> at the end of the iteration. The test line count for iteration 1 was not recorded in the same way, so it is not compared.</p></div>
+</div>
+
+<h2>Testing results</h2>
+<p>Every run is saved as a dated HTML file. The automated tests use a fake AI that can be told to fail, hang, answer slowly or answer badly, so each failure case can be tested the same way every time. A real model gives different words each time, so it was read by hand instead.</p>
+<div class="wrap"><table>
+<thead><tr><th>Run</th><th>Purpose</th><th>Result</th></tr></thead>
+<tbody>
+<tr><td><a href="test-result/test-result-20261104-124626.html">124626</a></td><td>First full run. Its test-plan reader missed the last test case (<code>TC-11-10</code>, the live check) because the id has two digits, and the exit criteria were counted wrongly.</td><td>41 of 41 listed items pass; the report said 32 of 32, so the gap was not visible</td></tr>
+<tr><td><a href="test-result/test-result-20261104-130858.html">130858</a></td><td><b>Final run</b>, after fixing the reader</td><td><span class="pill pass">42 of 42 pass</span> in 450 seconds</td></tr>
+</tbody></table></div>
+<div class="wrap" style="margin-top:12px"><table>
+<tr><th style="width:36%">Level</th><th>Count in the final run</th></tr>
+<tr><td>Unit and API tests (Vitest, all iterations)</td><td>95</td></tr>
+<tr><td>Browser tests (Playwright, all iterations)</td><td>55</td></tr>
+<tr><td>Test plan items (33 test cases, 5 security, 4 manual checklist)</td><td>42, all pass</td></tr>
+</table></div>
+<h3>Live check with the real model</h3>
+<p>Twenty seeded jobs were scored against the sample profile in 6.3 seconds. Every job came back scored, with criteria taken from its own posting, and the reasons quote the profile or say it is silent. Reading the answers is a person's judgement, not a pass/fail test.</p>
+
+<h2>Problems found</h2>
+<p>The final run had no failures, so there was nothing to fix after testing. Reading the real model's answers showed two weaknesses, both written up as tickets and left open.</p>
+<div class="wrap"><table>
+<thead><tr><th>Ticket</th><th>Found by</th><th>What it is</th><th>Proposed fix</th><th>Status</th></tr></thead>
+<tbody>
+<tr><td class="id"><a href="tickets/JB-003.html">JB-003</a></td><td>Live check</td><td>A score built from one checked criterion looks as certain as one built from five (0/10 or 10/10 from a single fact).</td><td>Show "Low confidence" when fewer than 3 criteria were checked.</td><td><span class="pill warn">Open – deferred</span></td></tr>
+<tr><td class="id"><a href="tickets/JB-004.html">JB-004</a></td><td>Live check</td><td>The AI sometimes adds generic criteria (for example the cover letter) that every job has.</td><td>Add one instruction to the prompt; re-run the live check.</td><td><span class="pill warn">Open – deferred</span></td></tr>
+</tbody></table></div>
+<p>Neither is a missing requirement, so nothing went back to Stage 1. Smaller things fixed while building: the level label stretched in the narrow sidebar (CSS); a browser test lost its scores by reloading the page, so it now moves around with the in-app link; the verification tool had to learn the new plan ids and the iteration 2 checklist.</p>
+
+<h2>Lessons</h2>
+<div class="cols">
+  <div class="box"><h3>What went well</h3><ul>
+    <li>Putting the AI behind a small interface made the whole feature testable offline and repeatable.</li>
+    <li>One lane per job meant one bad answer never spoiled the list; the failure cases were designed first and tested with the fake AI.</li>
+    <li>The code, not the AI, computes the overall, so the score rule is explainable and tested.</li>
+    <li>Opt-in scoring and a privacy notice kept cost and data use in the seeker's hands.</li>
+  </ul></div>
+  <div class="box"><h3>What to change next time</h3><ul>
+    <li>The test-plan reader only checked ids of a fixed shape; check that the number of plan items read equals the number in the plan, so a missed item is caught at once.</li>
+    <li>Judge the real model's answers on a fixed set of jobs and write down the counts (how many were generic, how many had one criterion), so a prompt change can be compared.</li>
+    <li>Decide in Stage 2 what the overall should show when little could be checked (JB-003).</li>
+    <li>Commit at the end of each stage; the iteration 2 work is still uncommitted.</li>
+  </ul></div>
+</div>
+
+<h2>Open items for iteration 3</h2>
+<div class="wrap"><table>
+<thead><tr><th>Item</th><th>Why it was deferred</th></tr></thead>
+<tbody>
+<tr><td><b>Commit the iteration 2 work.</b> Code, tests, tickets, results and document updates are not yet in git.</td><td>No commit was requested yet.</td></tr>
+<tr><td>JB-003 low-confidence overall; JB-004 generic criteria</td><td>Seen only in the live check; see the tickets.</td></tr>
+<tr><td>Weighted criteria (must-have against nice-to-have)</td><td>Kept out so the first version is easy to explain (Q3).</td></tr>
+<tr><td>Cache scores by job and profile version; stream results as they arrive</td><td>The class demonstration is better with one click and one fresh answer (Q5, Q9).</td></tr>
+<tr><td>A larger model, or a second AI step</td><td>Haiku 5.5 was fast and good enough.</td></tr>
+<tr><td>UC-15 correct a wrong match</td><td>Today the seeker edits the profile and scores again.</td></tr>
+<tr><td>Only the first 20 results are scored in one click</td><td>Keeps one click quick and cheap.</td></tr>
+<tr><td>Carried over from iteration 1: tables as cards on phones, publishing online, <code>npm audit</code> warnings</td><td>Not needed for the class demonstration.</td></tr>
+</tbody></table></div>
+
+<h2>Where to find everything</h2>
+<div class="wrap"><table>
+<tr><th style="width:30%">Item</th><th>Location</th></tr>
+<tr><td>Process document, decisions 36 to 51</td><td><a href="../process.html#iteration-2">docs/process.html</a></td></tr>
+<tr><td>Devlogs: match scoring, AI provider decision, agent diagrams, build-level tutorial</td><td><a href="../../devlog/README.md">job-board/devlog/</a></td></tr>
+<tr><td>Mockups (S-09, S-01, S-02)</td><td><a href="static-design/s09-profile.html">docs/iteration-2/static-design/</a></td></tr>
+<tr><td>Test plan</td><td><a href="test-plan/test-plan.html">docs/iteration-2/test-plan/test-plan.html</a></td></tr>
+<tr><td>Test results</td><td><a href="test-result/index.html">docs/iteration-2/test-result/</a></td></tr>
+<tr><td>Tickets</td><td><a href="tickets/index.html">docs/iteration-2/tickets/</a></td></tr>
+<tr><td>Code, tests and README</td><td><code>job-board/app/</code></td></tr>
+<tr><td>Run it</td><td>Put the key in <code>app/.env</code>, then <code>npm run seed</code>, <code>npm run build</code>, <code>npm start</code> and open http://localhost:3000. Sign in as <code>alex.chen@example.com</code> (password <code>demo1234</code>); the profile is already filled in.</td></tr>
+<tr><td>Read the real model by hand</td><td><code>npm run live-check -w server</code></td></tr>
+<tr><td>Run all tests and write a result</td><td><code>npm run verify -- --iteration 2 --notes verify/notes-iteration-2.json</code> (add <code>--no-images</code> for a small file)</td></tr>
+</table></div>
+</main></body></html>

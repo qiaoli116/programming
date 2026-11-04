@@ -7,10 +7,12 @@
     "dev": "tsx watch src/index.ts",
     "start": "tsx src/index.ts",
     "seed": "tsx seed/seed.ts",
+    "live-check": "tsx scripts/live-check.ts",
     "test": "vitest run",
     "typecheck": "tsc -p ."
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.4.0",
     "@jobboard/shared": "*",
     "bcryptjs": "^2.4.3",
     "better-sqlite3": "^11.5.0",

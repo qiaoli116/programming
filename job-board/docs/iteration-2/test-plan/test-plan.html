@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Job Board – Iteration 2 – Test plan</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --card: #ffffff; --text: #1d2330; --muted: #5d6677; --line: #dde1e8;
+    --accent: #2563eb; --accent-soft: #e3ecff;
+    --must: #b42318; --must-bg: #fde8e6;
+    --should: #b54708; --should-bg: #fdf0dc;
+    --could: #175cd3; --could-bg: #e3ecff;
+    --good: #067647; --good-bg: #dcf5e7;
+    --wont: #5d6677; --wont-bg: #eceef2;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12151c; --card: #1a1f2a; --text: #e6e9ef; --muted: #9aa3b5; --line: #2c3342;
+      --accent: #6b9bff; --accent-soft: #1d2a47;
+      --must: #ff9a8f; --must-bg: #3a1f1d;
+      --should: #f5b46a; --should-bg: #3a2c17;
+      --could: #8ab4ff; --could-bg: #1d2a47;
+      --good: #4ade80; --good-bg: #17301f;
+      --wont: #9aa3b5; --wont-bg: #262c39;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+  a { color: var(--accent); }
+  code { font: .85em ui-monospace, Consolas, monospace; background: var(--wont-bg); padding: 1px 5px; border-radius: 4px; }
+  main { max-width: 980px; margin: 0 auto; padding: 0 28px 60px; }
+  h2, h3 { scroll-margin-top: 64px; }
+  h2 { font-size: 1.35rem; margin: 40px 0 6px; }
+  h3 { font-size: 1.05rem; margin: 28px 0 8px; display: flex; align-items: center; gap: 10px; }
+  p { max-width: 70ch; }
+  .sub { color: var(--muted); }
+
+  /* ---- top nav ---- */
+  .nav { position: sticky; top: 0; z-index: 10; background: var(--card); border-bottom: 1px solid var(--line);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, .08); }
+  .nav .in { max-width: 980px; margin: 0 auto; padding: 8px 28px; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .nav a { padding: 3px 11px; border: 1px solid var(--line); border-radius: 8px; font-size: .85rem; font-weight: 600;
+    text-decoration: none; color: var(--text); white-space: nowrap; }
+  .nav a:hover { border-color: var(--accent); }
+  .nav a.back { margin-right: 10px; color: var(--accent); border-color: transparent; }
+
+  /* ---- header ---- */
+  header.top { padding: 36px 0 8px; }
+  header.top .crumb { font-size: .85rem; color: var(--muted); }
+  header.top h1 { margin: 4px 0 10px; font-size: 2rem; line-height: 1.2; }
+  .tag { display: inline-block; padding: 1px 10px; border-radius: 999px; font-size: .78rem; font-weight: 700; vertical-align: middle; }
+  .tag.proposed { background: var(--could-bg); color: var(--could); }
+  .tag.done { background: var(--good-bg); color: var(--good); }
+  .tag.must { background: var(--must-bg); color: var(--must); }
+
+  /* ---- summary cards ---- */
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 22px 0 6px; }
+  .stat { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .stat b { display: block; font-size: 1.9rem; line-height: 1.1; color: var(--accent); }
+  .stat span { font-size: .85rem; color: var(--muted); }
+
+  /* ---- tables ---- */
+  .tbl { background: var(--card); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; margin: 10px 0 6px; }
+  table { border-collapse: collapse; width: 100%; font-size: .95rem; }
+  th { text-align: left; font-size: .72rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted);
+    background: var(--bg); padding: 9px 14px; border-bottom: 1px solid var(--line); }
+  td { padding: 9px 14px; border-top: 1px solid var(--line); vertical-align: top; }
+  tr:first-child td { border-top: 0; }
+  td.id { font: .85em ui-monospace, Consolas, monospace; color: var(--muted); white-space: nowrap; }
+  td.lv { white-space: nowrap; width: 1%; }
+  .tbl.cases table { table-layout: fixed; }
+  .tbl.cases th:first-child { width: 96px; }
+  .tbl.cases th:last-child { width: 118px; }
+  .tbl.cases td.lv { width: auto; }
+
+  /* ---- level pills ---- */
+  .lv span { display: inline-block; min-width: 22px; text-align: center; padding: 0 6px; margin-right: 3px; border-radius: 6px;
+    font-size: .75rem; font-weight: 700; }
+  .lv .U { background: var(--should-bg); color: var(--should); }
+  .lv .A { background: var(--good-bg); color: var(--good); }
+  .lv .E { background: var(--could-bg); color: var(--could); }
+  .legend { font-size: .85rem; color: var(--muted); }
+  .legend span { display: inline-block; padding: 0 6px; border-radius: 6px; font-weight: 700; margin: 0 2px 0 8px; }
+  .legend .U { background: var(--should-bg); color: var(--should); }
+  .legend .A { background: var(--good-bg); color: var(--good); }
+  .legend .E { background: var(--could-bg); color: var(--could); }
+
+  /* ---- timeline of stages ---- */
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 14px 0; }
+  .step { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; border-top: 4px solid var(--line); }
+  .step.now { border-top-color: var(--accent); }
+  .step small { color: var(--muted); font-weight: 600; text-transform: uppercase; font-size: .72rem; letter-spacing: .05em; }
+  .step b { display: block; margin: 2px 0 4px; }
+  .step p { margin: 0; font-size: .92rem; color: var(--muted); }
+  @media (max-width: 700px) { .steps { grid-template-columns: 1fr; } }
+
+  /* ---- notes and lists ---- */
+  .note { background: var(--accent-soft); border-left: 4px solid var(--accent); border-radius: 8px; padding: 12px 16px; margin: 14px 0; max-width: 78ch; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 12px 0; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px 18px; }
+  .card h4 { margin: 0 0 6px; }
+  .card ul { margin: 0; padding-left: 20px; }
+  .card.ok { border-top: 4px solid var(--good); }
+  .card.fail { border-top: 4px solid var(--must); }
+  @media (max-width: 700px) { .cols { grid-template-columns: 1fr; } }
+  .check { list-style: none; padding: 0; margin: 10px 0; }
+  .check li { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 8px 14px 8px 40px; margin-bottom: 6px; position: relative; }
+  .check li::before { content: ""; position: absolute; left: 14px; top: 12px; width: 14px; height: 14px; border: 2px solid var(--muted); border-radius: 4px; }
+  .lv .L { background: var(--wont-bg); color: var(--wont); }
+  .legend .L { background: var(--wont-bg); color: var(--wont); }
+</style>
+</head>
+<body>
+
+<nav class="nav"><div class="in">
+  <a class="back" href="../../process.html#i2-design-testplan">← Development process</a>
+  <a href="#scope">Scope</a>
+  <a href="#ai">Testing the AI</a>
+  <a href="#levels">Levels</a>
+  <a href="#env">Environment</a>
+  <a href="#criteria">Criteria</a>
+  <a href="#cases">Test cases</a>
+  <a href="#security">Security</a>
+  <a href="#manual">Manual</a>
+  <a href="#reporting">Reporting</a>
+</div></nav>
+
+<main>
+
+<header class="top">
+  <div class="crumb">Job Board · Iteration 2 · Stage 2 Design · Phase 2C Test plan</div>
+  <h1>Test plan: AI match scoring</h1>
+  <span class="tag proposed">Proposed</span>
+  <span class="sub">&nbsp;For review at the Stage 2 sign-off.</span>
+  <p class="sub">Based on use cases UC-10 to UC-14 and the <a href="../static-design/s09-profile.html">iteration 2 mockups</a>. The tests are placed in phases in the <a href="../../../devlog/iteration-2/20261104-01-ai-match-scoring.md">spec</a>. Iteration 1's 32 test cases and 6 security tests must keep passing (<a href="../../iteration-1/test-plan/test-plan.html">iteration 1 plan</a>). Results of each run go in <code>docs/iteration-2/test-result</code>.</p>
+  <div class="stats">
+    <div class="stat"><b>5</b><span>new use cases covered (UC-10 to UC-14)</span></div>
+    <div class="stat"><b>33</b><span>numbered test cases</span></div>
+    <div class="stat"><b>5</b><span>new security tests (SEC-7 to SEC-11)</span></div>
+    <div class="stat"><b>0</b><span>automated tests that call the real AI</span></div>
+  </div>
+</header>
+
+<h2 id="scope">1. Scope</h2>
+<div class="cols">
+  <div class="card ok"><h4>In scope</h4>
+    <ul>
+      <li>UC-10 to UC-14, including the failure cases</li>
+      <li>The scoring rules: levels, overall score, five-criteria limit</li>
+      <li>Permissions on the new endpoints, and key handling</li>
+      <li>That scoring never changes the stored data or the keyword list</li>
+    </ul>
+  </div>
+  <div class="card fail"><h4>Out of scope (iteration 2)</h4>
+    <ul>
+      <li>Whether the AI's judgement is <i>right</i>, beyond a manual read (see section 2)</li>
+      <li>UC-15 (Could): editing the profile and scoring again already works, with no new feature</li>
+      <li>Speed and cost under load</li>
+      <li>Browsers other than Chrome</li>
+    </ul>
+  </div>
+</div>
+
+<h2 id="ai">2. How we test something that is not repeatable</h2>
+<div class="note"><b>The AI's wording changes every time</b>, so no automated test compares its text. Automated tests use a <b>fake provider</b> that returns fixed, predictable criteria (title tags <code>[FAIL]</code>, <code>[NONE]</code>, <code>[BAD]</code> trigger a failure, no criteria, and an invalid answer). They check the parts that are <i>our</i> code: the answer check, the overall score, parallel running, failures, permissions and screens.</div>
+<div class="cols">
+  <div class="card ok"><h4>Tested automatically (fake AI)</h4>
+    <ul>
+      <li>Shape: at most five criteria, valid levels, non-empty reasons</li>
+      <li>The overall score arithmetic</li>
+      <li>Every failure path in UC-14</li>
+      <li>Screens, sorting and disclaimers</li>
+    </ul>
+  </div>
+  <div class="card fail"><h4>Checked by a person (real AI, needs a key)</h4>
+    <ul>
+      <li>Do the criteria come from the posting?</li>
+      <li>Do the reasons quote the profile, or say it is silent?</li>
+      <li>Do the levels look sensible for the sample profile?</li>
+    </ul>
+  </div>
+</div>
+<p class="sub">The live checks are marked <span class="lv"><span class="L">L</span></span> in the tables. They are run once at the end of Stage 3 and again in Stage 4, and the verdict is written in the test result. They are a judgement, not a pass or fail number.</p>
+
+<h2 id="levels">3. Test levels and tools</h2>
+<div class="tbl"><table>
+  <thead><tr><th>Level</th><th>What it checks</th><th>Tool</th><th>Written when</th></tr></thead>
+  <tbody>
+    <tr><td class="lv"><b>Unit</b></td><td>Scoring rules, answer check, prompt building, the agent with the fake provider</td><td>Vitest</td><td>Phases A and B</td></tr>
+    <tr><td class="lv"><b>API</b></td><td>Profile and scoring endpoints, including <code>401</code> <code>403</code> <code>422</code> <code>503</code></td><td>Vitest + HTTP requests</td><td>Phases C and D</td></tr>
+    <tr><td class="lv"><b>End-to-end</b></td><td>Each use case in a real browser, server started with <code>SCORING_PROVIDER=fake</code></td><td>Playwright</td><td>Phase E</td></tr>
+    <tr><td class="lv"><b>Live</b></td><td>Real AI output read by a person</td><td>Manual, needs <code>ANTHROPIC_API_KEY</code></td><td>End of Stage 3, Stage 4</td></tr>
+  </tbody>
+</table></div>
+
+<h2 id="env">4. Test environment and data</h2>
+<ul>
+  <li>Same as iteration 1: a fresh in-memory SQLite database per run, re-seeded, accounts by role.</li>
+  <li>The demo seeker (Alex Chen) gets the <a href="../../../devlog/iteration-2/assets/sample-profile-alex-chen.md">sample profile</a> in tests that need a saved profile; another seeker has none.</li>
+  <li>The seed data gains no new jobs. The failure tests add their own jobs with <code>[FAIL]</code>, <code>[NONE]</code> and <code>[BAD]</code> in the title.</li>
+  <li>The automated suite never needs a key and never makes a network call to the AI.</li>
+</ul>
+
+<h2 id="criteria">5. Entry and exit criteria</h2>
+<div class="cols">
+  <div class="card"><h4>Entry: start Stage 4 when</h4>
+    <ul>
+      <li>UC-10 to UC-14 are built</li>
+      <li>The suite passes offline with no key</li>
+      <li>One live run has been done with a real key</li>
+    </ul>
+  </div>
+  <div class="card"><h4>Exit: Stage 4 is done when</h4>
+    <ul>
+      <li>Every test case in section 6 and every test in section 7 passes</li>
+      <li>All iteration 1 tests still pass</li>
+      <li>The manual checklist and the live read are done and written up</li>
+      <li>No known bug blocks a use case</li>
+    </ul>
+  </div>
+</div>
+
+<h2 id="cases">6. Test cases by use case</h2>
+<p class="legend">Levels: <span class="U">U</span>unit <span class="A">A</span>API <span class="E">E</span>end-to-end <span class="L">L</span>live with the real AI.</p>
+
+<h3>UC-10 Keep a profile <span class="tag must">Must</span></h3>
+<div class="tbl cases"><table>
+  <thead><tr><th>Id</th><th>Test case</th><th>Levels</th></tr></thead>
+  <tbody>
+    <tr><td class="id">TC-10-1</td><td>Seeker saves a profile and reads it back unchanged; "Saved at" shows</td><td class="lv"><span class="A">A</span><span class="E">E</span></td></tr>
+    <tr><td class="id">TC-10-2</td><td>Saving again replaces the old profile; a seeker who never saved gets an empty profile</td><td class="lv"><span class="A">A</span></td></tr>
+    <tr><td class="id">TC-10-3</td><td>A seeker never sees another seeker's profile</td><td class="lv"><span class="A">A</span></td></tr>
+    <tr><td class="id">TC-10-4</td><td>A profile over 20,000 characters, or a body that is not text, is refused (<code>422</code>) and nothing is saved</td><td class="lv"><span class="U">U</span><span class="A">A</span></td></tr>
+    <tr><td class="id">TC-10-5</td><td>An employer or a signed-out visitor cannot read or save a profile (<code>403</code> / <code>401</code>) and sees no "My profile" link</td><td class="lv"><span class="A">A</span><span class="E">E</span></td></tr>
+    <tr><td class="id">TC-10-6</td><td>The privacy disclaimer is visible on the profile page without any click</td><td class="lv"><span class="E">E</span></td></tr>
+    <tr><td class="id">TC-10-7</td><td>The preview shows a Markdown heading as a heading, and a typed <code>&lt;script&gt;</code> tag does nothing</td><td class="lv"><span class="E">E</span></td></tr>
+  </tbody>
+</table></div>
+
+<h3>UC-11 Score my search results <span class="tag must">Must</span></h3>
+<div class="tbl cases"><table>
+  <thead><tr><th>Id</th><th>Test case</th><th>Levels</th></tr></thead>
+  <tbody>
+    <tr><td class="id">TC-11-1</td><td>After searching, "Score these results" gives every card an overall match; the list keeps the same jobs in the same order</td><td class="lv"><span class="A">A</span><span class="E">E</span></td></tr>
+    <tr><td class="id">TC-11-2</td><td>The privacy disclaimer is visible next to the button without any click</td><td class="lv"><span class="E">E</span></td></tr>
+    <tr><td class="id">TC-11-3</td><td>While scoring runs the button is disabled, a progress message shows, and the list stays visible</td><td class="lv"><span class="E">E</span></td></tr>
+    <tr><td class="id">TC-11-4</td><td>The server uses the saved profile and the job text from the database; extra fields in the request are ignored</td><td class="lv"><span class="A">A</span></td></tr>
+    <tr><td class="id">TC-11-5</td><td>Scoring changes nothing stored: job and application counts are the same before and after</td><td class="lv"><span class="A">A</span></td></tr>
+    <tr><td class="id">TC-11-6</td><td>Jobs are scored in parallel (five jobs that each take 100 ms finish in well under 500 ms)</td><td class="lv"><span class="U">U</span></td></tr>
+    <tr><td class="id">TC-11-7</td><td>A new search or a page reload clears the scores</td><td class="lv"><span class="E">E</span></td></tr>
+    <tr><td class="id">TC-11-8</td><td>More than 20 ids, no ids, or duplicate ids are refused (<code>422</code>); an id with no job is skipped</td><td class="lv"><span class="A">A</span></td></tr>
+    <tr><td class="id">TC-11-9</td><td>Employers and signed-out visitors see no score button; the API refuses them (<code>403</code> / <code>401</code>)</td><td class="lv"><span class="A">A</span><span class="E">E</span></td></tr>
+    <tr><td class="id">TC-11-10</td><td>Live: scoring the demo results with the real AI gives criteria taken from each posting</td><td class="lv"><span class="L">L</span></td></tr>
+  </tbody>
+</table></div>
+
+<h3>UC-12 See the criteria breakdown <span class="tag must">Must</span></h3>
+<div class="tbl cases"><table>
+  <thead><tr><th>Id</th><th>Test case</th><th>Levels</th></tr></thead>
+  <tbody>
+    <tr><td class="id">TC-12-1</td><td>A scored job shows up to five criteria, each with a level and a one-line reason</td><td class="lv"><span class="A">A</span><span class="E">E</span></td></tr>
+    <tr><td class="id">TC-12-2</td><td>More than five criteria from the AI are cut to the first five</td><td class="lv"><span class="U">U</span></td></tr>
+    <tr><td class="id">TC-12-3</td><td>Every level is one of Meets, Partly, Does not meet, Unknown; every criterion and reason is non-empty; anything else makes the job "not scored"</td><td class="lv"><span class="U">U</span></td></tr>
+    <tr><td class="id">TC-12-4</td><td>Unknown is shown as "Unknown", not as a failure, and the card says how many criteria were checked (for example "3 of 5 checked")</td><td class="lv"><span class="E">E</span></td></tr>
+    <tr><td class="id">TC-12-5</td><td>A job that was not scored in this visit shows no breakdown on its detail page</td><td class="lv"><span class="E">E</span></td></tr>
+    <tr><td class="id">TC-12-6</td><td>Live: reasons quote the profile or say it is silent; no invented evidence</td><td class="lv"><span class="L">L</span></td></tr>
+  </tbody>
+</table></div>
+
+<h3>UC-13 Sort by match <span class="tag must">Must</span></h3>
+<div class="tbl cases"><table>
+  <thead><tr><th>Id</th><th>Test case</th><th>Levels</th></tr></thead>
+  <tbody>
+    <tr><td class="id">TC-13-1</td><td>Overall = average of Meets 1, Partly 0.5, Does not meet 0; Unknown left out</td><td class="lv"><span class="U">U</span></td></tr>
+    <tr><td class="id">TC-13-2</td><td>All criteria Unknown: no overall score</td><td class="lv"><span class="U">U</span></td></tr>
+    <tr><td class="id">TC-13-3</td><td>"Sort by match" puts the highest overall first; turning it off restores the keyword order</td><td class="lv"><span class="E">E</span></td></tr>
+    <tr><td class="id">TC-13-4</td><td>Jobs with no score or "not scored" sort last; ties keep the keyword order</td><td class="lv"><span class="E">E</span></td></tr>
+  </tbody>
+</table></div>
+
+<h3>UC-14 Failure and empty cases <span class="tag must">Must</span></h3>
+<div class="tbl cases"><table>
+  <thead><tr><th>Id</th><th>Test case</th><th>Levels</th></tr></thead>
+  <tbody>
+    <tr><td class="id">TC-14-1</td><td>Empty or blank profile: <code>422 PROFILE_EMPTY</code>, no AI call is made, and the page asks the seeker to complete the profile with a link</td><td class="lv"><span class="A">A</span><span class="E">E</span></td></tr>
+    <tr><td class="id">TC-14-2</td><td>One job fails: that card says "not scored" and the others still show their scores</td><td class="lv"><span class="U">U</span><span class="E">E</span></td></tr>
+    <tr><td class="id">TC-14-3</td><td>Every job fails or the AI is not configured: the unscored list stays with a message; keyword results are never lost</td><td class="lv"><span class="A">A</span><span class="E">E</span></td></tr>
+    <tr><td class="id">TC-14-4</td><td>A job that never answers is marked "not scored" after the time limit</td><td class="lv"><span class="U">U</span></td></tr>
+    <tr><td class="id">TC-14-5</td><td>A posting with no clear criteria shows "No criteria found"; no score is invented</td><td class="lv"><span class="U">U</span><span class="E">E</span></td></tr>
+    <tr><td class="id">TC-14-6</td><td>With no key set, the server starts and everything except scoring works</td><td class="lv"><span class="A">A</span></td></tr>
+  </tbody>
+</table></div>
+
+<h2 id="security">7. Permission and security tests</h2>
+<div class="tbl cases"><table>
+  <thead><tr><th>Id</th><th>Test case</th><th>Levels</th></tr></thead>
+  <tbody>
+    <tr><td class="id">SEC-7</td><td>The API key never appears in any response, page, or the built web files</td><td class="lv"><span class="A">A</span></td></tr>
+    <tr><td class="id">SEC-8</td><td>Scoring and profile endpoints return <code>401</code> with no session and <code>403</code> for an employer (call the API directly)</td><td class="lv"><span class="A">A</span></td></tr>
+    <tr><td class="id">SEC-9</td><td>Profile text and job text are only ever sent to the AI by the server, and only after a scoring click</td><td class="lv"><span class="A">A</span></td></tr>
+    <tr><td class="id">SEC-10</td><td>Profile preview output is sanitised (see TC-10-7)</td><td class="lv"><span class="E">E</span></td></tr>
+    <tr><td class="id">SEC-11</td><td><code>app/.env</code> is git-ignored; <code>.env.example</code> holds no real key</td><td class="lv"><span class="A">A</span></td></tr>
+  </tbody>
+</table></div>
+
+<h2 id="manual">8. Manual checklist (Stage 4)</h2>
+<ul class="check">
+  <li>Each new screen matches its mockup (<a href="../static-design/s09-profile.html">S-09</a>, <a href="../static-design/s01-search-scored.html">S-01</a>, <a href="../static-design/s02-job-detail-scored.html">S-02</a>), including the disclaimer wording</li>
+  <li>The new screens are usable in a narrow, phone-width window</li>
+  <li>Score levels are readable without colour (the level is also written as text)</li>
+  <li>Wording of "not scored", "unavailable" and "complete your profile" messages is clear and polite</li>
+  <li>Live read (TC-11-10, TC-12-6): score the demo seeker's results with the sample profile and write down what looks wrong</li>
+  <li>Scoring a list of 20 jobs finishes in a time the class can wait for (note the actual time)</li>
+</ul>
+
+<h2 id="reporting">9. Reporting</h2>
+<p>Stage 4 results are saved in <code>docs/iteration-2/test-result</code>, one file per run: date, build, pass or fail for each test case id, the live read notes, bugs found and their fix status.</p>
+
+</main>
+</body>
+</html>

@@ -2,10 +2,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import knex, { type Knex } from 'knex';
 import * as init from './migrations/001_init';
+import * as profiles from './migrations/002_profiles';
 
 // Migrations are listed in code so the same list works under tsx, Vitest and a production build.
 const migrations: Record<string, { up: (db: Knex) => Promise<void>; down: (db: Knex) => Promise<void> }> = {
   '001_init': init,
+  '002_profiles': profiles,
 };
 
 export function createDb(filename: string): Knex {
