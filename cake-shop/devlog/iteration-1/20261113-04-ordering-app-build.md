@@ -439,8 +439,8 @@ Devlog 01 and `data-model.html` still show the first set of columns. §4 here is
 6. [x] SQLite store, migrations, status moves, abandon sweep
 7. [x] `applyChange` and the customer routes, with tests
 8. [x] Baker routes, session, seed data, with tests
-9. [ ] Assistant seam, fake provider, `turn.ts`, with tests
-10. [ ] Anthropic provider, prompt, live check
+9. [x] Assistant seam, fake provider, `turn.ts`, with tests
+10. [x] Anthropic provider, prompt, live check
 11. [ ] Web: components from the app design
 12. [ ] Web: Start and Design studio
 13. [ ] Web: Review & confirm and Order status

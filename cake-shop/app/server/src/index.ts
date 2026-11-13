@@ -1,6 +1,6 @@
 import path from 'node:path';
 import { createApp } from './app';
-import { PlainAssistant } from './assistant/service';
+import { createAssistant } from './assistant/factory';
 import { config } from './config';
 import { OrderStore, createDb } from './store';
 
@@ -13,7 +13,8 @@ if (config.seedOnStart && store.count() === 0) {
   console.log(`Empty database: loaded ${seedOrders(store)} demo orders`);
 }
 
-const assistant = new PlainAssistant(store, clock);
+const assistant = createAssistant(store, clock, config);
+console.log(`Design assistant: ${config.assistantProvider === 'fake' ? 'fake (offline)' : config.anthropicApiKey ? 'Anthropic API' : 'not configured (plain replies)'}`);
 const app = createApp({
   store,
   assistant,
