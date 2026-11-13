@@ -105,7 +105,7 @@ cake-shop/app/
     servings.ts             servings, wedding portions, size-vs-guests warning
   server/src/
     index.ts, app.ts        Express app, static web build in production
-    db.ts                   SQLite, migrations, orders repository
+    db.ts                   SQLite via better-sqlite3 (no ORM), migrations, orders repository
     orders/applyChange.ts   the live loop (§5)
     orders/status.ts        status moves and the abandon sweep
     assistant/              provider.ts (seam + fake), anthropic.ts, prompt.ts, turn.ts
@@ -202,7 +202,15 @@ The picture is not stored. It is drawn from the design in the browser, with the 
 
 ## §6 The Design assistant
 
-**Provider seam**, as in the job-board app: `AssistantProvider.turn(input) → unknown`. `AnthropicProvider` calls the Messages API from the server only (the key never reaches the browser), model `claude-sonnet-5-5`, with a JSON schema for the reply. `FakeProvider` is deterministic and offline, and every automated test uses it. `ASSISTANT_PROVIDER=fake` runs the whole app without a key.
+**Provider seam**, as in the job-board app: `AssistantProvider.turn(input) → unknown`. `AnthropicProvider` calls the Messages API with `@anthropic-ai/sdk` from the server only (the key never reaches the browser), model `claude-sonnet-5-5`, with a JSON schema for the reply (`output_config.format`). A reply counts only when `stop_reason` is `end_turn`, and anything else is treated as a failure. `FakeProvider` is deterministic and offline, and every automated test uses it. Local runs and the deployed app use the same API call. There is no Claude Code or Agent SDK path.
+
+**Choosing the provider** (`config.ts` and `index.ts`, the same order as job-board):
+
+1. If `ASSISTANT_PROVIDER=fake`, use `FakeProvider`.
+2. Otherwise, if `ANTHROPIC_API_KEY` is set and starts with `sk-`, use `AnthropicProvider`. A placeholder value in `.env` counts as no key.
+3. Otherwise the assistant is not configured. The app still runs, quick changes and Choose still work, and each assistant turn gets the plain fallback reply.
+
+The key is read from `app/.env`, which is git-ignored. Only `.env.example` is committed.
 
 **Input** (built by `prompt.ts`): the catalog for the brief's occasion (templates and options, without prices, on purpose: see below), the brief, the current design, the full chat including `ui` notes, and, on a retry, the checker's reasons.
 
