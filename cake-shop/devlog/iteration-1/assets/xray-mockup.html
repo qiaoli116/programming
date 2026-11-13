@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cake Order Desk – x-ray view mockup</title>
+<style>
+  :root {
+    --bg:#f5f6f8; --card:#fff; --text:#1d2330; --muted:#5d6677; --line:#d5dae2;
+    --web:#0f766e; --api:#64748b; --ai:#b8860b; --data:#2b5fb8; --rules:#475569; --ok:#15803d; --bad:#b42318;
+    --glow:#f59e0b;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg:#12151c; --card:#1a1f2a; --text:#e6e9ef; --muted:#9aa3b5; --line:#2f3747;
+      --web:#4fd1c5; --api:#94a3b8; --ai:#e0b341; --data:#7aa7f0; --rules:#94a3b8; --ok:#4ade80; --bad:#f08a80;
+      --glow:#fbbf24;
+    }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif; }
+  main { max-width:1100px; margin:0 auto; padding:20px; }
+  h1 { font-size:1.4rem; margin:0 0 4px; }
+  .sub { color:var(--muted); margin:0 0 14px; }
+  .bar { display:flex; gap:10px; align-items:center; margin-bottom:10px; }
+  button { font:inherit; padding:5px 14px; border-radius:8px; border:1px solid var(--line); background:var(--card); color:var(--text); cursor:pointer; }
+  button:hover { border-color:var(--muted); }
+  .pane { background:var(--card); border:1px solid var(--line); border-radius:10px; }
+  .pane h2 { margin:0; padding:8px 14px; font-size:.75rem; letter-spacing:.08em; color:var(--muted); border-bottom:1px solid var(--line); }
+
+  /* map */
+  svg { display:block; width:100%; height:auto; }
+  .edge { stroke:var(--line); stroke-width:2; fill:none; transition:stroke .3s; }
+  .edge.on { stroke:var(--glow); }
+  .node rect { fill:var(--card); stroke-width:2; rx:10; transition:filter .3s, stroke-width .3s; }
+  .node text { fill:var(--text); font-size:14px; font-weight:600; text-anchor:middle; dominant-baseline:middle; }
+  .node .st { fill:var(--muted); font-size:11.5px; font-weight:400; }
+  .node.busy rect { stroke-width:3.5; filter:drop-shadow(0 0 6px var(--glow)); animation:pulse 1s ease-in-out infinite; }
+  .node.ok rect { stroke:var(--ok) !important; stroke-width:3.5; }
+  .node.bad rect { stroke:var(--bad) !important; stroke-width:3.5; }
+  @keyframes pulse { 50% { filter:drop-shadow(0 0 1px var(--glow)); } }
+  .c-web rect { stroke:var(--web); } .c-api rect { stroke:var(--api); } .c-ai rect { stroke:var(--ai); stroke-dasharray:6 4; }
+  .c-data rect { stroke:var(--data); } .c-rules rect { stroke:var(--rules); }
+  .dot { fill:var(--glow); }
+
+  /* console */
+  .console { height:300px; overflow-y:auto; font:12.5px/1.6 ui-monospace,Consolas,monospace; padding:6px 0; }
+  .ln { padding:0 14px; cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .ln:hover { background:var(--bg); }
+  .ln .t { color:var(--muted); }
+  .ln .p { display:inline-block; width:78px; font-weight:700; }
+  .ln .ms { color:var(--muted); float:right; }
+  .ln.new { animation:flash 1.2s; }
+  @keyframes flash { from { background:color-mix(in srgb, var(--glow) 25%, transparent); } }
+  .p-web { color:var(--web); } .p-api { color:var(--api); } .p-ai { color:var(--ai); } .p-data { color:var(--data); } .p-rules { color:var(--rules); }
+  .detail { margin:2px 14px 6px 160px; padding:6px 10px; background:var(--bg); border-radius:6px; white-space:pre-wrap; color:var(--text); cursor:auto; }
+  .ok { color:var(--ok); } .bad { color:var(--bad); }
+</style>
+</head>
+<body>
+<main>
+<h1>X-ray view: mockup</h1>
+<p class="sub">A scripted replay of "actually it's only 10 people", for <a href="../20261113-07-xray-view.md">devlog 07</a>. In the app the same two panes are fed by the server's live trace. Click a console line to open its data.</p>
+
+<div class="bar"><button id="play">▶ Play</button><span class="sub" id="state" style="margin:0"></span></div>
+
+<div class="pane">
+  <h2>MAP</h2>
+  <svg id="map" viewBox="0 0 820 330"></svg>
+</div>
+<div class="pane" style="margin-top:12px">
+  <h2>CONSOLE</h2>
+  <div class="console" id="console"></div>
+</div>
+</main>
+
+<script>
+// ---- layout: name, colour class, centre --------------------------------------------------------------------------
+const NODES = {
+  studio:   { name: 'Studio',   c: 'web',   x: 80,  y: 165 },
+  api:      { name: 'API',      c: 'api',   x: 240, y: 165 },
+  host:     { name: 'Host',     c: 'ai',    x: 420, y: 55 },
+  board:    { name: 'Job board',c: 'data',  x: 420, y: 165 },
+  designer: { name: 'Designer', c: 'ai',    x: 420, y: 275 },
+  model:    { name: 'Model',    c: 'ai',    x: 600, y: 165 },
+  tools:    { name: 'Tools',    c: 'rules', x: 600, y: 275 },
+  checker:  { name: 'Checker',  c: 'rules', x: 750, y: 275 },
+  store:    { name: 'Store',    c: 'data',  x: 240, y: 275 },
+};
+const EDGES = [['studio','api'],['api','host'],['api','store'],['host','board'],['host','model'],['board','designer'],
+               ['designer','model'],['designer','tools'],['tools','checker'],['designer','store']];
+const W = 104, H = 44;
+
+const svg = document.getElementById('map');
+const NS = 'http://www.w3.org/2000/svg';
+const el = (tag, attrs, parent = svg) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); parent.appendChild(e); return e; };
+const key = (a, b) => [a, b].sort().join('-');
+const edgeEl = {};
+for (const [a, b] of EDGES) edgeEl[key(a, b)] = el('line', { class: 'edge', x1: NODES[a].x, y1: NODES[a].y, x2: NODES[b].x, y2: NODES[b].y });
+const dotLayer = el('g', {});
+const nodeEl = {}, statusEl = {};
+for (const id in NODES) {
+  const n = NODES[id];
+  const g = el('g', { class: `node c-${n.c}` });
+  el('rect', { x: n.x - W / 2, y: n.y - H / 2, width: W, height: H }, g);
+  el('text', { x: n.x, y: n.y }, g).textContent = n.name;
+  statusEl[id] = el('text', { class: 'st', x: n.x, y: n.y + H / 2 + 14 }, g);
+  nodeEl[id] = g;
+}
+svg.appendChild(dotLayer); // dots above edges, under nothing: they run between the boxes
+
+// ---- effects ------------------------------------------------------------------------------------------------------
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+function send(from, to, ms = 450) {
+  const a = NODES[from], b = NODES[to], line = edgeEl[key(from, to)];
+  line.classList.add('on');
+  const dot = el('circle', { class: 'dot', r: 6, cx: a.x, cy: a.y }, dotLayer);
+  const t0 = performance.now();
+  return new Promise((done) => {
+    const tick = (now) => {
+      const k = Math.min(1, (now - t0) / ms);
+      dot.setAttribute('cx', a.x + (b.x - a.x) * k);
+      dot.setAttribute('cy', a.y + (b.y - a.y) * k);
+      if (k < 1) requestAnimationFrame(tick);
+      else { dot.remove(); setTimeout(() => line.classList.remove('on'), 250); done(); }
+    };
+    requestAnimationFrame(tick);
+  });
+}
+const timers = {};
+function busy(id, label) {
+  nodeEl[id].classList.add('busy');
+  const t0 = performance.now();
+  clearInterval(timers[id]);
+  timers[id] = setInterval(() => (statusEl[id].textContent = `${label} ${((performance.now() - t0) / 1000).toFixed(1)}s`), 100);
+}
+function idle(id, text = '') {
+  nodeEl[id].classList.remove('busy');
+  clearInterval(timers[id]);
+  statusEl[id].textContent = text;
+}
+function flash(id, cls) {
+  nodeEl[id].classList.add(cls);
+  setTimeout(() => nodeEl[id].classList.remove(cls), 700);
+}
+
+// ---- console ------------------------------------------------------------------------------------------------------
+const box = document.getElementById('console');
+const PART = { studio: 'web', api: 'api', host: 'ai', designer: 'ai', model: 'ai', board: 'data', store: 'data', tools: 'rules', checker: 'rules' };
+let clock0 = 0;
+function log(part, text, data, ms) {
+  const t = new Date(Date.UTC(2026, 10, 13, 12, 4, 1) + (performance.now() - clock0)).toISOString().slice(11, 23);
+  const ln = document.createElement('div');
+  ln.className = 'ln new';
+  ln.innerHTML = `<span class="t">${t}</span>  <span class="p p-${PART[part]}">${part}</span>${text}${ms ? `<span class="ms">${ms} ms</span>` : ''}`;
+  if (data) ln.onclick = () => {
+    const open = ln.nextElementSibling?.classList.contains('detail');
+    if (open) ln.nextElementSibling.remove();
+    else { const d = document.createElement('div'); d.className = 'detail'; d.textContent = JSON.stringify(data, null, 2); ln.after(d); }
+  };
+  box.appendChild(ln);
+  box.scrollTop = box.scrollHeight;
+}
+
+// ---- the script: "actually it's only 10 people" -------------------------------------------------------------------
+async function modelStep(agent, model, ms, out, data) {
+  await send(agent, 'model');
+  log(agent, `step → ${model}`);
+  busy('model', 'thinking');
+  await sleep(ms);
+  idle('model');
+  await send('model', agent);
+  log('model', `← ${out}`, data, ms);
+}
+async function tool(name, input, change) {
+  await send('designer', 'tools');
+  log('tools', `${name} ${JSON.stringify(input)}`, { input });
+  await send('tools', 'checker', 300);
+  flash('checker', 'ok');
+  log('checker', `<span class="ok">✓ ok</span>  price recalculated`, { ok: true, reasons: [], quote: { total: 52 } });
+  await send('tools', 'designer', 300);
+  await send('designer', 'board', 300);
+  log('board', `job 3 progress: ${change}`);
+}
+
+async function play() {
+  document.getElementById('play').disabled = true;
+  box.innerHTML = '';
+  clock0 = performance.now();
+  const say = (s) => (document.getElementById('state').textContent = s);
+
+  say('The host answers…');
+  await send('studio', 'api');
+  log('studio', 'POST /orders/C-1046/messages', { text: "actually it's only 10 people" });
+  busy('api', 'request');
+  await send('api', 'store', 300);
+  log('store', 'saved  chat +1');
+  await send('api', 'host');
+  busy('host', 'turn');
+  log('host', 'message(C-1046)');
+  await modelStep('host', 'claude-haiku-5-5', 1600, 'ask_designer, reply', {
+    in_tokens: 1240, out_tokens: 92,
+    calls: [
+      { name: 'ask_designer', input: { task: 'The customer now has 10 guests. Update the guests and re-fit the size.' } },
+      { name: 'reply', input: { text: "On it, I've asked our designer to resize it for 10." } },
+    ],
+  });
+  await send('host', 'board');
+  log('board', 'job 3 queued', { task: 'The customer now has 10 guests. Update the guests and re-fit the size.' });
+  idle('host');
+  await send('api', 'store', 300);
+  log('store', 'saved  chat +2 (reply, handoff) · jobs');
+  idle('api');
+  await send('api', 'studio');
+  log('api', '200  busy: true', null, 1890);
+
+  say('The designer works…');
+  await send('board', 'designer');
+  busy('designer', 'job 3');
+  log('board', 'job 3 working');
+  await modelStep('designer', 'claude-sonnet-5-5', 1900, 'set_brief', { in_tokens: 3410, out_tokens: 64, calls: [{ name: 'set_brief', input: { field: 'guests', value: 10 } }] });
+  await tool('set_brief', { field: 'guests', value: 10 }, 'set guests 20 → 10');
+  await send('studio', 'api', 300);
+  log('studio', 'GET /orders/C-1046 (poll)  busy: true');
+  await modelStep('designer', 'claude-sonnet-5-5', 1500, 'set_design', { in_tokens: 3720, out_tokens: 58, calls: [{ name: 'set_design', input: { field: 'size', value: '8in' } }] });
+  await tool('set_design', { field: 'size', value: '8in' }, 'set size 10in → 8in');
+  await modelStep('designer', 'claude-sonnet-5-5', 1200, 'report', { calls: [{ name: 'report', input: { summary: 'Guests are now 10 and the cake is 8 inches, which serves 16.' } }] });
+  await send('designer', 'store');
+  log('store', 'saved  brief.guests 20→10 · design.size 10in→8in · quote · chat +2 · jobs', {
+    brief: { guests: [20, 10] }, design: { size: ['10in', '8in'] }, quote: { total: [68, 52] }, undoGroup: 'g41',
+  });
+  await send('designer', 'board');
+  log('board', 'job 3 reporting', { summary: 'Guests are now 10 and the cake is 8 inches, which serves 16.', changes: ['guests 20 → 10', 'size 10in → 8in'] });
+  idle('designer');
+
+  say('The host reports back…');
+  await send('board', 'host');
+  busy('host', 'report');
+  await modelStep('host', 'claude-haiku-5-5', 1300, 'reply', { calls: [{ name: 'reply', input: { text: "Done: it's now an 8-inch cake for 10." } }] });
+  await send('host', 'board');
+  log('board', 'job 3 done');
+  idle('host');
+  await send('studio', 'api', 300);
+  log('studio', 'GET /orders/C-1046 (poll)  busy: false → panel unpaused');
+
+  say('Done. Click a console line to see its data.');
+  document.getElementById('play').disabled = false;
+  document.getElementById('play').textContent = '↻ Replay';
+}
+document.getElementById('play').onclick = play;
+</script>
+</body>
+</html>
