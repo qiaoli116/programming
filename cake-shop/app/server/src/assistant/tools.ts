@@ -184,7 +184,8 @@ function candidateDesign(w: Order, raw: Record<string, unknown>): Design | strin
 }
 
 /** Runs one tool on the working copy `w`. Never throws for bad input: the model gets a plain explanation. */
-export function runTool(w: Order, name: string, input: Record<string, unknown>, clock: Clock): ToolRun {
+/** `addCards`: cards shown earlier in this same job stay, and new ones are added (up to 4); otherwise new cards replace old ones. */
+export function runTool(w: Order, name: string, input: Record<string, unknown>, clock: Clock, opts: { addCards?: boolean } = {}): ToolRun {
   const today = todayOf(clock);
   switch (name) {
     case 'set_brief': {
@@ -218,7 +219,10 @@ export function runTool(w: Order, name: string, input: Record<string, unknown>, 
       return { ok: true, text: `Done: ${r.change}.${warningOf(w)}`, change: r.change };
     }
     case 'propose_options': {
-      const list = Array.isArray(input.candidates) ? (input.candidates as Record<string, unknown>[]).slice(0, 4) : [];
+      const kept = opts.addCards ? w.options : [];
+      const room = 4 - kept.length;
+      if (room <= 0) return fail('4 cards are already shown, the most there can be.');
+      const list = Array.isArray(input.candidates) ? (input.candidates as Record<string, unknown>[]).slice(0, room) : [];
       if (!list.length) return fail('Give at least one candidate.');
       const passed: Candidate[] = [];
       const lines: string[] = [];
@@ -232,9 +236,15 @@ export function runTool(w: Order, name: string, input: Record<string, unknown>, 
         passed.push({ id: ++id, title, note: String(raw.note ?? ''), design: { ...d, version: 0 }, quote: price(d, w.brief) });
         lines.push(`${i + 1}. "${title}": shown.`);
       });
-      if (!passed.length) return { ok: false, text: `None of these passed, so no cards are shown.\n${lines.join('\n')}` };
-      w.options = passed;
-      return { ok: true, text: `${passed.length} card(s) shown.${passed.length < 2 ? ' You may call propose_options again with fixed candidates.' : ''}\n${lines.join('\n')}`, options: true };
+      const before = kept.length ? ` ${kept.length} card(s) were already shown.` : '';
+      if (!passed.length) return { ok: false, text: `None of these passed, so no new cards are shown.${before}\n${lines.join('\n')}` };
+      w.options = [...kept, ...passed];
+      const total = w.options.length;
+      return {
+        ok: true,
+        text: `${passed.length} new card(s) shown, ${total} in all.${total < 2 ? ' You may call propose_options again with fixed candidates; they are added to the cards already shown.' : ''}\n${lines.join('\n')}`,
+        options: true,
+      };
     }
     case 'get_allowed_values': {
       if (!w.design) return fail('There is no design yet.');

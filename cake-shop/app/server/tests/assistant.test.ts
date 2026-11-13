@@ -58,6 +58,34 @@ describe('an open wish', () => {
   });
 });
 
+describe('option cards in one job', () => {
+  it('a second propose_options adds to the cards already shown, up to 4', async () => {
+    const fake = new FakeProvider();
+    const card = (title: string, extra: Record<string, unknown> = {}) => ({ title, note: 'n', template: 'unicorn-round', ...extra });
+    const designer = [
+      { name: 'propose_options', input: { candidates: [card('Plain'), card('Red velvet', { sponge: 'red-velvet' })] } },
+      { name: 'propose_options', input: { candidates: [card('Purple', { colour: 'purple' })] } },
+      { name: 'report', input: { summary: '2 cards in all.', questions: [], suggestions: [] } },
+    ];
+    const results: string[] = [];
+    const provider: AssistantProvider = {
+      name: 'cards',
+      step: async (i) => {
+        if (i.agent !== 'designer') return fake.step(i);
+        const last = i.messages.at(-1) as { content: unknown };
+        if (Array.isArray(last.content)) results.push(JSON.stringify(last.content));
+        const s = i.context.step;
+        return { text: '', calls: [{ id: `c${s}`, ...designer[s] }] };
+      },
+    };
+    const ctx = withFake(provider);
+    const { order } = await start(ctx, 'some ideas please');
+    expect(order.options.map((c) => c.title)).toEqual(['Plain', 'Purple']);
+    expect(results.at(-1)).toContain('1 new card(s) shown, 2 in all.');
+    expect(order.chat.find((c) => c.optionsTurn)).toBeTruthy();
+  });
+});
+
 describe('two agents', () => {
   it('the host answers at once and queues a job; the designer works after', async () => {
     const ctx = withFake();

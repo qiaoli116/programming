@@ -354,7 +354,7 @@ export class TeamAssistant implements Assistant {
           continue;
         }
         calls++;
-        const r = runTool(w, call.name, call.input, this.clock);
+        const r = runTool(w, call.name, call.input, this.clock, { addCards: optionsShown });
         results.push({ name: call.name, input: call.input, ok: r.ok, text: r.text });
         w.events.push({ at: nowOf(this.clock), by: 'assistant', type: 'tool', text: `job ${jobId}: ${call.name} ${JSON.stringify(call.input)} → ${r.ok ? '' : 'refused: '}${r.text.slice(0, 300)}` });
         if (r.change) changes.push(r.change);
