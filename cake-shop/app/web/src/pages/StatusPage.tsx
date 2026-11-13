@@ -51,9 +51,9 @@ export function StatusPage({ view }: { view: OrderView }) {
         <button className="btn" type="button" onClick={() => setChat(!chat)}>{chat ? 'Hide the chat' : 'View the chat'}</button>
         {chat && (
           <div className="thread static">
-            {view.chat.filter((c) => c.kind !== 'ui').map((c) => (
+            {view.chat.filter((c) => c.kind !== 'ui' && c.kind !== 'handoff').map((c) => (
               <div key={c.id} className={`m ${c.kind === 'customer' ? 'me' : 'ai'}`}>
-                <div className="meta">{c.kind === 'customer' ? 'You' : 'Design assistant'} · {fmtTime(c.at)}</div>
+                <div className="meta">{c.kind === 'customer' ? 'You' : 'Host'} · {fmtTime(c.at)}</div>
                 <div className="bub">{withPrices(c.text)}</div>
               </div>
             ))}

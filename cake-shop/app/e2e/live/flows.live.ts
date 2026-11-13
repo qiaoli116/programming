@@ -92,21 +92,37 @@ function print(v: OrderView, from: number) {
       if (c.cantDo?.length) console.log(`      can't do: ${c.cantDo.join(' | ')}`);
       if (c.suggestions?.length) console.log(`      suggestions: ${c.suggestions.join(' | ')}`);
       if (c.optionsTurn) for (const o of v.options) console.log(`      option: ${o.title} (${o.design.template}, ${o.design.size}, ${o.design.colour})`);
-    } else if (c.kind === 'ui') console.log(`   [${c.by === 'assistant' ? 'assistant tool' : 'panel'}] ${c.change ?? c.text}`);
-    else console.log(`   [note] ${c.text}`);
+    } else if (c.kind === 'ui') console.log(`   [${c.by === 'assistant' ? 'designer tool' : 'panel'}] ${c.change ?? c.text}`);
+    else if (c.kind === 'handoff') {
+      console.log(`   ${c.from === 'host' ? 'Host → Designer' : 'Designer → Host'} (job ${c.job}): ${c.text}`);
+      const job = v.jobs.find((j) => j.id === c.job);
+      if (c.from === 'designer' && job) for (const p of job.progress) console.log(`      step: ${p}`);
+    } else console.log(`   [note] ${c.text}`);
   }
 }
 
-/** Sends a message through the chat box and waits for the answer. Returns the order afterwards. */
-async function say(page: Page, text: string) {
+/** Waits until the host has answered and the designer has finished every job, on the server and on the screen. */
+async function settle(page: Page) {
+  await page.locator('.typing').waitFor({ state: 'detached', timeout: 120_000 });
+  const until = Date.now() + 180_000;
+  while ((await state(page)).busy) {
+    if (Date.now() > until) throw new Error('the designer was still busy after 3 minutes');
+    await page.waitForTimeout(500);
+  }
+  await page.locator('.working').waitFor({ state: 'detached', timeout: 10_000 });
+}
+
+/** Sends a message through the chat box and waits for the answer and any job it started. Returns the order afterwards. */
+async function say(page: Page, text: string, opts: { wait?: boolean } = {}) {
   const from = (await state(page)).chat.length;
   const t0 = Date.now();
   await page.getByLabel('Message to the assistant').fill(text);
   await page.getByRole('button', { name: 'Send' }).click();
-  await page.locator('.typing').waitFor({ state: 'detached', timeout: 120_000 });
+  if (opts.wait === false) await page.locator('.typing').waitFor({ state: 'detached', timeout: 120_000 });
+  else await settle(page);
   const v = await state(page);
   print(v, from);
-  console.log(`      (${((Date.now() - t0) / 1000).toFixed(1)}s, v${v.design?.version ?? '-'}, ${v.brief.guests} guests, ${v.brief.date}, ${v.brief.fulfilment})`);
+  console.log(`      (${((Date.now() - t0) / 1000).toFixed(1)}s, v${v.design?.version ?? '-'}, ${v.brief.guests} guests, ${v.brief.date}, ${v.brief.fulfilment}, ${v.jobs.length} jobs)`);
   return v;
 }
 
@@ -147,6 +163,7 @@ const FLOWS: Record<string, (page: Page) => Promise<void>> = {
     await page.getByLabel('Your idea').fill("a unicorn cake for my daughter's 6th birthday");
     await page.getByRole('button', { name: 'Start designing →' }).click();
     await page.getByRole('region', { name: 'Your cake' }).waitFor({ timeout: 120_000 });
+    await settle(page);
     let v = await state(page);
     print(v, 0);
     check('2 to 4 options', v.options.length >= 2 && v.options.length <= 4, v.options.length);
@@ -164,8 +181,9 @@ const FLOWS: Record<string, (page: Page) => Promise<void>> = {
     let v = await say(page, "actually it's only 10 people");
     check('guests 10', v.brief.guests === 10, v.brief.guests);
     check('size re-fitted to 8in', v.design?.size === '8in', v.design?.size);
-    check('assistant notes with Undo', v.chat.some((c) => c.by === 'assistant' && c.undo), null);
-    await page.getByRole('button', { name: /Undo the assistant's change/ }).first().click();
+    check('the host handed it to the designer', v.jobs.length >= 1 && v.jobs.every((j) => j.status === 'done'), v.jobs.map((j) => j.status));
+    check('designer notes with Undo', v.chat.some((c) => c.by === 'assistant' && c.undo), null);
+    await page.getByRole('button', { name: /Undo the designer's change/ }).first().click();
     await page.waitForTimeout(500);
     v = await state(page);
     check('Undo: guests back to 20', v.brief.guests === 20, v.brief.guests);
@@ -228,6 +246,7 @@ const FLOWS: Record<string, (page: Page) => Promise<void>> = {
     await page.getByLabel('Your idea').fill('elegant, white and gold, fresh flowers on it');
     await page.getByRole('button', { name: 'Start designing →' }).click();
     await page.getByRole('region', { name: 'Your cake' }).waitFor({ timeout: 120_000 });
+    await settle(page);
     let v = await state(page);
     print(v, 0);
     if (!v.options.length) v = await say(page, 'yes, delivery to the venue is fine');
@@ -256,6 +275,25 @@ const FLOWS: Record<string, (page: Page) => Promise<void>> = {
     check('guests still 20', v.brief.guests === 20, v.brief.guests);
     check('design unchanged', v.design?.version === 1, v.design?.version);
     check('prompt not revealed', !assistantTexts(v).some((t) => /HOW TO WORK|shared workspace/i.test(t)), null);
+    noPrices(v);
+  },
+
+  // Two agents: while the designer works, the host answers "how is it going?" from the job board, without a new job.
+  async F15(page) {
+    await open(page, kids, 'unicorn-round');
+    let v = await say(page, 'make it pink, add sprinkles, and write "Happy 6th Mia" on it', { wait: false });
+    check('the host answered and handed off', v.jobs.length === 1 && assistantTexts(v).length >= 1, v.jobs.map((j) => j.status));
+    const jobsBefore = v.jobs.length;
+    if (v.busy) {
+      v = await say(page, 'how is it going?', { wait: false });
+      check('asked mid-job: the host answers from the board, no new job', v.jobs.length === jobsBefore, v.jobs.map((j) => j.task));
+    }
+    await settle(page);
+    v = await state(page);
+    print(v, 0);
+    check('the job is done and reported', v.jobs.every((j) => j.status === 'done') && v.chat.some((c) => c.kind === 'handoff' && c.from === 'designer'), v.jobs.map((j) => j.status));
+    check('pink', v.design?.colour === 'pink', v.design?.colour);
+    check('passes', !!v.check?.ok, v.check);
     noPrices(v);
   },
 };

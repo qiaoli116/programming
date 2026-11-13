@@ -27,15 +27,21 @@ async function startUnicorn(page: Page) {
   await expect(page.getByRole('region', { name: 'Your cake' })).toBeVisible();
 }
 
-/** Types a message, sends it and waits for the assistant's answer. */
+/** Waits until the host has answered and the designer has finished any job, as the screen shows it. */
+async function settled(page: Page) {
+  await expect(page.locator('.typing')).toHaveCount(0, { timeout: 8000 });
+  await expect(page.locator('.working')).toHaveCount(0, { timeout: 10000 });
+}
+
+/** Types a message, sends it and waits for the host's last answer (after the designer's report, if there was a job). */
 async function say(page: Page, text: string) {
-  const replies = page.locator('.m.ai');
-  const before = await replies.count();
+  const mine = page.locator('.m.me');
+  const before = await mine.count();
   await page.getByLabel('Message to the assistant').fill(text);
   await page.getByRole('button', { name: 'Send' }).click();
-  await expect(replies).toHaveCount(before + 1, { timeout: 8000 });
-  await expect(page.locator('.typing')).toHaveCount(0);
-  return replies.last();
+  await expect(mine).toHaveCount(before + 1);
+  await settled(page);
+  return page.locator('.m.ai').last();
 }
 
 const assistantTexts = (v: OrderView) => v.chat.filter((c) => c.kind === 'assistant').map((c) => c.text);
@@ -136,14 +142,14 @@ test('F4. "only 10 people" sets guests and re-fits the size; Undo puts both back
   expect(v.design!.size).toBe('8in');
   const total = v.quote!.total;
 
-  await page.getByRole('button', { name: /Undo the assistant's change: guests 20 → 10/ }).click();
+  await page.getByRole('button', { name: /Undo the designer's change: guests 20 → 10/ }).click();
   await expect(page.getByLabel('Guests', { exact: true })).toHaveValue('20');
   await expect(notes.first()).toContainText('undone');
-  await expect(page.getByRole('button', { name: /Undo the assistant's change/ })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: /Undo the designer's change/ })).toHaveCount(0);
   v = await state(page, request);
   expect(v.design!.size).toBe('10in');
   expect(v.quote!.total).toBeGreaterThan(total);
-  await expect(page.locator('.evt:not(.ai)').last()).toContainText("You undid the assistant's change guests 20 → 10");
+  await expect(page.locator('.evt:not(.ai)').last()).toContainText("You undid the designer's change guests 20 → 10");
 });
 
 test('F5. panel and chat together: a purple swatch, then "add a rainbow drip"', async ({ page, request }) => {
@@ -245,7 +251,8 @@ test('F9. a wedding, end to end (scripted)', async ({ page, request }) => {
 
   const detail = await bakerApproves(page, id);
   await expect(detail.getByRole('heading', { name: 'Same day' })).toBeVisible();
-  await expect(detail.getByText('Assistant tool').first()).toBeVisible();
+  await expect(detail.getByText('Designer tool').first()).toBeVisible();
+  await expect(detail.getByText(/Host → Designer \(job \d+\)/).first()).toBeVisible();
 });
 
 test('F10. a decline shows the baker’s reason; an idle order is closed after 7 days', async ({ page, request }) => {
@@ -300,15 +307,40 @@ test('F13. a model that keeps calling tools is stopped and still answers', async
   await expect(await say(page, 'keep checking [LOOP]')).toContainText('I stopped there');
 });
 
-test('F14. both at once: a panel change during a turn wins, and the chat says so', async ({ page, request }) => {
+test('F14. both at once: a panel change during a job wins, and the chat says so', async ({ page, request }) => {
   const created = await request.post('/api/orders', { data: { brief: { ...brief, date: isoPlus(8) }, template: 'unicorn-round' } });
   const { id, token } = await created.json();
-  const turn = request.post(`/api/orders/${id}/messages?t=${token}`, { data: { text: 'make it pink [SLOW]' } });
-  await new Promise((r) => setTimeout(r, 400));
+  const get = async (): Promise<OrderView> => (await request.get(`/api/orders/${id}?t=${token}`)).json();
+  // The host answers at once and the designer starts the job; the panel change lands while it works.
+  const sent: OrderView = await (await request.post(`/api/orders/${id}/messages?t=${token}`, { data: { text: 'make it pink [SLOW]' } })).json();
+  expect(sent.busy).toBe(true);
+  expect(sent.chat.some((c) => c.kind === 'handoff' && c.from === 'host')).toBe(true);
   expect((await request.patch(`/api/orders/${id}/design?t=${token}`, { data: { field: 'colour', value: 'purple' } })).ok()).toBeTruthy();
-  const v: OrderView = await (await turn).json();
+  await expect.poll(async () => (await get()).busy, { timeout: 10000 }).toBe(false);
+  const v = await get();
   expect(v.design!.colour).toBe('purple');
   expect(v.chat.filter((c) => c.kind === 'ui' && c.by === 'assistant')).toEqual([]);
   await page.goto(`/order/${id}?t=${token}`);
   await expect(page.locator('.day')).toContainText('not applied');
+});
+
+test('F15. two agents on screen: the handoff, the designer at work, then its report', async ({ page }) => {
+  await startUnicorn(page);
+  await page.getByLabel('Message to the assistant').fill('make it pink [SLOW]');
+  await page.getByRole('button', { name: 'Send' }).click();
+  // While the designer works: the handoff line with live progress, the status in the header, and the panel paused.
+  const handoff = page.locator('.handoff.host').last();
+  await expect(handoff).toContainText('Host → Designer');
+  await expect(handoff.locator('.progress')).toBeVisible();
+  await expect(page.getByTestId('designer-status')).toContainText('working');
+  await expect(page.locator('.working')).toContainText('designer is working');
+  await expect(page.getByRole('button', { name: 'Purple' })).toBeDisabled();
+  await expect(page.getByLabel('Message to the assistant')).toBeEnabled();
+  // Then: the report comes back, the change shows with Undo, and the panel opens again.
+  await settled(page);
+  await expect(page.locator('.handoff.designer').last()).toContainText('Designer → Host');
+  await expect(handoff.locator('.progress')).toHaveCount(0);
+  await expect(page.locator('.evt.ai')).toContainText('colour white → pink');
+  await expect(page.getByRole('button', { name: 'Purple' })).toBeEnabled();
+  await expect(page.getByTestId('designer-status')).not.toContainText('working');
 });

@@ -174,8 +174,17 @@ function OrderDetail({ id, onChanged }: { id: string; onChanged: () => void }) {
           <h4>Chat and changes</h4>
           <div className="transcript">
             {o.chat.map((c) => (
-              <div key={c.id} className={c.kind === 'ui' ? 'ev' : ''}>
-                <b>{c.kind === 'customer' ? 'Customer' : c.kind === 'ui' ? (c.by === 'assistant' ? 'Assistant tool' : 'Panel') : c.kind === 'system' ? 'Note' : 'Assistant'}</b> {fmtTime(c.at)} {c.change ?? c.text}
+              <div key={c.id} className={c.kind === 'ui' || c.kind === 'handoff' ? 'ev' : ''}>
+                <b>
+                  {c.kind === 'customer'
+                    ? 'Customer'
+                    : c.kind === 'ui'
+                      ? c.by === 'assistant' ? 'Designer tool' : 'Panel'
+                      : c.kind === 'handoff'
+                        ? c.from === 'host' ? `Host → Designer (job ${c.job})` : `Designer → Host (job ${c.job})`
+                        : c.kind === 'system' ? 'Note' : 'Host'}
+                </b>{' '}
+                {fmtTime(c.at)} {c.change ?? c.text}
               </div>
             ))}
             {o.events.map((e, i) => <div key={i} className="ev">{e.type} · {e.text}</div>)}

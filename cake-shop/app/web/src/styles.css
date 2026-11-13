@@ -278,3 +278,17 @@ fieldset.lock { min-width:0; margin:0; }
 fieldset.lock:not(.qc) { border:0; padding:0; }
 fieldset.lock:disabled { opacity:.55; }
 .working { font-size:.8rem; color:var(--muted); background:var(--card); border:1.5px dashed var(--line); border-radius:10px; padding:6px 12px; }
+
+/* devlog 06: two agents. The header shows both; handoffs between them sit in the middle of the thread, with live progress. */
+.chathead .agents { display:flex; gap:22px; min-width:0; }
+.chathead .agents small { max-width:260px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.aiav.des { background:var(--warn-soft); border-color:#f0d9ad; }
+.handoff { align-self:center; max-width:86%; font-size:.76rem; color:var(--muted); background:var(--ai-soft); border:1px solid var(--ai-line); border-radius:10px; padding:5px 12px; }
+.handoff.designer { background:var(--warn-soft); border-color:#f0d9ad; }
+.handoff b { color:var(--ai); font-weight:600; }
+.handoff.designer b { color:var(--warn); }
+.handoff .fail { color:var(--bad); }
+.handoff .progress { list-style:none; margin:4px 0 0; padding:0 0 0 10px; border-left:2px solid var(--ai-line); }
+.handoff .progress li::before { content:"✓ "; color:var(--ok); }
+.handoff .progress li.now::before { content:"… "; color:var(--warn); }
+.handoff .progress li.now { font-style:italic; }

@@ -30,9 +30,29 @@ export function Studio({ id, token, view, setView }: Props) {
   const thread = useRef<HTMLDivElement>(null);
 
   useEffect(() => () => window.clearTimeout(ackTimer.current), []);
+  const openJob = view.jobs.find((j) => j.status === 'queued' || j.status === 'working' || j.status === 'reporting');
   useEffect(() => {
     thread.current?.scrollTo({ top: thread.current.scrollHeight });
-  }, [view.chat.length, pending]);
+  }, [view.chat.length, pending, openJob?.progress.length]);
+
+  // While the designer works, the order is fetched again every 700 ms so its progress and changes show as they happen.
+  // A poll that answers after the view changed is dropped, so it never puts an older order back on screen.
+  useEffect(() => {
+    if (!view.busy || pending) return;
+    let live = true;
+    const t = window.setTimeout(async () => {
+      try {
+        const next = await api.get(id, token);
+        if (live) setView(next);
+      } catch {
+        /* the next poll tries again */
+      }
+    }, 700);
+    return () => {
+      live = false;
+      window.clearTimeout(t);
+    };
+  }, [view, pending, id, token, setView]);
 
   const design = view.design;
   const tpl = design ? template(design.template) : undefined;
@@ -102,7 +122,9 @@ export function Studio({ id, token, view, setView }: Props) {
 
   const lastOptions = view.chat.reduce((m, c, i) => (c.optionsTurn ? i : m), -1);
   const check = view.check;
-  const canConfirm = !!design && !!check && check.ok && !pending;
+  /** The panel pauses while the host answers or the designer works, so the customer and the designer don't race. */
+  const locked = pending || view.busy;
+  const canConfirm = !!design && !!check && check.ok && !locked;
   const total = view.quote?.total ?? 0;
   const brief = view.brief;
   const toggleDiet = (d: Dietary) => changeBrief('dietary', brief.dietary.includes(d) ? brief.dietary.filter((x) => x !== d) : [...brief.dietary, d]);
@@ -183,24 +205,55 @@ export function Studio({ id, token, view, setView }: Props) {
       <div className="studio">
         <section className="chatcol" aria-label="Chat with the design assistant">
           <div className="chathead">
-            <div className="who">
-              <div className="aiav" aria-hidden="true">✦</div>
-              <div>
-                <b>Design assistant</b>
-                <small>AI · suggests designs, the bakery's rules check every one</small>
+            <div className="agents">
+              <div className="who">
+                <div className="aiav" aria-hidden="true">✦</div>
+                <div>
+                  <b>Host</b>
+                  <small>AI · talks with you</small>
+                </div>
+              </div>
+              <div className="who">
+                <div className="aiav des" aria-hidden="true">✎</div>
+                <div>
+                  <b>Designer</b>
+                  <small aria-live="polite" data-testid="designer-status">
+                    {openJob ? `AI · working: ${openJob.progress.at(-1) ?? 'starting'}` : 'AI · works on your cake, checked by our rules'}
+                  </small>
+                </div>
               </div>
             </div>
-            <Badge tone="ai">● Online</Badge>
+            {openJob ? <Badge tone="warn">● Working</Badge> : <Badge tone="ai">● Online</Badge>}
           </div>
           <div className="thread" ref={thread} aria-live="polite">
             {view.chat.map((c, i) => {
+              if (c.kind === 'handoff') {
+                const job = view.jobs.find((j) => j.id === c.job);
+                const open = c.from === 'host' && job && job === openJob;
+                return (
+                  <div className={`handoff ${c.from}`} key={c.id} data-job={c.job}>
+                    <div>
+                      <b>{c.from === 'host' ? 'Host → Designer' : 'Designer → Host'}</b> {c.text}
+                      {c.from === 'host' && job?.status === 'failed' && <span className="fail"> · failed</span>}
+                    </div>
+                    {open && (
+                      <ul className="progress" aria-label={`Designer progress on job ${job.id}`}>
+                        {job.progress.map((p, n) => (
+                          <li key={n}>{p}</li>
+                        ))}
+                        <li className="now">{job.status === 'queued' ? 'waiting for the designer…' : job.status === 'reporting' ? 'reporting to the host…' : 'working…'}</li>
+                      </ul>
+                    )}
+                  </div>
+                );
+              }
               if (c.kind === 'ui' && c.by === 'assistant')
                 return (
                   <div className={`evt ai ${c.undone ? 'undone' : ''}`} key={c.id} data-group={c.group}>
-                    ✦ <span>Assistant changed <b>{c.change ?? c.text}</b></span> · {fmtTime(c.at)}
+                    ✎ <span>Designer changed <b>{c.change ?? c.text}</b></span> · {fmtTime(c.at)}
                     {c.undone && <span> · undone</span>}
                     {c.undo && !c.undone && (
-                      <button type="button" className="linkbtn" disabled={pending} onClick={() => undo(c.group!)} aria-label={`Undo the assistant's change: ${c.change ?? c.text}`}>
+                      <button type="button" className="linkbtn" disabled={locked} onClick={() => undo(c.group!)} aria-label={`Undo the designer's change: ${c.change ?? c.text}`}>
                         Undo
                       </button>
                     )}
@@ -210,7 +263,7 @@ export function Studio({ id, token, view, setView }: Props) {
                 return (
                   <div className="evt" key={c.id}>
                     {c.text.startsWith("Undid the assistant's change: ") ? (
-                      <>↶ <span>You undid the assistant's change <b>{c.text.slice(30)}</b></span></>
+                      <>↶ <span>You undid the designer's change <b>{c.text.slice(30)}</b></span></>
                     ) : (
                       <>✎ <span>You changed <b>{c.change ?? c.text}</b></span></>
                     )}{' '}
@@ -227,7 +280,7 @@ export function Studio({ id, token, view, setView }: Props) {
                 );
               return (
                 <div className={`m ai ${i === lastOptions ? 'wide' : ''}`} key={c.id}>
-                  <div className="meta">Design assistant · {fmtTime(c.at)}</div>
+                  <div className="meta">Host · {fmtTime(c.at)}</div>
                   <div className="bub">
                     {withPrices(c.text)}
                     {i === lastOptions && view.options.length > 0 && (
@@ -243,7 +296,7 @@ export function Studio({ id, token, view, setView }: Props) {
                               {chosen === o.id ? (
                                 <span className="tag">✓ Chosen</span>
                               ) : (
-                                <button type="button" className="btn sm" onClick={() => choose(o.id)}>
+                                <button type="button" className="btn sm" disabled={locked} onClick={() => choose(o.id)}>
                                   Choose {String.fromCharCode(65 + n)}
                                 </button>
                               )}
@@ -270,14 +323,14 @@ export function Studio({ id, token, view, setView }: Props) {
                 </div>
               );
             })}
-            {pending && <div className="typing" role="status">Design assistant is typing…</div>}
+            {pending && <div className="typing" role="status">The host is typing…</div>}
           </div>
           <form className="composer" onSubmit={(e) => { e.preventDefault(); send(text); }}>
             <div className="inp">
-              <input aria-label="Message to the assistant" placeholder={pending ? 'The assistant is answering…' : 'Ask for a change, or ask a question…'} value={text} disabled={pending} onChange={(e) => setText(e.target.value)} />
+              <input aria-label="Message to the assistant" placeholder={pending ? 'The host is answering…' : view.busy ? 'The designer is working. You can still write…' : 'Ask for a change, or ask a question…'} value={text} disabled={pending} onChange={(e) => setText(e.target.value)} />
               <button className="btn primary sm" type="submit" disabled={pending || !text.trim()}>Send</button>
             </div>
-            <div className="hint">Tip: the assistant can change the order for you ("only 10 people", "make it purple"), or use the panel on the right. You both see every change.</div>
+            <div className="hint">Tip: ask the host for a change ("only 10 people", "make it purple") and our designer makes it, or use the panel on the right. Everyone sees every change.</div>
           </form>
         </section>
 
@@ -288,8 +341,12 @@ export function Studio({ id, token, view, setView }: Props) {
               <small>{tpl ? `${tpl.name} · version ${design?.version ?? 1}` : 'No design yet. Pick one in the chat.'}</small>
             </div>
           </div>
-          {pending && <div className="working" role="status">✦ The assistant is working… the panel is paused until it answers.</div>}
-          <fieldset className="lock" disabled={pending}>
+          {view.busy ? (
+            <div className="working" role="status">✎ The designer is working on your cake… the panel is paused until it's done.</div>
+          ) : (
+            pending && <div className="working" role="status">✦ The host is answering… the panel is paused for a moment.</div>
+          )}
+          <fieldset className="lock" disabled={locked}>
           <div className="brief" role="group" aria-label="Order details">
             <span className="lbl" style={{ marginRight: 2 }}>Order</span>
             <span className="chip">{occasion(brief.occasion).label}</span>
@@ -317,7 +374,7 @@ export function Studio({ id, token, view, setView }: Props) {
               </div>
               {check && !check.ok && <div className="err" role="alert">✕ <span>{check.reasons.map((r) => r.text).join(' ')}</span></div>}
               {view.warning && <div className="err" style={{ background: 'var(--warn-soft)', color: 'var(--warn)' }}>⚠ <span>{view.warning}</span></div>}
-              <fieldset className="lock qc" disabled={pending}>
+              <fieldset className="lock qc" disabled={locked}>
                 <div className="hd">
                   <span className="lbl">✎ Quick changes</span>
                   <span style={{ fontSize: '.75rem', color: 'var(--faint)' }}>No need to ask the assistant</span>
