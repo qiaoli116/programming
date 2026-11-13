@@ -1,0 +1,1203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cake Order Desk – Stage 1 Ordering: designing the cake together</title>
+<style>
+  :root {
+    --bg:#f5f6f8; --card:#fff; --text:#1d2330; --muted:#5d6677; --line:#d5dae2; --accent:#0f766e; --soft:#e0f2f0;
+    --ai:#fdf3dc; --ai-line:#b8860b; --rules:#eef2f6; --rules-line:#64748b; --human:#f3e8ff; --human-line:#7e22ce;
+    --bad:#fde8e6; --bad-line:#b42318; --good:#e5f6ea; --good-line:#1f7a3a; --hl:#fff4b8;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg:#12151c; --card:#1a1f2a; --text:#e6e9ef; --muted:#9aa3b5; --line:#2f3747; --accent:#4fd1c5; --soft:#173a37;
+      --ai:#3a3114; --ai-line:#e0b341; --rules:#232a37; --rules-line:#94a3b8; --human:#2e1d45; --human-line:#c084fc;
+      --bad:#3d1b18; --bad-line:#f08a80; --good:#16321f; --good-line:#6fd391; --hl:#4a4215;
+    }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:16px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif; }
+  main { max-width:1240px; margin:0 auto; padding:24px 20px 60px; }
+  h1 { font-size:1.7rem; margin:0 0 6px; }
+  h2 { font-size:1.3rem; margin:44px 0 8px; padding-bottom:6px; border-bottom:2px solid var(--line); }
+  h3 { font-size:1.05rem; margin:22px 0 6px; }
+  p { margin:0 0 10px; max-width:85ch; }
+  .sub { color:var(--muted); }
+  code { font:.85em ui-monospace,Consolas,monospace; background:var(--rules); padding:1px 5px; border-radius:4px; }
+  .note { border-left:4px solid var(--accent); background:var(--soft); padding:10px 16px; border-radius:0 8px 8px 0; margin:14px 0; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px 18px; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  @media (max-width:900px) { .grid2 { grid-template-columns:1fr; } }
+
+  .k { display:inline-block; padding:0 8px; border-radius:99px; font-size:.72rem; font-weight:700; letter-spacing:.02em; border:1.5px solid; white-space:nowrap; vertical-align:1px; }
+  .k.ai { background:var(--ai); border-color:var(--ai-line); border-style:dashed; }
+  .k.rules { background:var(--rules); border-color:var(--rules-line); }
+  .k.gate { background:var(--human); border-color:var(--human-line); border-width:2.5px; }
+  .k.cust { background:var(--soft); border-color:var(--accent); }
+  .legend { display:flex; flex-wrap:wrap; gap:8px 22px; margin:12px 0 4px; font-size:.9rem; color:var(--muted); }
+
+  table { width:100%; border-collapse:collapse; background:var(--card); border:1px solid var(--line); font-size:.9rem; }
+  th, td { text-align:left; padding:8px 12px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { background:var(--bg); font-size:.75rem; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); }
+  pre { margin:0; font:.78rem/1.45 ui-monospace,Consolas,monospace; white-space:pre-wrap; word-break:break-word; }
+
+  .compare .card h3 { margin:0 0 6px; }
+  .compare .old { border-style:dashed; }
+  .compare .new { border:2px solid var(--accent); }
+  .compare ul { margin:0; padding-left:20px; font-size:.92rem; }
+
+  /* diagrams */
+  svg.dia { width:100%; height:auto; background:var(--card); border:1px solid var(--line); border-radius:10px; }
+  svg.dia text { fill:var(--text); font-family:system-ui,"Segoe UI",sans-serif; }
+  .s-rules { fill:var(--rules); stroke:var(--rules-line); stroke-width:2; }
+  .s-ai { fill:var(--ai); stroke:var(--ai-line); stroke-width:2.5; stroke-dasharray:8 4; }
+  .s-gate { fill:var(--human); stroke:var(--human-line); stroke-width:4; }
+  .s-cust { fill:var(--soft); stroke:var(--accent); stroke-width:2; }
+  .s-bad { fill:var(--bad); stroke:var(--bad-line); stroke-width:2; }
+  .s-out { fill:var(--soft); stroke:var(--accent); stroke-width:3; }
+  .s-data { fill:var(--card); stroke:var(--rules-line); stroke-width:1.5; stroke-dasharray:3 3; }
+  .ln { stroke:var(--text); stroke-width:2; fill:none; marker-end:url(#arr); }
+  .ln2 { stroke:var(--bad-line); stroke-width:2; fill:none; stroke-dasharray:6 4; marker-end:url(#arrbad); }
+  .ln3 { stroke:var(--text); stroke-width:2; fill:none; marker-end:url(#arr2); }
+  .tm { fill:var(--muted) !important; }
+  .dl { stroke:var(--rules-line); stroke-width:1.5; fill:none; stroke-dasharray:4 4; }
+  .t { font-size:14px; } .tb { font-size:14.5px; font-weight:700; } .ts { font-size:12.5px; } .tk { font-size:11.5px; font-weight:700; letter-spacing:.04em; }
+  .lbl { font-size:12.5px; font-weight:700; fill:var(--accent) !important; }
+  .lblbad { font-size:12.5px; font-weight:700; fill:var(--bad-line) !important; }
+  #arr path, #arr2 path { fill:var(--text); } #arrbad path { fill:var(--bad-line); }
+
+  /* cake previews */
+  svg.cake { width:100%; height:auto; display:block; }
+
+  /* demo */
+  .controls { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:12px 0; }
+  button { font:inherit; font-size:.9rem; padding:6px 14px; border-radius:8px; border:1px solid var(--line); background:var(--card); color:var(--text); cursor:pointer; }
+  button:hover:not(:disabled) { border-color:var(--accent); }
+  button:disabled { opacity:.45; cursor:not-allowed; }
+  button.primary { background:var(--accent); color:var(--card); border-color:var(--accent); font-weight:700; }
+  button.danger { border-color:var(--bad-line); color:var(--bad-line); }
+  .pill { font:.78rem ui-monospace,Consolas,monospace; padding:2px 10px; border-radius:99px; background:var(--rules); border:1px solid var(--rules-line); }
+  .pill.st-AWAITING_BAKER { background:var(--human); border-color:var(--human-line); }
+  .pill.st-CONFIRMED { background:var(--good); border-color:var(--good-line); }
+  .pill.st-DECLINED { background:var(--bad); border-color:var(--bad-line); }
+
+  .screen { border:2px solid var(--line); border-radius:14px; background:var(--card); overflow:hidden; margin-top:6px; }
+  .screen > .bar { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:8px 14px; background:var(--bg); border-bottom:1px solid var(--line); font-size:.85rem; color:var(--muted); }
+  .screen > .bar b { color:var(--text); }
+  .screen.baker { border-color:var(--human-line); }
+  .screen.baker > .bar { background:var(--human); }
+  .cust-grid { display:grid; grid-template-columns:minmax(0,1.15fr) minmax(0,1fr); }
+  @media (max-width:900px) { .cust-grid { grid-template-columns:1fr; } }
+  .chat { padding:14px; display:flex; flex-direction:column; gap:10px; min-height:420px; max-height:640px; overflow-y:auto; border-right:1px solid var(--line); }
+  .msg { max-width:88%; padding:9px 13px; border-radius:12px; font-size:.92rem; }
+  .msg .who { display:block; font-size:.7rem; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); margin-bottom:2px; }
+  .msg.customer { align-self:flex-end; background:var(--soft); border:1px solid var(--accent); border-bottom-right-radius:3px; }
+  .msg.assistant { align-self:flex-start; background:var(--ai); border:1.5px dashed var(--ai-line); border-bottom-left-radius:3px; }
+  .msg.system { align-self:center; background:var(--rules); border:1px solid var(--rules-line); font-size:.85rem; text-align:center; max-width:95%; }
+  .msg.baker { align-self:flex-start; background:var(--human); border:2px solid var(--human-line); }
+  .msg ul { margin:6px 0 0; padding-left:18px; font-size:.85rem; }
+  .msg .cant { color:var(--bad-line); font-weight:600; }
+  .msg .num { background:var(--hl); border-radius:3px; padding:0 3px; font-weight:700; }
+  .msg.assistant.wide { max-width:100%; }
+  .msg.ui { align-self:flex-end; background:none; border:1.5px dashed var(--accent); font-size:.8rem; color:var(--muted); padding:5px 10px; }
+  .msg.ui b { color:var(--text); }
+  /* quick edits in the design panel */
+  .quick { border:1.5px dashed var(--accent); border-radius:10px; padding:8px 10px; display:flex; flex-direction:column; gap:7px; font-size:.84rem; }
+  .quick .qh { font-size:.7rem; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); }
+  .quick .qr { display:grid; grid-template-columns:78px 1fr; gap:8px; align-items:center; }
+  .quick .qr > span:first-child { color:var(--muted); }
+  .quick .sw { display:flex; flex-wrap:wrap; gap:5px; }
+  .quick .sw button { width:22px; height:22px; border-radius:50%; padding:0; border:2px solid var(--line); cursor:pointer; }
+  .quick .sw button.on { border-color:var(--text); box-shadow:0 0 0 2px var(--accent); }
+  .quick .ck { display:flex; flex-wrap:wrap; gap:4px 12px; }
+  .quick .ck label { display:flex; align-items:center; gap:4px; }
+  .quick .ck label.off { color:var(--muted); }
+  .quick select { font:inherit; font-size:.84rem; padding:2px 6px; }
+  .quick .qerr { color:var(--bad-line); font-weight:600; }
+  .opts { display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:8px; margin-top:8px; }
+  .opt { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:6px 8px 8px; display:flex; flex-direction:column; gap:4px; font-size:.8rem; }
+  .opt .pvs { background:var(--bg); border-radius:8px; padding:2px 6px 0; }
+  .opt h4 { margin:0; font-size:.88rem; display:flex; justify-content:space-between; gap:6px; }
+  .opt .sum { color:var(--muted); }
+  .opt .note { font-style:italic; }
+  .opt .note::before { content:'Designer: '; font-style:normal; font-weight:600; color:var(--ai-line); }
+  .opt button { margin-top:auto; padding:4px; font-size:.8rem; }
+  .opt.chosen { border:2px solid var(--accent); background:var(--soft); }
+  .opt.faded { opacity:.55; }
+  .chat .empty { color:var(--muted); font-size:.9rem; margin:auto; text-align:center; }
+  .composer { display:flex; gap:8px; padding:10px 14px; border-top:1px solid var(--line); border-right:1px solid var(--line); background:var(--bg); }
+  .composer .box { flex:1; font-size:.88rem; padding:7px 10px; border:1px solid var(--line); border-radius:8px; background:var(--card); color:var(--muted); min-height:36px; }
+  .composer .box.has { color:var(--text); }
+  .design { padding:14px 16px; display:flex; flex-direction:column; gap:10px; }
+  .design .pv { background:var(--bg); border-radius:10px; border:1px solid var(--line); padding:6px 30px 0; }
+  .design .pv .cap { text-align:center; font-size:.75rem; color:var(--muted); padding:0 0 6px; }
+  .design dl { display:grid; grid-template-columns:auto 1fr; gap:2px 12px; margin:0; font-size:.88rem; }
+  .design dt { color:var(--muted); }
+  .design dd { margin:0; }
+  .price { font-size:.86rem; border-top:1px solid var(--line); padding-top:8px; }
+  .price div { display:flex; justify-content:space-between; }
+  .price .tot { font-weight:700; font-size:1rem; border-top:1px solid var(--line); margin-top:4px; padding-top:4px; }
+  .avail { font-size:.88rem; padding:7px 10px; border-radius:8px; }
+  .avail.ok { background:var(--good); border:1px solid var(--good-line); }
+  .avail.no { background:var(--bad); border:1px solid var(--bad-line); }
+  .confirm-row { display:flex; flex-direction:column; gap:4px; }
+  .confirm-row .why { font-size:.78rem; color:var(--muted); }
+  .confirm-row button { padding:10px; font-size:1rem; }
+  @keyframes pulse { 0%,100% { box-shadow:0 0 0 0 rgba(15,118,110,.5); } 50% { box-shadow:0 0 0 7px rgba(15,118,110,0); } }
+  .pulse { animation:pulse 1.4s infinite; }
+
+  .behind { display:grid; grid-template-columns:minmax(0,1.2fr) minmax(0,1fr); gap:14px; margin-top:14px; }
+  @media (max-width:900px) { .behind { grid-template-columns:1fr; } }
+  .behind h3 { margin:0 0 8px; font-size:.95rem; }
+  .steps { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:6px; }
+  .steps li { display:grid; grid-template-columns:150px 1fr; gap:10px; font-size:.86rem; padding:7px 10px; border-radius:8px; border:1px solid var(--line); background:var(--card); }
+  .steps li.ai { background:var(--ai); border:1.5px dashed var(--ai-line); }
+  .steps li.rules { background:var(--rules); border-color:var(--rules-line); }
+  .steps li.cust { background:var(--soft); border-color:var(--accent); }
+  .steps li.gate { background:var(--human); border:2.5px solid var(--human-line); }
+  .steps li.bad { background:var(--bad); border-color:var(--bad-line); }
+  .steps li.back { background:none; border:none; color:var(--bad-line); font-weight:600; padding:0 10px; grid-template-columns:1fr; }
+  .steps li .nm { font-weight:700; }
+  .steps li .nm .k { margin-top:3px; }
+  .steps li pre { margin-top:5px; background:var(--card); border:1px solid var(--line); border-radius:6px; padding:6px 8px; font-size:.74rem; }
+  .steps .why { color:var(--muted); font-size:.82rem; }
+  #row { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:10px 12px; max-height:620px; overflow:auto; }
+  #row .chg { background:var(--hl); border-radius:3px; }
+  #row .frz { color:var(--muted); }
+
+  .baker-body { display:grid; grid-template-columns:240px minmax(0,1fr) 260px; gap:16px; padding:14px 16px; align-items:start; }
+  @media (max-width:900px) { .baker-body { grid-template-columns:1fr; } }
+  .baker-body .pv { background:var(--bg); border-radius:10px; border:1px solid var(--line); padding:6px 16px 0; }
+  .baker-body dl { display:grid; grid-template-columns:auto 1fr; gap:2px 12px; margin:6px 0 0; font-size:.88rem; }
+  .baker-body dt { color:var(--muted); } .baker-body dd { margin:0; }
+  .baker-body .acts { display:flex; flex-direction:column; gap:8px; }
+  .baker-body select { font:inherit; font-size:.85rem; padding:5px; border-radius:6px; border:1px solid var(--line); background:var(--card); color:var(--text); }
+  .checks { list-style:none; padding:0; margin:6px 0 0; font-size:.85rem; }
+  .checks li::before { content:"✓ "; color:var(--good-line); font-weight:700; }
+  .outcome { margin:12px 16px 16px; padding:10px 14px; border-radius:10px; font-size:.92rem; }
+  .outcome.ok { background:var(--good); border:2px solid var(--good-line); }
+  .outcome.no { background:var(--bad); border:2px solid var(--bad-line); }
+
+  /* catalog */
+  .cat { display:grid; grid-template-columns:repeat(auto-fit,minmax(270px,1fr)); gap:12px; }
+  .cat .card { display:flex; flex-direction:column; gap:6px; }
+  .cat .card h3 { margin:0; }
+  .cat .pv { background:var(--bg); border-radius:8px; padding:4px 20px 0; }
+  .cat dl { margin:0; font-size:.83rem; display:grid; grid-template-columns:auto 1fr; gap:2px 10px; }
+  .cat dt { color:var(--muted); }
+  .cat dd { margin:0; }
+  .cat .lim { font-size:.82rem; color:var(--bad-line); }
+
+  /* sandbox */
+  .sandbox { display:grid; grid-template-columns:minmax(0,1fr) 300px minmax(0,1fr); gap:14px; align-items:start; }
+  @media (max-width:1000px) { .sandbox { grid-template-columns:1fr; } }
+  .form { display:grid; grid-template-columns:auto 1fr; gap:6px 10px; font-size:.88rem; align-items:center; }
+  .form label { color:var(--muted); }
+  .form select, .form input[type=text], .form input[type=date] { font:inherit; font-size:.88rem; padding:4px 6px; border-radius:6px; border:1px solid var(--line); background:var(--card); color:var(--text); width:100%; }
+  .form .chips { display:flex; flex-wrap:wrap; gap:4px 12px; }
+  .form .chips label { color:var(--text); }
+  .result h3 { margin:0 0 4px; font-size:.9rem; }
+  .result .box { border-radius:8px; padding:8px 12px; font-size:.86rem; margin-bottom:10px; }
+  .result .box.ok { background:var(--good); border:1px solid var(--good-line); }
+  .result .box.no { background:var(--bad); border:1px solid var(--bad-line); }
+  .result .box.neutral { background:var(--rules); border:1px solid var(--rules-line); }
+  .result ul { margin:0; padding-left:18px; }
+</style>
+</head>
+<body>
+<main>
+
+<h1>Stage 1 Ordering: designing the cake together</h1>
+<p class="sub">Cake Order Desk · iteration 1 · goes with devlog <code>20261113-02-ordering-design-chat.md</code>. Sample people, dates and prices are fictional. "Today" in this page is Fri 13 Nov 2026.</p>
+
+<div class="legend">
+  <span><span class="k cust">Customer</span> person who orders</span>
+  <span><span class="k ai">AI</span> language model: talks and proposes</span>
+  <span><span class="k rules">Rules</span> deterministic code: checks, prices, dates, pictures</span>
+  <span><span class="k gate">Human gate</span> the flow waits for the baker</span>
+</div>
+
+<!-- ============================== 1 ============================== -->
+<h2>1. The idea</h2>
+<p>The customer <b>designs the cake in a chat with an AI assistant</b>. Every design is a <b>template from our catalog plus option values</b>, so anything that fits is something the bakery knows it can make. Like a real designer, the assistant <b>shows possibilities</b>: while the wish is still open, it offers <b>a few options side by side</b>, each with its own picture, price and designer's note, and the customer presses <b>Choose</b> on one. Then the two refine it together. On every turn the customer sees the <b>picture</b>, the <b>price</b> and what we <b>can't do</b>. When they are happy, they press <b>Confirm design</b>. The order then waits for the <b>baker to approve</b> it, and Ordering is done.</p>
+
+<div class="grid2 compare">
+  <div class="card old">
+    <h3>Before (devlog 01)</h3>
+    <ul>
+      <li>The customer sends <b>one message</b> and hears nothing until the end.</li>
+      <li>The AI reads free text and writes a free-text brief.</li>
+      <li>The baker sees only flagged orders and may <b>edit them without asking the customer</b>.</li>
+    </ul>
+  </div>
+  <div class="card new">
+    <h3>Now</h3>
+    <ul>
+      <li>The customer and the AI go <b>back and forth</b> until the design is right.</li>
+      <li>Designs are <b>template + options</b>, checked by rules on every turn.</li>
+      <li>When the wish is vague, the AI offers <b>2–4 options</b>, each with a picture, price and note. The customer <b>chooses</b> one with a button.</li>
+      <li>The customer <b>confirms</b>. The baker <b>approves or declines</b> every order, without editing it.</li>
+    </ul>
+  </div>
+</div>
+
+<p class="note"><b>The one rule to remember: AI for the conversation, rules for the promises.</b> The AI understands the customer and suggests designs. But every design and price the customer sees has been checked or worked out by a rule agent. If the AI gets something wrong, the rules catch it before the customer sees it.</p>
+
+<!-- ============================== 2 ============================== -->
+<h2>2. One turn of the conversation</h2>
+<p>Designing is <b>live</b>, not a queue. The customer and the AI talk on the left. In the middle is the <b>current design</b>. The customer can change it in <b>two ways</b>: by asking the AI ("make it purple"), or directly with <b>quick changes</b> in the design panel (a colour swatch, a tick box, a size menu). A quick change is written into the chat as a note, so it is in the AI's context, and the AI replies with a short confirmation ("I see you changed the colour to purple"). Whenever the design changes (the AI proposes or updates it, or the customer presses Choose or makes a quick change), the three rule agents run <b>at the same moment</b>: the checker says whether it can be made, Pricing adds up the total, and Preview draws the cake. Their results appear in the design panel <b>beside the chat</b>, so the customer sees the picture and price change while they are still talking. If the checker says no, that version is never shown, and the reasons go back to the AI, which proposes something else or explains the problem.</p>
+
+<svg class="dia" viewBox="0 0 1180 420" role="img" aria-label="Live design loop: the customer and the design assistant chat; every change to the current design runs the checker, pricing and preview at the same time; their results show live in the design panel beside the chat; rejections go back to the assistant.">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z"/></marker>
+    <marker id="arrbad" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z"/></marker>
+  </defs>
+  <g transform="translate(0,30)">
+  <!-- conversation -->
+  <rect x="20" y="30" width="290" height="300" rx="12" fill="none" stroke="var(--line)" stroke-width="1.5" stroke-dasharray="4 4"/>
+  <text class="tk tm" x="34" y="50">THE CONVERSATION</text>
+
+  <rect class="s-ai" x="45" y="64" width="240" height="80" rx="10"/>
+  <text class="tk" x="165" y="86" text-anchor="middle">AI</text>
+  <text class="tb" x="165" y="108" text-anchor="middle">Design assistant</text>
+  <text class="ts" x="165" y="126" text-anchor="middle">talks, proposes 1–4 designs</text>
+
+  <rect class="s-cust" x="45" y="230" width="240" height="80" rx="10"/>
+  <text class="tk" x="165" y="252" text-anchor="middle">CUSTOMER</text>
+  <text class="tb" x="165" y="274" text-anchor="middle">Jordan</text>
+  <text class="ts" x="165" y="292" text-anchor="middle">"make it purple" · Choose · Confirm</text>
+
+  <path class="ln" d="M130 144 V226"/>
+  <text class="ts" x="122" y="190" text-anchor="end">reply</text>
+  <path class="ln" d="M200 230 V148"/>
+  <text class="ts" x="208" y="190">message</text>
+
+  <!-- the current design -->
+  <rect class="s-out" x="390" y="140" width="190" height="90" rx="10"/>
+  <text class="tk" x="485" y="162" text-anchor="middle">ON THE TABLE</text>
+  <text class="tb" x="485" y="184" text-anchor="middle">Current design</text>
+  <text class="ts" x="485" y="202" text-anchor="middle">template + options</text>
+  <text class="ts" x="485" y="218" text-anchor="middle">(or 2–4 candidates)</text>
+  <path class="ln" d="M285 100 H345 V165 H386"/>
+  <text class="ts" x="294" y="92">proposes / updates</text>
+  <path class="ln" d="M285 270 H345 V205 H386"/>
+  <text class="ts" x="294" y="288">Choose · ✎ quick changes</text>
+  <text class="ts tm" x="294" y="304">noted in the chat,</text>
+  <text class="ts tm" x="294" y="320">the AI confirms</text>
+
+  <!-- fan out: all three at once -->
+  <text class="lbl" x="622" y="116" text-anchor="end">every change →</text>
+  <text class="lbl" x="622" y="132" text-anchor="end">all three at once</text>
+  <path class="ln" d="M580 185 H630 V75 H676"/>
+  <path class="ln" d="M580 185 H676"/>
+  <path class="ln" d="M630 185 V295 H676"/>
+
+  <rect class="s-rules" x="680" y="40" width="200" height="70" rx="10"/>
+  <text class="tk" x="780" y="60" text-anchor="middle">RULES</text>
+  <text class="tb" x="780" y="80" text-anchor="middle">Design checker</text>
+  <text class="ts" x="780" y="98" text-anchor="middle">can we make it? (catalog)</text>
+
+  <rect class="s-rules" x="680" y="150" width="200" height="70" rx="10"/>
+  <text class="tk" x="780" y="170" text-anchor="middle">RULES</text>
+  <text class="tb" x="780" y="190" text-anchor="middle">Pricing</text>
+  <text class="ts" x="780" y="208" text-anchor="middle">total (price table)</text>
+
+  <rect class="s-rules" x="680" y="260" width="200" height="70" rx="10"/>
+  <text class="tk" x="780" y="280" text-anchor="middle">RULES</text>
+  <text class="tb" x="780" y="300" text-anchor="middle">Preview</text>
+  <text class="ts" x="780" y="318" text-anchor="middle">draws it (picture layers)</text>
+
+  <!-- live panel -->
+  <rect class="s-cust" x="940" y="30" width="220" height="310" rx="12"/>
+  <text class="tk" x="1050" y="52" text-anchor="middle">DESIGN PANEL, BESIDE THE CHAT</text>
+  <text class="tb" x="958" y="80">✓ can be made</text>
+  <text class="ts" x="958" y="98">Confirm unlocks</text>
+  <text class="tb" x="958" y="190">$112</text>
+  <text class="ts" x="958" y="208">line by line</text>
+  <text class="tb" x="958" y="300">the cake picture</text>
+  <text class="ts" x="958" y="318">redrawn on every change</text>
+  <path class="ln" d="M880 75 H936"/>
+  <path class="ln" d="M880 185 H936"/>
+  <path class="ln" d="M880 295 H936"/>
+
+  <!-- rejection -->
+  <path class="ln2" d="M780 40 V8 H165 V60"/>
+  <text class="lblbad" x="330" y="2">✗ can't be made → that version is never shown; reasons go back to the AI</text>
+
+  <!-- the customer watches -->
+  <path class="ln" d="M1050 340 V368 H240 V314"/>
+  <text class="lbl" x="645" y="362" text-anchor="middle">the customer sees picture and price change while still talking</text>
+  </g>
+</svg>
+
+<h3>Who works in Stage 1</h3>
+<table>
+  <tr><th>Agent</th><th>Kind</th><th>Reads</th><th>Writes</th><th>When</th></tr>
+  <tr><td><b>Customer</b></td><td><span class="k cust">Customer</span></td><td>replies, preview, price</td><td>chat messages, <b>Choose</b> on an option, <b>quick changes</b> in the design panel (each one noted in <code>chat</code>), then <b>Confirm design</b></td><td>every turn, then once</td></tr>
+  <tr><td><b>Design assistant</b></td><td><span class="k ai">AI</span></td><td>chat (including the notes of quick changes), catalog, the rule agents' answers</td><td>2–4 candidate designs with a designer's note each (when the wish is open), or one refined <code>design</code> (template + options), and the reply text</td><td>every turn</td></tr>
+  <tr><td><b>Design checker</b></td><td><span class="k rules">Rules</span></td><td>proposed design, catalog</td><td>ok, or a list of reasons</td><td>every turn</td></tr>
+  <tr><td><b>Pricing</b></td><td><span class="k rules">Rules</span></td><td>design, price table</td><td><code>quote</code></td><td>every turn</td></tr>
+  <tr><td><b>Preview</b></td><td><span class="k rules">Rules</span></td><td>design, picture layers</td><td>the cake picture (not stored, redrawn from <code>design</code>)</td><td>every turn</td></tr>
+  <tr><td><b>Baker approval</b></td><td><span class="k gate">Human gate</span></td><td>frozen design, picture, quote, chat, and the kitchen's own calendar</td><td><code>approval</code>: approve, or decline with a reason (for example, the kitchen is full that day)</td><td>once</td></tr>
+  <tr><td><b>Confirmer</b></td><td><span class="k rules">Rules</span></td><td>approval</td><td><code>confirmation</code> (simulated payment, message to the customer)</td><td>once: the Stage 1 output</td></tr>
+</table>
+
+<div class="grid2" style="margin-top:14px">
+  <div class="card">
+    <h3 style="margin-top:0">The AI may…</h3>
+    <ul>
+      <li>understand what the customer means ("about 20 kids" → serves 24)</li>
+      <li>choose the closest template and options</li>
+      <li>suggest changes and explain trade-offs</li>
+      <li>say no politely and offer an alternative</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h3 style="margin-top:0">The AI may not…</h3>
+    <ul>
+      <li>invent an option. The design format has no field for "3D sculpted head"</li>
+      <li>state a price of its own. The reply uses the Pricing agent's number</li>
+      <li>decide that the customer has agreed. Only the <b>Confirm</b> button does that</li>
+      <li>approve an order. Only the baker does that</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ============================== 3 ============================== -->
+<h2>3. Try it: a design conversation</h2>
+<p>Jordan orders a cake for a daughter's 7th birthday. Press <b>Next</b> to play the conversation one turn at a time. The customer's and the AI's words are scripted. <b>Every check, price and picture is worked out live</b> by the same rule code that runs the sandbox in section 5. Below the screens you can see what each agent did on the turn, and the order's row in the database.</p>
+
+<div class="controls">
+  <button id="btnNext" class="primary">Next ▸</button>
+  <button id="btnReset">Reset</button>
+  <span>Status: <span id="stPill" class="pill">DESIGNING</span></span>
+  <span class="sub" id="stHint"></span>
+</div>
+
+<div class="screen" id="custScreen">
+  <div class="bar"><span><b>Customer screen</b> · Cake Order Desk · order <code>C-1043</code> · Jordan</span><span id="custBarRight"></span></div>
+  <div class="cust-grid">
+    <div style="display:flex;flex-direction:column">
+      <div class="chat" id="chat"></div>
+      <div class="composer"><div class="box" id="composer"></div><button id="btnSend">Send</button></div>
+    </div>
+    <div class="design" id="designPanel"></div>
+  </div>
+</div>
+
+<div class="screen baker" id="bakerScreen" style="margin-top:14px"></div>
+
+<div class="behind">
+  <div>
+    <h3 id="stepsTitle">Behind the scenes: this turn</h3>
+    <ul class="steps" id="steps"></ul>
+  </div>
+  <div>
+    <h3>The order's row in <code>orders</code> <span class="sub" style="font-weight:400">(<span class="chg">&nbsp;yellow&nbsp;</span> = changed this turn)</span></h3>
+    <pre id="row"></pre>
+  </div>
+</div>
+
+<!-- ============================== 4 ============================== -->
+<h2>4. The design catalog</h2>
+<p>Four templates, each with a short list of options. Each picture below is drawn by the Preview agent from a sample design, the same way as in the chat. The catalog is a <b>config file</b> that the baker can change without changing any code.</p>
+<div class="cat" id="catalog"></div>
+<p class="note"><b>Never offered</b>, whatever the template: 3D sculpted shapes, likenesses of real people, more than two tiers, orders with less than 3 days' notice, and delivery outside the local area. The AI knows this list so it can say no politely. The rules don't need it, because <b>a design made of template + options cannot even describe these things.</b></p>
+
+<!-- ============================== 5 ============================== -->
+<h2>5. Sandbox: the rule agents on their own</h2>
+<p>This is what the AI's proposal is checked against. Pick any combination, even an impossible one, and watch the Design checker, Pricing and Preview respond. No AI is involved here: the same design always gives the same answer.</p>
+<div class="sandbox">
+  <div class="card"><div class="form" id="sbForm"></div></div>
+  <div class="card" style="padding:8px 20px"><div id="sbPreview"></div></div>
+  <div class="card result" id="sbResult"></div>
+</div>
+
+<!-- ============================== 6 ============================== -->
+<h2>6. Stage 1 from start to end</h2>
+<p>The chat is a loop, but it happens <b>inside one status</b> (<code>DESIGNING</code>). The stage as a whole still only moves forward: once a design is confirmed it is frozen, and nothing goes back to the chat.</p>
+
+<svg class="dia" viewBox="0 0 1180 280" role="img" aria-label="Status flow: DESIGNING loops on each chat turn, then on confirm goes to AWAITING_BAKER, which goes to CONFIRMED on approve or DECLINED on decline. DESIGNING goes to ABANDONED after 7 quiet days.">
+  <defs>
+    <marker id="arr2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z"/></marker>
+  </defs>
+  <path class="ln3" d="M95 90 C 95 30, 205 30, 205 84"/>
+  <text class="lbl" x="222" y="40">each chat turn</text>
+  <text class="ts" x="222" y="58">design and quote replaced</text>
+
+  <rect class="s-ai" x="40" y="90" width="220" height="74" rx="12"/>
+  <text class="tb" x="150" y="122" text-anchor="middle">DESIGNING</text>
+  <text class="ts" x="150" y="144" text-anchor="middle">customer + AI + rule checks</text>
+
+  <path class="ln3" d="M260 127 H426"/>
+  <text class="lbl" x="343" y="116" text-anchor="middle">customer presses Confirm</text>
+  <text class="ts" x="343" y="148" text-anchor="middle">design and quote frozen</text>
+
+  <rect class="s-gate" x="430" y="90" width="250" height="74" rx="12"/>
+  <text class="tb" x="555" y="122" text-anchor="middle">AWAITING_BAKER</text>
+  <text class="ts" x="555" y="144" text-anchor="middle">in the baker's approval inbox</text>
+
+  <path class="ln3" d="M680 127 H846"/>
+  <text class="lbl" x="763" y="116" text-anchor="middle">baker approves</text>
+  <text class="ts" x="763" y="148" text-anchor="middle">Confirmer runs</text>
+
+  <rect class="s-out" x="850" y="90" width="200" height="74" rx="12"/>
+  <text class="tb" x="950" y="122" text-anchor="middle">CONFIRMED</text>
+  <text class="ts" x="950" y="144" text-anchor="middle">Stage 1 output</text>
+  <path class="ln3" d="M1050 127 H1100"/>
+  <text class="tb" x="1106" y="132">Stage 2</text>
+
+  <path class="ln3" d="M555 164 V206"/>
+  <text class="lblbad" x="565" y="190">baker declines (reason)</text>
+  <rect class="s-bad" x="455" y="210" width="200" height="50" rx="10"/>
+  <text class="tb" x="555" y="240" text-anchor="middle">DECLINED · ends</text>
+
+  <path class="ln3" d="M150 164 V206"/>
+  <text class="lblbad" x="160" y="190">7 days without a message</text>
+  <rect class="s-bad" x="50" y="210" width="200" height="50" rx="10"/>
+  <text class="tb" x="150" y="240" text-anchor="middle">ABANDONED · ends</text>
+</svg>
+
+<h3>Data model for Stage 1 (still one <code>orders</code> table)</h3>
+<table>
+  <tr><th>Column</th><th>Written by</th><th>While <code>DESIGNING</code></th><th>After Confirm</th></tr>
+  <tr><td><code>chat</code></td><td>Customer, Design assistant, system notices</td><td>a message is added on every turn</td><td>closed. The baker can read it</td></tr>
+  <tr><td><code>options</code></td><td>Design assistant (only candidates the checker accepted, each with its price)</td><td><b>replaced</b> on a turn that offers options. Cleared when the customer chooses and the next turn refines</td><td>frozen, kept for the record</td></tr>
+  <tr><td><code>design</code></td><td>Design assistant (only a version the checker accepted), or the option the customer chose</td><td><b>replaced</b> when it changes, with <code>version</code> + 1</td><td><b>frozen</b>: what the kitchen makes</td></tr>
+  <tr><td><code>quote</code></td><td>Pricing</td><td><b>replaced</b> every turn</td><td><b>frozen</b>: what the customer pays</td></tr>
+  <tr><td><code>approval</code></td><td>Baker</td><td>empty</td><td>written once</td></tr>
+  <tr><td><code>confirmation</code></td><td>Confirmer</td><td>empty</td><td>written once</td></tr>
+</table>
+<p style="margin-top:10px">The rule from devlog 01, "one writer per column, written once", gets one exception: <b>draft columns may change while the status is <code>DESIGNING</code>. Once the status moves on, every column is frozen.</b> The old columns <code>request</code>, <code>spec</code>, <code>brief</code>, <code>review</code> and <code>slot</code> are dropped. The pickup date lives in <code>design</code>, and the chat replaces the request, and the design replaces the spec and the brief. Stage 2 reads <code>design</code>, a list of known options, which is easier for the kitchen to follow than free text.</p>
+
+<!-- ============================== 7 ============================== -->
+<h2>7. Open questions</h2>
+<table>
+  <tr><th>#</th><th>Question</th><th>Proposed</th></tr>
+  <tr><td>Q1</td><td>Preview: layered pictures drawn by rules, or an AI-generated image?</td><td><b>Layers drawn by rules</b>, as on this page. They are exact and free, and what you see is what we make. An AI image could show things we can't make.</td></tr>
+  <tr><td>Q2</td><td>Who makes sure the kitchen has room on the day?</td><td><b>The baker, when approving.</b> There is no Capacity agent in Stage 1. The checker only enforces the minimum notice, and the baker declines if the day is full. An automatic capacity check could come back in a later iteration.</td></tr>
+  <tr><td>Q3</td><td>What happens to chats that just stop?</td><td>After 7 days without a message → <code>ABANDONED</code>. This could also be left out of iteration 1.</td></tr>
+  <tr><td>Q4</td><td>Is a catalog of four templates enough for the demo?</td><td>Yes: it is enough to show "can do" and "can't do" cases, while keeping the set of pictures small.</td></tr>
+</table>
+
+</main>
+
+<script>
+/* ===================== catalog and rule agents (deterministic) ===================== */
+const TODAY = '2026-11-13';
+const COLOURS = { white:'#fbf8f2', pink:'#f6b3c6', purple:'#b79be8', blue:'#9fcbf2', yellow:'#f6df86', mint:'#a6e2c6', chocolate:'#7a4b32', black:'#3a3a3a' };
+const CATALOG = {
+  classic: { name:'Classic round', blurb:'One round layer cake. Our most flexible design.',
+    sizes:[{id:'6in',label:'6" round',serves:8,price:40},{id:'8in',label:'8" round',serves:16,price:60},{id:'10in',label:'10" round',serves:24,price:85}],
+    flavours:['vanilla','chocolate','lemon','red velvet'], colours:Object.keys(COLOURS),
+    decorations:['sprinkles','rainbow drip','chocolate drip','rosettes','fresh flowers'], maxDecorations:2,
+    toppers:['none','number candles','unicorn','dinosaur','football','crown'], inscriptionMax:30, glutenFree:true, minNoticeDays:3,
+    sample:{template:'classic',size:'8in',flavour:'chocolate',colour:'pink',decorations:['rosettes','fresh flowers'],topper:'none',inscription:'Happy Birthday',glutenFree:false,date:'2026-11-20',fulfilment:'pickup'} },
+  tier: { name:'Two-tier', blurb:'Two stacked tiers for a bigger party.',
+    sizes:[{id:'30',label:'Small two-tier',serves:30,price:150},{id:'50',label:'Large two-tier',serves:50,price:220}],
+    flavours:['vanilla','chocolate','lemon'], colours:['white','pink','purple','blue','mint','yellow'], finishes:['buttercream','fondant'],
+    decorations:['fresh flowers','ribbon','rainbow drip'], maxDecorations:2, toppers:['none','number candles','unicorn','crown'],
+    inscriptionMax:30, glutenFree:false, minNoticeDays:7,
+    sample:{template:'tier',size:'30',flavour:'vanilla',colour:'white',finish:'fondant',decorations:['ribbon','fresh flowers'],topper:'none',inscription:'Congratulations',glutenFree:false,date:'2026-11-21',fulfilment:'delivery'} },
+  number: { name:'Number cake', blurb:'One or two big digits, topped with treats.',
+    sizes:[{id:'1',label:'1 digit',serves:12,price:55},{id:'2',label:'2 digits',serves:24,price:100}],
+    flavours:['vanilla','chocolate','lemon'], colours:['white','pink','purple','blue','yellow','mint','chocolate'],
+    decorations:['fruit','macarons','fresh flowers'], maxDecorations:2, toppers:['none'], inscriptionMax:0, glutenFree:true, minNoticeDays:3, needsDigits:true,
+    sample:{template:'number',size:'2',digits:'40',flavour:'lemon',colour:'yellow',decorations:['macarons','fruit'],topper:'none',inscription:'',glutenFree:false,date:'2026-11-20',fulfilment:'pickup'} },
+  sheet: { name:'Sheet cake', blurb:'A flat rectangle for a crowd. Can carry a printed picture.',
+    sizes:[{id:'half',label:'Half sheet',serves:24,price:70},{id:'full',label:'Full sheet',serves:48,price:120}],
+    flavours:['vanilla','chocolate'], colours:['white','pink','blue','yellow','mint','chocolate'],
+    decorations:['sprinkles','rosettes','edible image'], maxDecorations:2, toppers:['none'], inscriptionMax:40, glutenFree:true, minNoticeDays:3,
+    sample:{template:'sheet',size:'half',flavour:'vanilla',colour:'blue',decorations:['edible image','rosettes'],topper:'none',inscription:'Well done, Team!',glutenFree:false,date:'2026-11-20',fulfilment:'pickup'} }
+};
+const ADDONS = { flavour:{'red velvet':8}, glutenFree:15, fondant:30,
+  decoration:{'sprinkles':0,'rainbow drip':10,'chocolate drip':10,'rosettes':8,'fresh flowers':15,'ribbon':6,'fruit':10,'macarons':14,'edible image':12},
+  topper:{'number candles':4,unicorn:12,dinosaur:12,football:12,crown:12}, delivery:10 };
+
+const Dt = s => new Date(s + 'T00:00:00Z');
+const iso = d => d.toISOString().slice(0,10);
+const addDays = (s,n) => { const d = Dt(s); d.setUTCDate(d.getUTCDate()+n); return iso(d); };
+const daysBetween = (a,b) => Math.round((Dt(b)-Dt(a))/864e5);
+const fmt = s => Dt(s).toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',timeZone:'UTC'});
+const cap1 = s => s.charAt(0).toUpperCase() + s.slice(1);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const sizeOf = d => CATALOG[d.template] && CATALOG[d.template].sizes.find(s => s.id === d.size);
+
+/* Design checker: does the design fit the catalog? Returns a list of reasons (empty = ok). */
+function check(d) {
+  const t = CATALOG[d.template], p = [];
+  if (!t) return [`"${d.template}" is not one of our templates`];
+  if (!sizeOf(d)) p.push(`${t.name} doesn't come in that size`);
+  if (!t.flavours.includes(d.flavour)) p.push(`${cap1(d.flavour)} isn't a ${t.name} flavour`);
+  if (!t.colours.includes(d.colour)) p.push(`${cap1(d.colour)} frosting isn't offered on a ${t.name}`);
+  if (t.finishes && !t.finishes.includes(d.finish)) p.push(`Pick a finish: ${t.finishes.join(' or ')}`);
+  const decs = d.decorations || [];
+  decs.forEach(x => { if (!t.decorations.includes(x)) p.push(`${cap1(x)} isn't offered on a ${t.name}`); });
+  if (decs.length > t.maxDecorations) p.push(`At most ${t.maxDecorations} decorations`);
+  const top = d.topper || 'none';
+  if (!t.toppers.includes(top)) p.push(`A ${top} topper isn't offered on a ${t.name}`);
+  if (top === 'number candles' && !/^\d{1,2}$/.test(d.number || '')) p.push('Number candles need a number from 0 to 99');
+  const ins = d.inscription || '';
+  if (t.inscriptionMax === 0 && ins) p.push(`A ${t.name} has no room for a message`);
+  else if (ins.length > t.inscriptionMax) p.push(`The message has ${ins.length} characters; the limit is ${t.inscriptionMax}`);
+  if (t.needsDigits && (!/^\d+$/.test(d.digits || '') || (d.digits || '').length !== Number(d.size))) p.push(`A ${sizeOf(d) ? sizeOf(d).label : ''} cake needs exactly ${d.size} digit${d.size==='1'?'':'s'}`);
+  if (d.glutenFree && !t.glutenFree) p.push(`${t.name} cakes can't be made gluten-free`);
+  if (d.glutenFree && d.flavour === 'red velvet') p.push(`Red velvet isn't available gluten-free`);
+  const notice = daysBetween(TODAY, d.date);
+  if (notice < t.minNoticeDays) p.push(`A ${t.name} needs at least ${t.minNoticeDays} days' notice; ${fmt(d.date)} is ${notice} day${notice===1?'':'s'} away`);
+  return p;
+}
+
+/* Pricing: total from the price table. Only called on a design that passed the checker. */
+function price(d) {
+  const t = CATALOG[d.template], s = sizeOf(d), lines = [[`${t.name}, ${s.label}`, s.price]];
+  if (ADDONS.flavour[d.flavour]) lines.push([cap1(d.flavour), ADDONS.flavour[d.flavour]]);
+  if (d.glutenFree) lines.push(['Gluten-free', ADDONS.glutenFree]);
+  if (d.finish === 'fondant') lines.push(['Fondant finish', ADDONS.fondant]);
+  (d.decorations || []).forEach(x => lines.push([cap1(x), ADDONS.decoration[x] || 0]));
+  if (d.topper && d.topper !== 'none') lines.push([d.topper === 'number candles' ? `Number candles "${d.number}"` : `${cap1(d.topper)} topper`, ADDONS.topper[d.topper]]);
+  if (d.inscription) lines.push(['Message', 0]);
+  if (d.fulfilment === 'delivery') lines.push(['Delivery', ADDONS.delivery]);
+  return { lines, total: lines.reduce((a,l) => a + l[1], 0) };
+}
+
+
+/* ===================== Preview agent: draws the cake from the design ===================== */
+function shade(hex, amt) {
+  const n = parseInt(hex.slice(1), 16), ch = [n >> 16, (n >> 8) & 255, n & 255];
+  return '#' + ch.map(v => Math.round(amt < 0 ? v * (1 + amt) : v + (255 - v) * amt).toString(16).padStart(2, '0')).join('');
+}
+function lum(hex) { const n = parseInt(hex.slice(1),16); return (0.299*(n>>16) + 0.587*((n>>8)&255) + 0.114*(n&255)) / 255; }
+function rng(seed) { let s = seed; return () => (s = (s * 16807) % 2147483647) / 2147483647; }
+let uid = 0;
+const RAIN = ['#ff595e','#ff924c','#ffca3a','#8ac926','#1982c4','#6a4c93'];
+function flower(x, y, r, c) {
+  let s = '';
+  for (let i = 0; i < 5; i++) { const a = i * 2 * Math.PI / 5 - Math.PI/2; s += `<circle cx="${(x + Math.cos(a)*r).toFixed(1)}" cy="${(y + Math.sin(a)*r).toFixed(1)}" r="${(r*0.75).toFixed(1)}" fill="${c}"/>`; }
+  return s + `<circle cx="${x}" cy="${y}" r="${(r*0.55).toFixed(1)}" fill="#ffd166"/>`;
+}
+function textStyle(fill, size, family, weight) { return `style="fill:${fill};font:${weight||'italic 700'} ${size}px ${family||"'Segoe Script','Brush Script MT',cursive"}"`; }
+
+function tierSvg(cx, bottom, w, h, d, col, opt) {
+  const rx = w/2, ry = Math.round(w*0.11), top = bottom - h, L = cx - rx, R = cx + rx;
+  const dark = shade(col, -.22), light = shade(col, .3), decs = d.decorations || [];
+  const fy = x => top + ry * Math.sqrt(Math.max(0, 1 - ((x - cx)/rx) ** 2));
+  const fb = x => bottom + ry * Math.sqrt(Math.max(0, 1 - ((x - cx)/rx) ** 2));
+  let s = `<path d="M${L} ${top} V${bottom} A${rx} ${ry} 0 0 0 ${R} ${bottom} V${top} Z" fill="${col}" stroke="${dark}" stroke-width="2"/>`;
+  if (d.finish === 'fondant') s += `<path d="M${L+12} ${top+ry+6} V${bottom-4}" stroke="${light}" stroke-width="7" stroke-linecap="round" opacity=".9"/>`;
+  if (decs.includes('sprinkles')) {
+    const r = rng(7 + w), cs = ['#e63946','#f4a261','#2a9d8f','#457b9d','#ffd166','#c77dff'];
+    for (let i = 0; i < 34; i++) { const x = L + 10 + r()*(w-20), y = fy(x) + 12 + r()*(h - 16); s += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="7" height="2.6" rx="1.3" fill="${cs[i%6]}" transform="rotate(${Math.round(r()*180)} ${x.toFixed(1)} ${y.toFixed(1)})"/>`; }
+  }
+  if (decs.includes('ribbon')) s += `<path d="M${L} ${bottom-20} A${rx} ${ry} 0 0 0 ${R} ${bottom-20} V${bottom-8} A${rx} ${ry} 0 0 1 ${L} ${bottom-8} Z" fill="#c9a227" stroke="#a07f17" stroke-width="1"/>`;
+  const drip = decs.includes('rainbow drip') ? 'rain' : decs.includes('chocolate drip') ? 'choc' : null;
+  s += `<ellipse cx="${cx}" cy="${top}" rx="${rx}" ry="${ry}" fill="${drip==='choc' ? '#5a3522' : light}" stroke="${drip==='choc' ? '#3d2416' : dark}" stroke-width="2"/>`;
+  if (drip) {
+    const n = Math.max(6, Math.round(w/17));
+    for (let i = 0; i < n; i++) {
+      const x = L + 7 + i*(w - 14)/(n - 1), len = 10 + ((i*5) % 4) * 6;
+      s += `<rect x="${(x-5).toFixed(1)}" y="${(fy(x)-6).toFixed(1)}" width="10" height="${len+6}" rx="5" fill="${drip==='choc' ? '#5a3522' : RAIN[i%6]}"/>`;
+    }
+    if (drip === 'rain') { const g = 'g' + (uid++); s += `<defs><linearGradient id="${g}"><stop offset="0" stop-color="${RAIN[0]}"/><stop offset=".2" stop-color="${RAIN[1]}"/><stop offset=".4" stop-color="${RAIN[2]}"/><stop offset=".6" stop-color="${RAIN[3]}"/><stop offset=".8" stop-color="${RAIN[4]}"/><stop offset="1" stop-color="${RAIN[5]}"/></linearGradient></defs><path d="M${L} ${top} A${rx} ${ry} 0 0 0 ${R} ${top} V${top+6} A${rx} ${ry} 0 0 1 ${L} ${top+6} Z" fill="url(#${g})"/>`; }
+    else s += `<path d="M${L} ${top} A${rx} ${ry} 0 0 0 ${R} ${top} V${top+6} A${rx} ${ry} 0 0 1 ${L} ${top+6} Z" fill="#5a3522"/>`;
+  }
+  if (decs.includes('rosettes')) {
+    const n = Math.round(w/20);
+    for (let i = 0; i < n; i++) { const x = L + 8 + i*(w-16)/(n-1); s += `<circle cx="${x.toFixed(1)}" cy="${fy(x).toFixed(1)}" r="8" fill="${light}" stroke="${dark}" stroke-width="1.5"/><circle cx="${x.toFixed(1)}" cy="${fy(x).toFixed(1)}" r="3" fill="none" stroke="${dark}"/>`; }
+    for (let i = 0; i < n; i++) { const x = L + 8 + i*(w-16)/(n-1); s += `<circle cx="${x.toFixed(1)}" cy="${(fb(x)-4).toFixed(1)}" r="7" fill="${light}" stroke="${dark}" stroke-width="1.5"/>`; }
+  }
+  if (opt.inscription && d.inscription) {
+    const fs = Math.min(18, (w - 30) / (d.inscription.length * 0.64)), ink = lum(col) > 0.55 ? '#8a2b4c' : '#ffffff';
+    s += `<text x="${cx}" y="${(opt.topper ? top + ry + (h - ry) * 0.62 : bottom + ry - 25).toFixed(1)}" text-anchor="middle" ${textStyle(ink, fs.toFixed(1))}>${esc(d.inscription)}</text>`;
+  }
+  if (opt.topper && decs.includes('fresh flowers')) {
+    s += flower(cx - rx*0.55, top + 2, 8, '#f28482') + flower(cx - rx*0.32, top + ry*0.7, 7, '#e5989b') + flower(cx + rx*0.5, top + ry*0.4, 8, '#f6bd60');
+  }
+  if (opt.topper) s += topperSvg(d, cx, top, rx);
+  return s;
+}
+
+function topperSvg(d, cx, top, rx) {
+  switch (d.topper) {
+    case 'unicorn': return `
+      <polygon points="${cx-44},${top+2} ${cx-24},${top} ${cx-38},${top-28}" fill="#fff" stroke="#c8c8c8" stroke-width="1.5"/>
+      <polygon points="${cx-39},${top-2} ${cx-29},${top-2} ${cx-36},${top-17}" fill="#f6b3c6"/>
+      <polygon points="${cx+44},${top+2} ${cx+24},${top} ${cx+38},${top-28}" fill="#fff" stroke="#c8c8c8" stroke-width="1.5"/>
+      <polygon points="${cx+39},${top-2} ${cx+29},${top-2} ${cx+36},${top-17}" fill="#f6b3c6"/>
+      <polygon points="${cx-12},${top+3} ${cx+12},${top+3} ${cx},${top-70}" fill="#f2c94c" stroke="#b8860b" stroke-width="1.5"/>
+      <path d="M${cx-9} ${top-8} L${cx+10} ${top-16} M${cx-7} ${top-24} L${cx+8} ${top-31} M${cx-5} ${top-40} L${cx+5} ${top-45}" stroke="#b8860b" stroke-width="1.5"/>`;
+    case 'dinosaur': return `<g transform="translate(${cx-40} ${top-58})">
+      <path d="M10 46 Q14 22 40 22 Q58 22 62 8 Q64 0 74 2 Q82 4 78 12 L70 16 Q68 40 50 46 Z" fill="#6cbf5f" stroke="#3d7a35" stroke-width="1.5"/>
+      <path d="M24 24 l4 -9 l4 8 M34 22 l4 -9 l4 8 M44 22 l4 -8 l3 8" fill="#3d7a35"/>
+      <rect x="20" y="42" width="8" height="14" fill="#6cbf5f" stroke="#3d7a35"/><rect x="44" y="42" width="8" height="14" fill="#6cbf5f" stroke="#3d7a35"/>
+      <circle cx="73" cy="7" r="1.8" fill="#1d2330"/><path d="M10 46 Q0 50 -6 42" stroke="#3d7a35" stroke-width="5" fill="none" stroke-linecap="round"/></g>`;
+    case 'football': return `<line x1="${cx}" y1="${top}" x2="${cx}" y2="${top-14}" stroke="#888" stroke-width="2"/>
+      <circle cx="${cx}" cy="${top-36}" r="23" fill="#fff" stroke="#222" stroke-width="2"/>
+      <polygon points="${cx},${top-46} ${cx+9},${top-39} ${cx+6},${top-28} ${cx-6},${top-28} ${cx-9},${top-39}" fill="#222"/>`;
+    case 'crown': return `<polygon points="${cx-30},${top+2} ${cx-34},${top-34} ${cx-17},${top-16} ${cx},${top-42} ${cx+17},${top-16} ${cx+34},${top-34} ${cx+30},${top+2}" fill="#f2c94c" stroke="#b8860b" stroke-width="2"/>
+      <circle cx="${cx}" cy="${top-12}" r="4" fill="#e63946"/><circle cx="${cx-18}" cy="${top-8}" r="3" fill="#1982c4"/><circle cx="${cx+18}" cy="${top-8}" r="3" fill="#1982c4"/>`;
+    case 'number candles': {
+      const n = (d.number || '1'), w = n.length * 26;
+      let s = `<text x="${cx}" y="${top+4}" text-anchor="middle" ${textStyle('#7cc6fe', 46, "'Arial Black',Arial,sans-serif", '900')} stroke="#3a7fc0" stroke-width="1.5">${esc(n)}</text>`;
+      for (let i = 0; i < n.length; i++) { const x = cx - w/2 + 13 + i*26; s += `<path d="M${x} ${top-52} q-6 9 0 14 q6 -5 0 -14z" fill="#ffb703" stroke="#fb8500"/>`; }
+      return s;
+    }
+    default: return '';
+  }
+}
+
+function numberSvg(d, col) {
+  const digits = (d.digits || '7').slice(0, 2), fs = digits.length > 1 ? 165 : 205, id = 'clip' + (uid++), dark = shade(col, -.25);
+  const txt = `<text x="150" y="212" text-anchor="middle" ${textStyle(col, fs, "'Arial Black','Segoe UI Black',Arial,sans-serif", '900')}>${esc(digits)}</text>`;
+  let s = `<defs><clipPath id="${id}"><text x="150" y="212" text-anchor="middle" style="font:900 ${fs}px 'Arial Black','Segoe UI Black',Arial,sans-serif">${esc(digits)}</text></clipPath></defs>`;
+  s += `<g style="filter:drop-shadow(0 3px 0 ${dark})">${txt}</g>`;
+  const decs = d.decorations || [], light = shade(col, .45);
+  let g = '';
+  let k = 0;
+  for (let y = 70; y < 215; y += 22) for (let x = 20; x < 290; x += 22) {
+    const xx = x + ((y/22) % 2 ? 11 : 0), kind = decs.length ? decs[(k++) % decs.length] : 'cream';
+    if (kind === 'macarons') g += `<ellipse cx="${xx}" cy="${y}" rx="8" ry="4" fill="#f6b3c6"/><ellipse cx="${xx}" cy="${y+4}" rx="8" ry="4" fill="#d986a3"/><rect x="${xx-7}" y="${y+1}" width="14" height="2" fill="#fff"/>`;
+    else if (kind === 'fruit') g += `<circle cx="${xx}" cy="${y}" r="6" fill="${(k%3) ? '#d62839' : '#3a5ba0'}"/><circle cx="${xx-2}" cy="${y-2}" r="1.5" fill="#fff" opacity=".6"/>`;
+    else if (kind === 'fresh flowers') g += flower(xx, y, 5, (k%2) ? '#f28482' : '#cdb4db');
+    else g += `<circle cx="${xx}" cy="${y}" r="7" fill="${light}" stroke="${dark}" stroke-width="1"/>`;
+  }
+  return s + `<g clip-path="url(#${id})">${g}</g>`;
+}
+
+function sheetSvg(d, col) {
+  const full = d.size === 'full', L = full ? 18 : 40, R = full ? 282 : 260, inset = 26, top = full ? 118 : 126, mid = 168, bot = 206;
+  const dark = shade(col, -.22), light = shade(col, .25), decs = d.decorations || [];
+  let s = `<polygon points="${L},${mid} ${R},${mid} ${R},${bot} ${L},${bot}" fill="${dark}" stroke="${shade(col,-.4)}" stroke-width="1.5"/>`;
+  s += `<polygon points="${L+inset},${top} ${R-inset},${top} ${R},${mid} ${L},${mid}" fill="${light}" stroke="${dark}" stroke-width="2"/>`;
+  let textX = 150, textW = R - L - 70;
+  if (decs.includes('edible image')) {
+    const ix = L + inset + 6, iw = 62, iy = top + 6, ih = mid - top - 12, g = 'sky' + (uid++);
+    s += `<defs><linearGradient id="${g}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8ecae6"/><stop offset="1" stop-color="#e0f4ff"/></linearGradient></defs>
+      <rect x="${ix}" y="${iy}" width="${iw}" height="${ih}" fill="url(#${g})" stroke="#fff" stroke-width="2"/>
+      <circle cx="${ix+46}" cy="${iy+10}" r="6" fill="#ffb703"/><polygon points="${ix},${iy+ih} ${ix+22},${iy+12} ${ix+40},${iy+ih}" fill="#52796f"/><polygon points="${ix+24},${iy+ih} ${ix+44},${iy+18} ${ix+62},${iy+ih}" fill="#84a98c"/>`;
+    textX = ix + iw + (R - inset - ix - iw) / 2 + 4; textW = R - inset - ix - iw - 10;
+  }
+  if (decs.includes('sprinkles')) {
+    const r = rng(11), cs = ['#e63946','#f4a261','#2a9d8f','#457b9d','#ffd166','#c77dff'];
+    for (let i = 0; i < 40; i++) { const y = top + 4 + r()*(mid - top - 8), f = (y - top)/(mid - top), xl = L + inset*(1-f), xr = R - inset*(1-f), x = xl + 6 + r()*(xr - xl - 12); s += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="6" height="2.4" rx="1.2" fill="${cs[i%6]}" transform="rotate(${Math.round(r()*180)} ${x.toFixed(1)} ${y.toFixed(1)})"/>`; }
+  }
+  if (decs.includes('rosettes')) {
+    const n = full ? 12 : 10;
+    for (let i = 0; i < n; i++) { const x = L + 8 + i*(R - L - 16)/(n-1); s += `<circle cx="${x.toFixed(1)}" cy="${mid}" r="7" fill="${light}" stroke="${dark}" stroke-width="1.5"/>`; }
+  }
+  if (d.inscription) {
+    const fs = Math.min(17, textW / (d.inscription.length * 0.64)), ink = lum(col) > 0.55 ? '#8a2b4c' : '#ffffff';
+    s += `<text x="${textX.toFixed(1)}" y="${((top + mid)/2 + 6).toFixed(1)}" text-anchor="middle" ${textStyle(ink, fs.toFixed(1))}>${esc(d.inscription)}</text>`;
+  }
+  return s;
+}
+
+function drawCake(d) {
+  const col = COLOURS[d.colour] || COLOURS.white;
+  let s = `<ellipse cx="150" cy="226" rx="138" ry="20" fill="#e3e6eb" stroke="#b9bfc9" stroke-width="1.5"/>`;
+  if (d.template === 'classic') { const w = { '6in':150, '8in':182, '10in':214 }[d.size] || 182; s += tierSvg(150, 214, w, 92, d, col, { topper:true, inscription:true }); }
+  else if (d.template === 'tier') { const big = d.size === '50'; s += tierSvg(150, 214, big ? 228 : 206, 80, d, col, { topper:false, inscription:true }) + tierSvg(150, 134, big ? 154 : 136, 64, d, col, { topper:true, inscription:false }); }
+  else if (d.template === 'number') s += numberSvg(d, col);
+  else if (d.template === 'sheet') s += sheetSvg(d, col);
+  return `<svg class="cake" viewBox="0 0 300 250" role="img" aria-label="Preview of the cake">${s}</svg>`;
+}
+function describe(d) {
+  const t = CATALOG[d.template], s = sizeOf(d);
+  const rows = [['Template', t ? t.name : d.template], ['Size', s ? `${s.label} · serves ${s.serves}` : d.size]];
+  if (d.template === 'number') rows.push(['Digits', d.digits]);
+  rows.push(['Flavour', cap1(d.flavour) + (d.glutenFree ? ' · gluten-free' : '')]);
+  rows.push(['Frosting', cap1(d.colour) + (d.finish ? ` · ${d.finish}` : '')]);
+  rows.push(['Decoration', (d.decorations || []).map(cap1).join(', ') || 'none']);
+  if (d.topper && d.topper !== 'none') rows.push(['Topper', d.topper === 'number candles' ? `Number candles "${d.number}"` : cap1(d.topper)]);
+  if (d.inscription) rows.push(['Message', `“${d.inscription}”`]);
+  rows.push([d.fulfilment === 'delivery' ? 'Delivery' : 'Pickup', fmt(d.date)]);
+  return '<dl>' + rows.map(r => `<dt>${r[0]}</dt><dd>${esc(r[1])}</dd>`).join('') + '</dl>';
+}
+/* Quick changes: only values from the catalog are offered, but every click still goes through the checker. */
+function quickHtml(d) {
+  const t = CATALOG[d.template], decs = d.decorations || [];
+  const sel = (key, vals, cur, lbl) => `<select data-q="${key}">${vals.map(v => `<option value="${esc(v)}" ${v === cur ? 'selected' : ''}>${esc(lbl ? lbl(v) : v)}</option>`).join('')}</select>`;
+  return `<div class="quick"><div class="qh">✎ Quick changes · no need to ask the AI</div>
+    <div class="qr"><span>Size</span>${sel('size', t.sizes.map(s => s.id), d.size, id => { const s = t.sizes.find(x => x.id === id); return `${s.label} · serves ${s.serves} · $${s.price}`; })}</div>
+    <div class="qr"><span>Colour</span><div class="sw">${t.colours.map(c => `<button type="button" title="${c}" aria-label="${c}" data-qc="${c}" class="${c === d.colour ? 'on' : ''}" style="background:${COLOURS[c]}"></button>`).join('')}</div></div>
+    <div class="qr"><span>Flavour</span>${sel('flavour', t.flavours, d.flavour, f => f + (ADDONS.flavour[f] ? ` (+$${ADDONS.flavour[f]})` : ''))}</div>
+    <div class="qr"><span>Decoration</span><div class="ck">${t.decorations.map(x => { const on = decs.includes(x), dis = !on && decs.length >= t.maxDecorations;
+      return `<label class="${dis ? 'off' : ''}"><input type="checkbox" data-qd="${esc(x)}" ${on ? 'checked' : ''} ${dis ? 'disabled' : ''}> ${esc(x)}${ADDONS.decoration[x] ? ` +$${ADDONS.decoration[x]}` : ''}</label>`; }).join('')}</div></div>
+    <div class="qr"><span>Dietary</span><div class="ck"><label class="${t.glutenFree ? '' : 'off'}"><input type="checkbox" data-qg ${d.glutenFree ? 'checked' : ''} ${t.glutenFree ? '' : 'disabled'}> gluten-free +$${ADDONS.glutenFree}${t.glutenFree ? '' : ` (not on a ${t.name})`}</label></div></div>
+    ${S.uiError ? `<div class="qerr">✗ ${esc(S.uiError)}. Not changed.</div>` : ''}
+    <div class="sub" style="font-size:.75rem">Each click is checked, priced and drawn at once, and noted in the chat, so the AI knows and confirms.</div></div>`;
+}
+function priceHtml(q) {
+  return '<div class="price">' + q.lines.map(l => `<div><span>${esc(l[0])}</span><span>${l[1] ? '$' + l[1] : 'free'}</span></div>`).join('') + `<div class="tot"><span>Total</span><span>$${q.total}</span></div></div>`;
+}
+
+/* ===================== the scripted conversation ===================== */
+const D1 = { template:'classic', size:'10in', flavour:'chocolate', colour:'white', decorations:['sprinkles'], topper:'unicorn', inscription:'', glutenFree:true, date:'2026-11-21', fulfilment:'pickup' };
+const D2 = { ...D1, colour:'purple', decorations:['sprinkles','rainbow drip'], inscription:'Happy 7th Birthday, Mia' };
+const DS = { template:'sheet', size:'half', flavour:'chocolate', colour:'pink', decorations:['edible image','sprinkles'], topper:'none', inscription:'', glutenFree:true, date:'2026-11-21', fulfilment:'pickup' };
+const MSG = 'Happy 7th Birthday, Mia';
+const LETTERS = 'ABCD';
+
+/* Each turn: what the customer says, and what the Design assistant (AI) proposes.
+   kind 'options' = several candidate designs, each checked, priced and drawn on its own; the customer picks one with a button.
+   kind 'single'  = one refined design; tries are made in order until one passes the checker.
+   Turns build on whichever option the customer chose, so the demo works whatever you pick. */
+const TURNS = [
+  { at:'10:02', say:() => "Hi! I'd like a unicorn cake for my daughter Mia's 7th birthday. About 20 kids, and it must be gluten-free. Could you make a big 3D unicorn head? Pickup Saturday 21 Nov.",
+    kind:'options',
+    plan:() => ({
+      why:'The request is still open (no colour, flavour or style yet), so the assistant sketches a few different directions. A sculpted head is not in the catalog, so every candidate uses a catalog template. "About 20 kids" → sizes that serve 24.',
+      candidates:[
+        { name:'Unicorn classic', note:'Clean and simple. White frosting lets the golden horn be the star.', design:D1 },
+        { name:'Rainbow unicorn', note:'The most party-like. The rainbow drip looks great in photos.', design:{ ...D1, colour:'purple', decorations:['sprinkles','rainbow drip'] } },
+        { name:'Tall unicorn', note:'Two tiers for height, with the horn on top.', design:{ template:'tier', size:'30', flavour:'chocolate', colour:'white', finish:'buttercream', decorations:['rainbow drip'], topper:'unicorn', inscription:'', glutenFree:true, date:'2026-11-21', fulfilment:'pickup' } },
+        { name:'Unicorn party sheet', note:'Best value, and the easiest to cut into 24 slices. The unicorn is a printed picture, not a 3D topper.', design:DS } ],
+      reply:o => `A 3D sculpted unicorn head is something we can't make, sorry. Here are ${o.length} unicorn cakes we <i>can</i> make, all gluten-free and big enough for 20 kids. Press <b>Choose</b> on the one you like best and we'll fine-tune it together.`,
+      cannot:['3D sculpted shapes','Gluten-free two-tier cakes (so no tall option, sorry)'],
+      suggest:['Prices are for pickup on Sat 21 Nov','You can change colour, flavour and decorations after choosing'] }) },
+
+  { at:'10:05', defaultPick:1,
+    say:S => `We love ${optLabel(S)}! Can you write "${MSG}" on it?`,
+    kind:'single',
+    plan:S => ({
+      tries:[{ why:`Starts from the chosen option ${optLabel(S)} and adds the message (${MSG.length} characters).`, design:{ ...S.design, inscription:MSG } }],
+      reply:d => `Done: "${MSG}" is on the ${CATALOG[d.template].name.toLowerCase()} (${MSG.length} of ${CATALOG[d.template].inscriptionMax} characters, free). Total {total}. <br><i>Designer's tip:</i> ${d.template === 'sheet' ? 'the message sits under the picture, so both stay easy to read.' : 'the message goes on the side, so the topper stays clear.'}`,
+      cannot:[], suggest:['If you are happy with it, press Confirm design','Or ask for any change'] }) },
+
+  { at:'10:08', say:() => 'Could we make it look taller?',
+    kind:'options',
+    plan:S => {
+      const cur = S.design, tier = CATALOG.tier;
+      return {
+        why:'"Taller" can mean several things. The assistant offers the current design plus taller variants, so the customer can compare looks and prices side by side.',
+        candidates:[
+          { name:'Two-tier, gluten-free', note:'The tallest look.', design:{ template:'tier', size:'30', flavour:tier.flavours.includes(cur.flavour) ? cur.flavour : 'vanilla', colour:tier.colours.includes(cur.colour) ? cur.colour : 'white', finish:'buttercream', decorations:['rainbow drip'], topper:'unicorn', inscription:MSG, glutenFree:true, date:cur.date, fulfilment:cur.fulfilment } },
+          { name:'Keep it as it is', note:'Stays gluten-free and safe for Mia.', design:stripDesign(cur) },
+          { name:'Two-tier, not gluten-free', note:'Taller and serves 30, but NOT gluten-free. Only if Mia can have a separate treat.', design:{ template:'tier', size:'30', flavour:tier.flavours.includes(cur.flavour) ? cur.flavour : 'vanilla', colour:tier.colours.includes(cur.colour) ? cur.colour : 'white', finish:'buttercream', decorations:['rainbow drip'], topper:'unicorn', inscription:MSG, glutenFree:false, date:cur.date, fulfilment:cur.fulfilment } } ],
+        reply:o => `Our two-tier cakes can't be made gluten-free, so a tall gluten-free cake isn't possible. Here are your ${o.length} choices:`,
+        cannot:['Two-tier cakes can\'t be gluten-free'], suggest:['Choose one to continue'] };
+    } },
+
+  { at:'10:11', defaultPick:0,
+    say:S => `Let's go with ${optLabel(S)}. Could it be vanilla, and could we pick it up tomorrow?`,
+    kind:'single',
+    plan:S => {
+      const t = CATALOG[S.design.template], earliest = addDays(TODAY, t.minNoticeDays);
+      return {
+        tries:[
+          { why:'Vanilla, and pickup tomorrow (Sat 14 Nov).', design:{ ...stripDesign(S.design), flavour:'vanilla', date:addDays(TODAY, 1) } },
+          { why:`Told that a ${t.name} needs ${t.minNoticeDays} days' notice. Keeps vanilla and goes back to the original date.`, design:{ ...stripDesign(S.design), flavour:'vanilla' } } ],
+        reply:d => `Vanilla it is. Tomorrow is too soon, sorry: a ${t.name} needs at least ${t.minNoticeDays} days' notice, so the earliest pickup would be ${fmt(earliest)}. I've kept ${fmt(d.date)}. Total {total}. If this looks right, press <b>Confirm design</b>.`,
+        cannot:[`Pickup tomorrow: we need at least ${t.minNoticeDays} days' notice`], suggest:['Press Confirm design to send it to the baker'] };
+    } }
+];
+
+/* ===================== demo state ===================== */
+let S, prevRow = {};
+function reset() {
+  S = { turn:0, status:'DESIGNING', chat:[], options:null, pending:false, chosenKey:null, design:null, quote:null, approval:null, confirmation:null,
+        events:[{ at:'2026-11-13 10:02', by:'orchestrator', what:'row created', to:'DESIGNING' }], cannot:[], steps:[], stepsTitle:'Behind the scenes', changed:new Set(), outcome:null };
+  prevRow = {}; snapshotRow(); render();
+}
+function stamp(t) { return '2026-11-13 ' + t; }
+
+function optLabel(S) { const o = S.options && S.options.find(x => x.key === S.chosenKey); return o ? `option ${o.key} (${o.name})` : 'it'; }
+function setDesign(d, at, what) {
+  const changed = !S.design || JSON.stringify(stripDesign(S.design)) !== JSON.stringify(stripDesign(d));
+  const version = (S.design ? S.design.version : 0) + (changed ? 1 : 0);
+  S.design = { version, ...stripDesign(d) }; S.quote = price(d);
+  S.events.push({ at, by: what.by, what: what.text + (changed ? ` → design v${version}` : ` (design stays v${version})`) });
+}
+/* The customer presses Choose on one option card: a button, like Confirm. The AI never guesses which one they meant. */
+function choose(key, at) {
+  const o = S.options.find(x => x.key === key); if (!o || !S.pending) return;
+  S.chosenKey = key; S.pending = false;
+  S.chat.forEach(m => { if (m.options === S.options) m.chosenKey = key; });
+  setDesign(o.design, at, { by:'customer', text:`chose option ${key}` });
+  S.steps = [
+    { cls:'cust', who:'Customer', kind:'cust', text:`Presses <b>Choose</b> on option ${key} (${esc(o.name)}). A button, not a chat message, so the choice is never guessed.` },
+    { cls:'rules', who:'Orchestrator', kind:'rules', text:`Copies option ${key} into <code>design</code> and its price into <code>quote</code>. The other options stay in <code>options</code> until the next turn replaces them.` } ];
+  S.stepsTitle = 'Behind the scenes: choice';
+}
+
+/* Quick change: the customer edits the design directly in the design panel. No AI call: a click is exact, there is
+   nothing to interpret. The same rule agents run (checker, pricing, preview), and a note goes into the chat,
+   so the Design assistant sees the change in its context on the next turn. */
+const FIELD_LABEL = { colour:'colour', flavour:'flavour', size:'size', decorations:'decorations', glutenFree:'gluten-free' };
+function fieldText(f, v, d) {
+  if (f === 'size') return (sizeOf({ ...d, size:v }) || { label:v }).label;
+  if (f === 'decorations') return (v || []).length ? v.join(', ') : 'none';
+  if (f === 'glutenFree') return v ? 'yes' : 'no';
+  return v;
+}
+function uiEdit(field, value) {
+  if (S.status !== 'DESIGNING' || !S.design || S.pending) return;
+  const before = stripDesign(S.design), d = { ...before, [field]:value };
+  if (JSON.stringify(before) === JSON.stringify(d)) return;
+  const at = S.events[S.events.length - 1].at;
+  const change = `${FIELD_LABEL[field]} ${fieldText(field, before[field], before)} → ${fieldText(field, value, d)}`;
+  const probs = check(d);
+  S.stepsTitle = 'Behind the scenes: quick change in the design panel';
+  if (probs.length) {
+    S.uiError = probs.join('; ');
+    S.steps = [
+      { cls:'cust', who:'Customer', kind:'cust', text:`Changes ${esc(change)} in the design panel.` },
+      { cls:'bad', who:'Design checker', kind:'rules', text:'✗ Not allowed: ' + probs.map(esc).join('; ') + `. Not applied: the design stays v${S.design.version}, and nothing goes into the chat.` } ];
+    return;
+  }
+  S.uiError = null;
+  setDesign(d, at, { by:'customer (design panel)', text:'changed ' + change });
+  S.chat.push({ from:'ui', at, change, text:`Changed ${change} in the design panel → design v${S.design.version}, $${S.quote.total}` });
+  S.steps = [
+    { cls:'cust', who:'Customer', kind:'cust', text:`Changes <b>${esc(change)}</b> in the design panel. No chat message and no AI call: a click is exact.` },
+    { cls:'rules', who:'Design checker', kind:'rules', text:'✓ Fits the catalog. (Same checker as for the AI\'s proposals.)' },
+    { cls:'rules', who:'Pricing', kind:'rules', text:`$${S.quote.total} = ` + S.quote.lines.map(l => `${esc(l[0])} ${l[1] ? '$'+l[1] : 'free'}`).join(' + ') },
+    { cls:'rules', who:'Preview', kind:'rules', text:'Redraws the picture. All three ran at the same moment as the click.' },
+    { cls:'rules', who:'Orchestrator', kind:'rules', text:`Saves design v${S.design.version} and writes a note into <code>chat</code>: <i>“${esc(S.chat[S.chat.length-1].text)}”</i>` },
+    { cls:'ai', who:'Design assistant', kind:'ai', text:'Reads the note (it is in its context, like any chat message) and replies with a short confirmation and, if useful, a designer\'s comment. It does <b>not</b> change the design: the customer already did. The price in the reply comes from Pricing.' } ];
+  const ack = ackFor(field, before, S.design);
+  S.chat.push({ from:'assistant', at, html:ack.replace('{total}', `<span class="num">$${S.quote.total}</span>`), cannot:[], suggest:[], text:ack.replace('{total}', '$' + S.quote.total).replace(/<[^>]+>/g,'') });
+}
+/* What the Design assistant says after a quick change (scripted here; an LLM call in the real system). */
+function ackFor(f, before, d) {
+  const t = CATALOG[d.template], s = sizeOf(d);
+  let say;
+  if (f === 'colour') say = `I see you changed the colour to ${d.colour}. ${d.colour === 'purple' && (d.decorations || []).includes('rainbow drip') ? 'Purple with the rainbow drip looks great together.' : 'Nice choice, the picture is updated.'}`;
+  else if (f === 'flavour') say = `I see you switched to ${d.flavour}.${d.flavour === 'red velvet' ? ' Red velvet adds $8.' : ''}`;
+  else if (f === 'size') say = `I see you changed the size to ${s.label}, which serves ${s.serves}.${s.serves < 20 ? ' <b>That is fewer than the 20 kids you mentioned.</b> Is that on purpose?' : ''}`;
+  else if (f === 'decorations') {
+    const added = d.decorations.filter(x => !(before.decorations || []).includes(x)), removed = (before.decorations || []).filter(x => !d.decorations.includes(x));
+    say = added.length ? `I see you added ${added.join(' and ')}.` : `I see you took off the ${removed.join(' and ')}.`;
+    if (d.decorations.length >= t.maxDecorations) say += ` That's the most a ${t.name.toLowerCase()} can take (${t.maxDecorations}).`;
+  }
+  else if (f === 'glutenFree') say = d.glutenFree ? 'I see you turned gluten-free back on.' : 'I see you turned gluten-free off. <b>Just checking: you said Mia needs gluten-free.</b> Is this still right?';
+  else say = 'I see you changed the design.';
+  return `${say} Total now {total}.`;
+}
+
+function runTurn() {
+  const T = TURNS[S.turn], steps = [], at = stamp(T.at);
+  S.uiError = null;
+  const lastCust = S.chat.map(m => m.from).lastIndexOf('customer');
+  const uiNotes = S.chat.slice(lastCust + 1).filter(m => m.from === 'ui');
+  if (S.pending && T.defaultPick !== undefined) {   // the demo's Next button picks for the customer if they didn't
+    choose(S.options[T.defaultPick].key, at);
+    steps.push({ cls:'cust', who:'Customer', kind:'cust', text:`Presses <b>Choose</b> on option ${S.chosenKey}. It is copied into <code>design</code> and <code>quote</code>.` });
+  }
+  const text = T.say(S), P = T.plan(S);
+  S.chat.push({ from:'customer', at, text });
+  steps.push({ cls:'cust', who:'Customer', kind:'cust', text:'Sends a message. It is added to the row\'s <code>chat</code>.' });
+  if (uiNotes.length) steps.push({ cls:'ai', who:'Design assistant', kind:'ai', text:`Its context includes ${uiNotes.length} quick change${uiNotes.length > 1 ? 's' : ''} from the design panel (${uiNotes.map(m => esc(m.change)).join('; ')}). It builds on design v${S.design.version}, so it never undoes what the customer set by hand.` });
+
+  if (T.kind === 'options') {
+    steps.push({ cls:'ai', who:'Design assistant', kind:'ai', text:`<b>Proposes ${P.candidates.length} candidate designs.</b> <span class="why">${P.why}</span>`, pre:P.candidates.map(c => `${c.name}: ` + JSON.stringify(stripDesign(c.design))).join('\n') });
+    const opts = [];
+    P.candidates.forEach(c => {
+      const probs = check(c.design);
+      if (probs.length) { steps.push({ cls:'bad', who:'Design checker', kind:'rules', text:`✗ “${esc(c.name)}” not allowed: ` + probs.map(esc).join('; ') + '. Dropped; the customer never sees it.' }); return; }
+      const q = price(c.design);
+      opts.push({ key:LETTERS[opts.length], name:c.name, note:c.note, design:stripDesign(c.design), quote:q });
+    });
+    steps.push({ cls:'rules', who:'Design checker', kind:'rules', text:`✓ ${opts.length} candidates fit the catalog.` });
+    steps.push({ cls:'rules', who:'Pricing', kind:'rules', text:opts.map(o => `${o.key} ${esc(o.name)}: <b>$${o.quote.total}</b>`).join(' · ') });
+    steps.push({ cls:'rules', who:'Preview', kind:'rules', text:`Draws ${opts.length} pictures, one per option.` });
+    steps.push({ cls:'ai', who:'Design assistant', kind:'ai', text:'Writes the reply and a designer\'s note per option. Prices on the cards come from Pricing, not from the AI.' });
+    S.options = opts; S.pending = true; S.chosenKey = null;
+    S.chat.push({ from:'assistant', at, html:P.reply(opts), options:opts, turn:S.turn, cannot:P.cannot, suggest:P.suggest, text:P.reply(opts).replace(/<[^>]+>/g,'') + ' ' + opts.map(o => `[${o.key}] ${o.name} $${o.quote.total}`).join(' ') });
+    S.events.push({ at, by:'design-assistant', what:`${opts.length} options offered` });
+    S.steps = steps; S.stepsTitle = `Behind the scenes: turn ${S.turn + 1}`; S.turn++;
+    return;
+  }
+
+  let ok = null;
+  P.tries.forEach((a, i) => {
+    if (ok) return;
+    steps.push({ cls:'ai', who:'Design assistant', kind:'ai', text:`<b>Proposal ${i+1}.</b> <span class="why">${a.why}</span>`, pre:JSON.stringify(stripDesign(a.design)) });
+    const probs = check(a.design);
+    if (probs.length) {
+      steps.push({ cls:'bad', who:'Design checker', kind:'rules', text:'✗ Not allowed: ' + probs.map(esc).join('; ') });
+      steps.push({ cls:'back', text:'↩ the reasons go back to the Design assistant' }); return;
+    }
+    steps.push({ cls:'rules', who:'Design checker', kind:'rules', text:'✓ Fits the catalog.' });
+    const q = price(a.design);
+    steps.push({ cls:'rules', who:'Pricing', kind:'rules', text:`$${q.total} = ` + q.lines.map(l => `${esc(l[0])} ${l[1] ? '$'+l[1] : 'free'}`).join(' + ') });
+    ok = { design:a.design, q };
+  });
+  steps.push({ cls:'rules', who:'Preview', kind:'rules', text:'Draws the picture from the accepted design (layers: template, size, colour, decorations, topper, message).' });
+  setDesign(ok.design, at, { by:'design-assistant', text:'design refined' });
+  S.options = null; S.pending = false;
+  const reply = P.reply(ok.design), fill = s => s.replace('{total}', `<span class="num">$${ok.q.total}</span>`);
+  S.chat.push({ from:'assistant', at, html:fill(reply), cannot:P.cannot, suggest:P.suggest, text:reply.replace('{total}', '$' + ok.q.total).replace(/<[^>]+>/g,'') });
+  steps.push({ cls:'ai', who:'Design assistant', kind:'ai', text:'Writes the reply with a designer\'s tip. The price in <span class="num">yellow</span> is filled in from Pricing, not written by the AI.' });
+  S.steps = steps; S.stepsTitle = `Behind the scenes: turn ${S.turn + 1}`;
+  S.turn++;
+}
+function stripDesign(d) { const { version, ...rest } = d; return rest; }
+
+function canConfirm() { return S.status === 'DESIGNING' && S.design && !S.pending && check(S.design).length === 0; }
+function confirmDesign() {
+  if (!canConfirm()) return;
+  const at = stamp('10:13');
+  S.confirmedAt = at;
+  S.status = 'AWAITING_BAKER';
+  S.chat.push({ from:'system', at, text:'Thanks! Your design is confirmed and sent to our baker. We will reply soon. (The chat is now closed.)' });
+  S.events.push({ at, by:'customer', what:'confirmed design v' + S.design.version, from:'DESIGNING', to:'AWAITING_BAKER' });
+  S.steps = [
+    { cls:'cust', who:'Customer', kind:'cust', text:'Presses <b>Confirm design</b>. The button, not a chat message, is the agreement.' },
+    { cls:'rules', who:'Orchestrator', kind:'rules', text:'One <code>UPDATE … WHERE status=\'DESIGNING\'</code>: status → <code>AWAITING_BAKER</code>. <code>design</code> and <code>quote</code> are now frozen.' },
+    { cls:'gate', who:'Baker approval', kind:'gate', text:'The order appears in the baker\'s inbox (<code>WHERE status=\'AWAITING_BAKER\'</code>). The flow waits here. The baker also checks that the kitchen has room on the day.' } ];
+  S.stepsTitle = 'Behind the scenes: confirm';
+}
+function decide(approve) {
+  if (S.status !== 'AWAITING_BAKER') return;
+  const at = '2026-11-13 16:40';
+  if (approve) {
+    S.approval = { decision:'approved', by:'baker', at };
+    S.confirmation = { total:S.quote.total, payment:'simulated: paid', pickup:S.design.date, at, messageSent:true };
+    S.status = 'CONFIRMED';
+    S.events.push({ at, by:'baker', what:'approved', from:'AWAITING_BAKER', to:'APPROVED' });
+    S.events.push({ at, by:'confirmer', what:'payment recorded, customer told', from:'APPROVED', to:'CONFIRMED' });
+    S.chat.push({ from:'baker', at, text:`Your cake is confirmed for pickup on ${fmt(S.design.date)}. Total $${S.quote.total} (paid). See you then!` });
+    S.steps = [
+      { cls:'gate', who:'Baker approval', kind:'gate', text:'The baker approves. <code>approval</code> is written once.' },
+      { cls:'rules', who:'Confirmer', kind:'rules', text:'Records the (simulated) payment, writes <code>confirmation</code>, messages the customer, status → <code>CONFIRMED</code>.' },
+      { cls:'cust', who:'Stage 1 done', kind:'cust', text:'The row is now the <b>Confirmed order</b>, the input of Stage 2 Production. Stage 2 reads <code>design</code> (including the pickup date) and <code>confirmation</code>.' } ];
+    S.outcome = 'ok';
+  } else {
+    const reason = document.getElementById('declineReason').value;
+    S.approval = { decision:'declined', by:'baker', at, reason };
+    S.status = 'DECLINED';
+    S.events.push({ at, by:'baker', what:'declined: ' + reason, from:'AWAITING_BAKER', to:'DECLINED' });
+    S.chat.push({ from:'baker', at, text:`Sorry, we can't take this order: ${reason} You have not been charged.` });
+    S.steps = [
+      { cls:'gate', who:'Baker approval', kind:'gate', text:'The baker declines with a reason. <code>approval</code> is written once.' },
+      { cls:'rules', who:'Orchestrator', kind:'rules', text:'Status → <code>DECLINED</code>. The customer gets the reason. Nothing goes on to Stage 2.' } ];
+    S.outcome = 'no';
+  }
+  S.stepsTitle = 'Behind the scenes: baker decision';
+}
+
+/* ===================== the row ===================== */
+function rowObj() {
+  return {
+    id:'C-1043', status:S.status, created_at:'2026-11-13 10:02', updated_at:S.events[S.events.length-1].at,
+    chat:S.chat.map(m => `${m.from} ${m.at.slice(11)}: ${(m.text || '').slice(0, 46)}${(m.text || '').length > 46 ? '…' : ''}`),
+    options:S.options ? S.options.map(o => ({ key:o.key, name:o.name, total:o.quote.total, design:'{…}' })) : null,
+    design:S.design, quote:S.quote ? { total:S.quote.total, items:Object.fromEntries(S.quote.lines) } : null,
+    approval:S.approval, confirmation:S.confirmation, events:S.events
+  };
+}
+function snapshotRow() { const r = rowObj(); const now = {}; for (const k in r) now[k] = JSON.stringify(r[k]); S.changed = new Set(Object.keys(now).filter(k => prevRow[k] !== undefined && prevRow[k] !== now[k])); prevRow = now; }
+function renderRow() {
+  const r = rowObj(), frozen = S.status !== 'DESIGNING', keys = Object.keys(r);
+  const out = keys.map((k, i) => {
+    let v = JSON.stringify(r[k], null, 2).replace(/\n/g, '\n  ');
+    const line = `  "${k}": ${esc(v)}${i < keys.length-1 ? ',' : ''}`;
+    if (S.changed.has(k)) return `<span class="chg">${line}</span>`;
+    if (r[k] === null) return `<span class="frz">${line}</span>`;
+    return line;
+  });
+  document.getElementById('row').innerHTML = '{\n' + out.join('\n') + '\n}' + (frozen ? '\n\n<span class="frz">-- design and quote are frozen from here on</span>' : '');
+}
+
+/* ===================== render ===================== */
+function render() {
+  // chat
+  const chat = document.getElementById('chat');
+  chat.innerHTML = S.chat.length ? S.chat.map(m => {
+    if (m.from === 'customer') return `<div class="msg customer"><span class="who">Jordan · ${m.at.slice(11)}</span>${esc(m.text)}</div>`;
+    if (m.from === 'system') return `<div class="msg system">${esc(m.text)}</div>`;
+    if (m.from === 'ui') return `<div class="msg ui">✎ <b>Jordan</b> changed <b>${esc(m.change)}</b> in the design panel · ${m.at.slice(11)}</div>`;
+    if (m.from === 'baker') return `<div class="msg baker"><span class="who">The baker · ${m.at.slice(11)}</span>${esc(m.text)}</div>`;
+    let x = `<div class="msg assistant${m.options ? ' wide' : ''}"><span class="who">Design assistant (AI) · ${m.at.slice(11)}</span>${m.html}`;
+    if (m.options) {
+      const live = S.pending && S.options === m.options && S.status === 'DESIGNING';
+      const chosen = S.options === m.options ? S.chosenKey : m.chosenKey;
+      x += `<div class="opts">${m.options.map(o => `<div class="opt ${chosen === o.key ? 'chosen' : chosen ? 'faded' : ''}">
+        <h4><span>${o.key} · ${esc(o.name)}</span><span class="num">$${o.quote.total}</span></h4>
+        <div class="pvs">${drawCake(o.design)}</div>
+        <div class="sum">${esc(CATALOG[o.design.template].name)} · ${esc(sizeOf(o.design).label)} · serves ${sizeOf(o.design).serves} · ${esc(o.design.flavour)} · ${esc(o.design.colour)}${o.design.glutenFree ? ' · gluten-free' : ''}</div>
+        <div class="note">${esc(o.note)}</div>
+        ${live ? `<button class="primary" data-choose="${o.key}">Choose ${o.key}</button>` : chosen === o.key ? '<b style="font-size:.8rem;color:var(--accent)">✓ Chosen</b>' : ''}
+      </div>`).join('')}</div>`;
+    }
+    if (m.cannot.length) x += `<ul>${m.cannot.map(c => `<li class="cant">Can't do: ${esc(c)}</li>`).join('')}</ul>`;
+    if (m.suggest.length) x += `<ul>${m.suggest.map(c => `<li>${esc(c)}</li>`).join('')}</ul>`;
+    return x + '</div>';
+  }).join('') : '<div class="empty">The chat is empty. Press <b>Next</b> or <b>Send</b> to start.</div>';
+  chat.scrollTop = chat.scrollHeight;
+  chat.querySelectorAll('[data-choose]').forEach(b => b.onclick = () => { choose(b.dataset.choose, stamp(TURNS[S.turn - 1].at.replace(/\d$/, d => +d + 1))); snapshotRow(); render(); });
+
+  // composer
+  const comp = document.getElementById('composer'), send = document.getElementById('btnSend');
+  const next = S.status === 'DESIGNING' && S.turn < TURNS.length ? TURNS[S.turn] : null;
+  if (next && S.pending && next.defaultPick !== undefined) {
+    const k = S.options[next.defaultPick].key;
+    comp.textContent = `(Press Choose on an option, or Send: the demo will choose ${k} for Jordan)`; comp.className = 'box'; send.disabled = false;
+  } else {
+    comp.textContent = next ? next.say(S) : (S.status === 'DESIGNING' ? (S.pending ? '(Press Choose on an option)' : '(Jordan is happy. Next: press Confirm design)') : '(chat closed)');
+    comp.className = 'box' + (next ? ' has' : ''); send.disabled = !next;
+  }
+
+  // design panel
+  const dp = document.getElementById('designPanel');
+  const pendNote = S.pending ? `<div class="avail" style="background:var(--ai);border:1.5px dashed var(--ai-line)"><b>${S.options.length} options in the chat.</b> Compare them and press <b>Choose</b> on one. Confirm is hidden until you choose.</div>` : '';
+  if (!S.design) dp.innerHTML = pendNote + `<div class="pv"><div style="height:220px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:.9rem;text-align:center">${S.pending ? 'Your chosen design will show here' : 'The picture appears after the first reply'}</div></div>`;
+  else if (S.pending) {
+    dp.innerHTML = pendNote + `<div class="pv" style="opacity:.6">${drawCake(S.design)}<div class="cap">Current design v${S.design.version} (before the new options)</div></div>${describe(S.design)}`;
+  }
+  else {
+    const ok = canConfirm();
+    dp.innerHTML = `<div class="pv">${drawCake(S.design)}<div class="cap">Preview · drawn by rules from design v${S.design.version}</div></div>
+      ${S.status === 'DESIGNING' ? quickHtml(S.design) : ''}
+      ${describe(S.design)}
+      ${priceHtml(S.quote)}
+      ${S.status === 'DESIGNING' ? `<div class="confirm-row"><button id="btnConfirm" class="primary ${ok && S.turn >= TURNS.length ? 'pulse' : ''}" ${ok ? '' : 'disabled'}>Confirm design · $${S.quote.total}</button>
+      <span class="why">Shown only when the design fits the catalog. Pressing it freezes the design and sends it to the baker.</span></div>`
+      : `<div class="avail ${S.status === 'DECLINED' ? 'no' : 'ok'}" style="text-align:center"><b>${S.status === 'AWAITING_BAKER' ? 'Waiting for the baker' : S.status === 'CONFIRMED' ? 'Confirmed ✓' : 'Declined'}</b></div>`}`;
+    const bc = document.getElementById('btnConfirm'); if (bc) bc.onclick = () => { confirmDesign(); snapshotRow(); render(); };
+    const act = (f, v) => { uiEdit(f, v); snapshotRow(); render(); };
+    dp.querySelectorAll('[data-q]').forEach(s => s.onchange = () => act(s.dataset.q, s.value));
+    dp.querySelectorAll('[data-qc]').forEach(b => b.onclick = () => act('colour', b.dataset.qc));
+    dp.querySelectorAll('[data-qd]').forEach(c => c.onchange = () => { const cur = S.design.decorations || []; act('decorations', c.checked ? [...cur, c.dataset.qd] : cur.filter(x => x !== c.dataset.qd)); });
+    const g = dp.querySelector('[data-qg]'); if (g) g.onchange = () => act('glutenFree', g.checked);
+  }
+  document.getElementById('custBarRight').innerHTML = S.design ? `design v${S.design.version} · ${S.turn} turn${S.turn === 1 ? '' : 's'}` : '';
+
+  // baker screen
+  const bk = document.getElementById('bakerScreen');
+  if (S.status === 'DESIGNING') bk.innerHTML = `<div class="bar"><span><b>Baker screen</b> · approval inbox</span><span>0 waiting</span></div><div style="padding:16px;color:var(--muted);font-size:.9rem">Nothing to approve yet. The baker is not involved while the customer and the AI are designing. The order appears here once the customer presses Confirm.</div>`;
+  else {
+    const d = S.design;
+    bk.innerHTML = `<div class="bar"><span><b>Baker screen</b> · approval inbox · <code>WHERE status = 'AWAITING_BAKER'</code></span><span>${S.status === 'AWAITING_BAKER' ? '1 waiting' : '0 waiting'}</span></div>
+      <div class="baker-body">
+        <div class="pv">${drawCake(d)}</div>
+        <div>
+          <b>C-1043 · Jordan</b> · confirmed by the customer at ${S.confirmedAt.slice(11)}
+          ${describe(d)}
+          <ul class="checks"><li>Fits the catalog (Design checker)</li><li>Priced from the table: $${S.quote.total}</li><li>Enough notice for ${fmt(d.date)}</li></ul>
+          <div class="sub" style="font-size:.82rem;margin-top:4px">Your check: does the kitchen have room on ${fmt(addDays(d.date, -1))}, the day before pickup?</div>
+          <details style="margin-top:6px;font-size:.85rem"><summary>Read the chat (${S.chat.filter(m => m.from === 'customer' || m.from === 'assistant').length} messages)</summary>
+            ${S.chat.filter(m => m.from === 'customer' || m.from === 'assistant' || m.from === 'ui').map(m => `<p style="margin:4px 0"><b>${m.from === 'customer' ? 'Jordan' : m.from === 'ui' ? 'Jordan (panel)' : 'AI'}:</b> ${esc(m.text)}</p>`).join('')}</details>
+        </div>
+        <div class="acts">
+          ${S.status === 'AWAITING_BAKER' ? `
+          <button class="primary" id="btnApprove">Approve</button>
+          <label class="sub" style="font-size:.8rem">or decline, with a reason the customer will see:</label>
+          <select id="declineReason">
+            <option>The kitchen is fully booked that day.</option>
+            <option>We can't get gluten-free sprinkles in time for that day.</option>
+            <option>The kitchen is closed that weekend for a private event.</option>
+            <option>This design needs more time than we have that week.</option>
+          </select>
+          <button class="danger" id="btnDecline">Decline</button>
+          <span class="sub" style="font-size:.78rem">No edit button on purpose. A change would have to go back to the customer, which would be a loop.</span>` :
+          `<div class="avail ${S.status === 'CONFIRMED' ? 'ok' : 'no'}"><b>${S.approval.decision === 'approved' ? 'Approved' : 'Declined'}</b>${S.approval.reason ? ': ' + esc(S.approval.reason) : ''}</div>`}
+        </div>
+      </div>
+      ${S.outcome === 'ok' ? `<div class="outcome ok"><b>Stage 1 output: Confirmed order.</b> Status <code>CONFIRMED</code>. The frozen <code>design</code>, <code>quote</code>, <code>approval</code> and <code>confirmation</code> are all Stage 2 Production needs.</div>` : ''}
+      ${S.outcome === 'no' ? `<div class="outcome no"><b>Order ended: Declined.</b> Status <code>DECLINED</code>. The customer was told why and was not charged. Nothing goes on to Stage 2.</div>` : ''}`;
+    const a = document.getElementById('btnApprove'), x = document.getElementById('btnDecline');
+    if (a) a.onclick = () => { decide(true); snapshotRow(); render(); };
+    if (x) x.onclick = () => { decide(false); snapshotRow(); render(); };
+  }
+
+  // behind the scenes
+  document.getElementById('stepsTitle').textContent = S.stepsTitle;
+  const kindLabel = { ai:'AI', rules:'Rules', cust:'Customer', gate:'Human gate' };
+  document.getElementById('steps').innerHTML = S.steps.length ? S.steps.map(s => s.cls === 'back'
+    ? `<li class="back">${s.text}</li>`
+    : `<li class="${s.cls}"><span class="nm">${s.who}<br><span class="k ${s.kind}">${kindLabel[s.kind]}</span></span><span>${s.text}${s.pre ? `<pre>${esc(s.pre)}</pre>` : ''}</span></li>`).join('')
+    : '<li><span class="nm">—</span><span class="sub">Each turn, the agents\' work is listed here in order.</span></li>';
+  renderRow();
+
+  // controls
+  const pill = document.getElementById('stPill'); pill.textContent = S.status; pill.className = 'pill st-' + S.status;
+  const btn = document.getElementById('btnNext'), hint = document.getElementById('stHint');
+  if (S.status === 'DESIGNING' && S.turn < TURNS.length) { btn.textContent = `Next ▸ turn ${S.turn + 1} of ${TURNS.length}`; btn.disabled = false; hint.textContent = ''; }
+  else if (S.status === 'DESIGNING') { btn.textContent = 'Next ▸ customer presses Confirm'; btn.disabled = !canConfirm(); hint.textContent = 'or press Confirm design on the customer screen'; }
+  else if (S.status === 'AWAITING_BAKER') { btn.textContent = 'Next ▸ baker approves'; btn.disabled = false; hint.textContent = 'or try Decline on the baker screen'; }
+  else { btn.textContent = 'Done'; btn.disabled = true; hint.textContent = S.status === 'CONFIRMED' ? 'Stage 1 is finished. Press Reset to play again.' : 'The order has ended. Press Reset to play again.'; }
+}
+function next() {
+  if (S.status === 'DESIGNING' && S.turn < TURNS.length) runTurn();
+  else if (S.status === 'DESIGNING') confirmDesign();
+  else if (S.status === 'AWAITING_BAKER') decide(true);
+  snapshotRow(); render();
+}
+document.getElementById('btnNext').onclick = next;
+document.getElementById('btnSend').onclick = next;
+document.getElementById('btnReset').onclick = reset;
+
+/* ===================== catalog cards ===================== */
+document.getElementById('catalog').innerHTML = Object.entries(CATALOG).map(([id, t]) => `
+  <div class="card">
+    <h3>${t.name}</h3>
+    <div class="sub" style="font-size:.85rem">${t.blurb}</div>
+    <div class="pv">${drawCake(t.sample)}</div>
+    <dl>
+      <dt>Sizes</dt><dd>${t.sizes.map(s => `${s.label} (${s.serves}) $${s.price}`).join(' · ')}</dd>
+      <dt>Flavours</dt><dd>${t.flavours.join(', ')}${t.flavours.includes('red velvet') ? ' (+$8)' : ''}</dd>
+      <dt>Frosting</dt><dd>${t.colours.join(', ')}${t.finishes ? ` · ${t.finishes.join(' or ')} (fondant +$30)` : ''}</dd>
+      <dt>Decoration</dt><dd>up to ${t.maxDecorations}: ${t.decorations.map(x => `${x}${ADDONS.decoration[x] ? ' +$' + ADDONS.decoration[x] : ''}`).join(', ')}</dd>
+      ${t.toppers.length > 1 ? `<dt>Topper</dt><dd>${t.toppers.filter(x => x !== 'none').map(x => `${x} +$${ADDONS.topper[x]}`).join(', ')}</dd>` : ''}
+      <dt>Message</dt><dd>${t.inscriptionMax ? `up to ${t.inscriptionMax} characters, free` : 'none'}</dd>
+    </dl>
+    <div class="lim">${t.glutenFree ? 'Gluten-free +$15' : 'No gluten-free'} · at least ${t.minNoticeDays} days' notice</div>
+  </div>`).join('');
+
+/* ===================== sandbox ===================== */
+const SB = { ...D2 };
+function sbForm() {
+  const t = CATALOG[SB.template] || CATALOG.classic;
+  const opt = (arr, v) => arr.map(x => `<option ${x === v ? 'selected' : ''}>${x}</option>`).join('');
+  const allDecs = [...new Set(Object.values(CATALOG).flatMap(c => c.decorations))];
+  const allTop = [...new Set(Object.values(CATALOG).flatMap(c => c.toppers))];
+  const dates = []; for (let i = 1; i <= 16; i++) dates.push(addDays(TODAY, i));
+  document.getElementById('sbForm').innerHTML = `
+    <label>Template</label><select data-k="template">${Object.entries(CATALOG).map(([id, c]) => `<option value="${id}" ${id === SB.template ? 'selected' : ''}>${c.name}</option>`).join('')}</select>
+    <label>Size</label><select data-k="size">${t.sizes.map(s => `<option value="${s.id}" ${s.id === SB.size ? 'selected' : ''}>${s.label} (serves ${s.serves})</option>`).join('')}</select>
+    ${t.needsDigits ? `<label>Digits</label><input type="text" data-k="digits" value="${esc(SB.digits || '')}" maxlength="3">` : ''}
+    <label>Flavour</label><select data-k="flavour">${opt(['vanilla','chocolate','lemon','red velvet'], SB.flavour)}</select>
+    <label>Gluten-free</label><span><input type="checkbox" data-k="glutenFree" ${SB.glutenFree ? 'checked' : ''}></span>
+    <label>Frosting</label><select data-k="colour">${opt(Object.keys(COLOURS), SB.colour)}</select>
+    ${t.finishes ? `<label>Finish</label><select data-k="finish">${opt(t.finishes, SB.finish || 'buttercream')}</select>` : ''}
+    <label>Decoration</label><span class="chips">${allDecs.map(x => `<label><input type="checkbox" data-dec="${x}" ${(SB.decorations || []).includes(x) ? 'checked' : ''}> ${x}</label>`).join('')}</span>
+    <label>Topper</label><select data-k="topper">${opt(allTop, SB.topper || 'none')}</select>
+    ${SB.topper === 'number candles' ? `<label>Candle number</label><input type="text" data-k="number" value="${esc(SB.number || '')}" maxlength="3">` : ''}
+    <label>Message</label><input type="text" data-k="inscription" value="${esc(SB.inscription || '')}">
+    <label>Pickup date</label><select data-k="date">${dates.map(x => `<option value="${x}" ${x === SB.date ? 'selected' : ''}>${fmt(x)} (${daysBetween(TODAY, x)} days)</option>`).join('')}</select>
+    <label>Fulfilment</label><select data-k="fulfilment">${opt(['pickup','delivery'], SB.fulfilment)}</select>
+    <span></span><span class="sub" style="font-size:.78rem">All options of all templates are listed, so you can try ones that don't fit.</span>`;
+  document.querySelectorAll('#sbForm [data-k]').forEach(el => el.addEventListener(el.tagName === 'INPUT' && el.type === 'text' ? 'input' : 'change', () => {
+    const k = el.dataset.k; SB[k] = el.type === 'checkbox' ? el.checked : el.value;
+    if (k === 'template') { const c = CATALOG[SB.template]; SB.size = c.sizes[0].id; if (c.finishes && !SB.finish) SB.finish = 'buttercream'; if (c.needsDigits && !SB.digits) SB.digits = '7'; }
+    if (k === 'topper' && SB.topper === 'number candles' && !SB.number) SB.number = '7';
+    if (k === 'template' || k === 'topper') sbForm(); sbRun();
+  }));
+  document.querySelectorAll('#sbForm [data-dec]').forEach(el => el.addEventListener('change', () => {
+    const x = el.dataset.dec; SB.decorations = (SB.decorations || []).filter(y => y !== x); if (el.checked) SB.decorations.push(x); sbRun();
+  }));
+}
+function sbRun() {
+  const d = { ...SB }; if (!CATALOG[d.template].finishes) delete d.finish; if (!CATALOG[d.template].needsDigits) delete d.digits; if (d.topper !== 'number candles') delete d.number;
+  document.getElementById('sbPreview').innerHTML = drawCake(d) + `<div class="sub" style="text-align:center;font-size:.75rem;padding-bottom:6px">Preview agent: same design → same picture</div>`;
+  const probs = check(d); let h = '<h3>Design checker</h3>';
+  if (probs.length) {
+    h += `<div class="box no"><b>✗ Not allowed</b><ul>${probs.map(p => `<li>${esc(p)}</li>`).join('')}</ul></div>
+      <h3>Pricing</h3><div class="box neutral">Not run: a design that doesn't fit the catalog gets no price. In the chat, these reasons go back to the AI.</div>`;
+  } else {
+    const q = price(d);
+    h += `<div class="box ok"><b>✓ Fits the catalog</b></div><h3>Pricing</h3><div class="box neutral">${priceHtml(q)}</div>
+      <div class="sub" style="font-size:.8rem">In the chat, the Confirm button would be shown.</div>`;
+  }
+  h += `<details style="margin-top:8px;font-size:.8rem"><summary>The design as the AI would send it</summary><pre>${esc(JSON.stringify(d, null, 2))}</pre></details>`;
+  document.getElementById('sbResult').innerHTML = h;
+}
+sbForm(); sbRun();
+reset();
+</script>
+</body>
+</html>

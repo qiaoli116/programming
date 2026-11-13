@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cake Order Desk – data model: one table</title>
+<style>
+  :root {
+    --bg:#f5f6f8; --card:#fff; --text:#1d2330; --muted:#5d6677; --line:#d5dae2; --accent:#0f766e; --soft:#e0f2f0;
+    --ai:#fdf3dc; --ai-line:#b8860b; --rules:#eef2f6; --rules-line:#64748b; --human:#f3e8ff; --human-line:#7e22ce;
+    --s0:#e5e7eb; --s1:#99e0d6; --s2:#a9c8fb; --s3:#f7c58c; --s4:#d7b8f7; --bad:#fde8e6; --bad-line:#b42318;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg:#12151c; --card:#1a1f2a; --text:#e6e9ef; --muted:#9aa3b5; --line:#2f3747; --accent:#4fd1c5; --soft:#173a37;
+      --ai:#3a3114; --ai-line:#e0b341; --rules:#232a37; --rules-line:#94a3b8; --human:#2e1d45; --human-line:#c084fc;
+      --s0:#3a4252; --s1:#1f5d55; --s2:#264a80; --s3:#7a5220; --s4:#553a7a; --bad:#3d1b18; --bad-line:#f08a80;
+    }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:16px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif; }
+  main { max-width:1240px; margin:0 auto; padding:24px 20px 60px; }
+  h1 { font-size:1.7rem; margin:0 0 6px; }
+  h2 { font-size:1.3rem; margin:44px 0 8px; padding-bottom:6px; border-bottom:2px solid var(--line); }
+  h3 { font-size:1.05rem; margin:22px 0 6px; }
+  p { margin:0 0 10px; max-width:85ch; }
+  .sub { color:var(--muted); }
+  code { font:.85em ui-monospace,Consolas,monospace; background:var(--rules); padding:1px 5px; border-radius:4px; }
+  .note { border-left:4px solid var(--accent); background:var(--soft); padding:10px 16px; border-radius:0 8px 8px 0; margin:14px 0; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px 18px; }
+  .cols { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  @media (max-width:900px) { .cols { grid-template-columns:1fr; } }
+  pre { margin:0; font:.82rem/1.5 ui-monospace,Consolas,monospace; overflow-x:auto; }
+  pre .c { color:var(--muted); }
+  .k { display:inline-block; padding:0 8px; border-radius:99px; font-size:.72rem; font-weight:700; border:1.5px solid; white-space:nowrap; }
+  .k.ai { background:var(--ai); border-color:var(--ai-line); border-style:dashed; }
+  .k.rules { background:var(--rules); border-color:var(--rules-line); }
+  .k.human { background:var(--human); border-color:var(--human-line); }
+  .k.gate { background:var(--human); border-color:var(--human-line); border-width:2.5px; }
+  .k.cust { background:var(--soft); border-color:var(--accent); }
+  table { width:100%; border-collapse:collapse; background:var(--card); border:1px solid var(--line); font-size:.9rem; }
+  th, td { text-align:left; padding:7px 10px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { background:var(--bg); font-size:.75rem; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); }
+  td.st { font:700 .8rem ui-monospace,Consolas,monospace; }
+  tr.sep td { background:var(--bg); font-size:.75rem; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); padding:4px 10px; }
+  .sw { display:inline-block; width:12px; height:12px; border-radius:3px; vertical-align:-1px; margin-right:4px; }
+  .legend { display:flex; flex-wrap:wrap; gap:6px 18px; font-size:.85rem; color:var(--muted); margin:8px 0; }
+
+  /* the growing row */
+  .grid { overflow-x:auto; }
+  .grid table { font-size:.75rem; width:auto; min-width:100%; }
+  .grid th.v { writing-mode:vertical-rl; transform:rotate(180deg); text-transform:none; letter-spacing:0; font:600 .75rem ui-monospace,Consolas,monospace; color:var(--text); padding:8px 4px; height:110px; text-align:left; }
+  .grid td { padding:0; border:1px solid var(--line); width:34px; height:22px; text-align:center; }
+  .grid td.lbl { width:auto; padding:2px 8px; text-align:left; font:600 .75rem ui-monospace,Consolas,monospace; white-space:nowrap; }
+  .grid td.who { width:auto; padding:2px 8px; text-align:left; white-space:nowrap; color:var(--muted); }
+  .grid td.f0 { background:var(--s0); } .grid td.f1 { background:var(--s1); } .grid td.f2 { background:var(--s2); }
+  .grid td.f3 { background:var(--s3); } .grid td.f4 { background:var(--s4); }
+  .grid td.new { font-weight:800; outline:2px solid var(--text); outline-offset:-2px; }
+  .grid th.g1 { border-bottom:4px solid var(--s1); } .grid th.g2 { border-bottom:4px solid var(--s2); }
+  .grid th.g3 { border-bottom:4px solid var(--s3); } .grid th.g4 { border-bottom:4px solid var(--s4); } .grid th.g0 { border-bottom:4px solid var(--s0); }
+</style>
+</head>
+<body>
+<main>
+
+<h1>Cake Order Desk: the data model is one table</h1>
+<p class="sub">Companion to <a href="business-lifecycle.html">the business and its life cycle</a>. The data model for the whole life cycle, kept as small as it can be.</p>
+
+<div class="card" style="margin-top:14px">
+  <p><b>The idea.</b> The agents never call each other. They all work on <b>one shared table, <code>orders</code></b>, with <b>one row per order</b>. The row is created when the customer sends a request and is finished when the order is closed. Each agent does three things:</p>
+  <ol style="margin:0 0 8px">
+    <li><b>Find work:</b> look for rows whose <code>status</code> is the one it handles. That status is its <i>inbox</i>.</li>
+    <li><b>Do its job:</b> read the columns written before it.</li>
+    <li><b>Hand on:</b> fill in <b>its own column</b> and move <code>status</code> on to the next value, which puts the row in the next agent's inbox.</li>
+  </ol>
+  <p style="margin:0">So the database <b>is</b> the hand-off. It also keeps a record of everything: the life of an order is written in its row.</p>
+</div>
+
+<!-- ======================================================= -->
+<h2>1. The table</h2>
+<div class="cols">
+  <div class="card"><pre><span class="c">-- SQLite. JSON columns are stored as TEXT.</span>
+CREATE TABLE orders (
+  id           TEXT PRIMARY KEY,  <span class="c">-- 'C-1043'</span>
+  status       TEXT NOT NULL,     <span class="c">-- where it is = whose turn</span>
+  created_at   TEXT NOT NULL,
+  updated_at   TEXT NOT NULL,
+
+  <span class="c">-- Stage 1 Ordering</span>
+  request      TEXT NOT NULL,     <span class="c">-- customer + message</span>
+  spec         TEXT,              <span class="c">-- Intake</span>
+  quote        TEXT,              <span class="c">-- Pricing</span>
+  slot         TEXT,              <span class="c">-- Capacity</span>
+  brief        TEXT,              <span class="c">-- Design brief</span>
+  review       TEXT,              <span class="c">-- Review router</span>
+  approval     TEXT,              <span class="c">-- Baker (only if flagged)</span>
+  confirmation TEXT,              <span class="c">-- Confirmer</span>
+
+  <span class="c">-- Stage 2 Production</span>
+  plan         TEXT,              <span class="c">-- Production planner</span>
+  made         TEXT,              <span class="c">-- Kitchen staff</span>
+  qc           TEXT,              <span class="c">-- Photo check</span>
+  release      TEXT,              <span class="c">-- Baker release</span>
+
+  <span class="c">-- Stage 3 Fulfillment</span>
+  fulfillment  TEXT,              <span class="c">-- Dispatcher</span>
+  handover     TEXT,              <span class="c">-- Driver / counter staff</span>
+
+  <span class="c">-- Stage 4 Done</span>
+  receipt      TEXT,              <span class="c">-- Closer</span>
+  feedback     TEXT,              <span class="c">-- Feedback summariser</span>
+
+  events       TEXT NOT NULL DEFAULT '[]'  <span class="c">-- the log</span>
+);</pre></div>
+  <div class="card">
+    <b>Why it is shaped like this</b>
+    <ul style="margin:6px 0 0;padding-left:20px">
+      <li><b>Four plain columns</b> are all the system needs to find and sort orders: <code>id</code>, <code>status</code> and the two timestamps.</li>
+      <li><b>One JSON column per agent.</b> Each agent's output is a small document, and its shape is that agent's contract. Changing what Pricing returns changes one column, not the schema.</li>
+      <li><b>One writer per column.</b> Exactly one agent may write each column, and it writes it once. When the baker corrects a price, the correction goes in <code>approval</code> (for example <code>priceOverride</code>), not into <code>quote</code>. Every value can be traced to who wrote it.</li>
+      <li><b>Columns grouped by business stage.</b> A stage's output is simply "the row, with that stage's columns filled".</li>
+      <li><b>Empty means not reached yet.</b> A <code>NULL</code> column is a step that has not happened. An order that skips the baker leaves <code>approval</code> empty for ever.</li>
+      <li><b>The log lives in the row.</b> <code>events</code> is a JSON list, with one entry added on every status change.</li>
+      <li><b>No other tables.</b> The customer sits inside <code>request</code>. Prices and the cake catalog are config files. The production calendar is <i>worked out</i> from the <code>slot</code> column of other orders (query below).</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ======================================================= -->
+<h2>2. Status is the inbox</h2>
+<p>Each status value says <b>whose turn it is</b>. An agent's whole "integration" with the rest of the system is the row below: which status it waits for, which column it fills, and which status it sets.</p>
+<table>
+  <thead><tr><th>Status (inbox)</th><th>Picked up by</th><th>Kind</th><th>Reads</th><th>Writes column</th><th>Sets status to</th></tr></thead>
+  <tbody id="inbox"></tbody>
+</table>
+<p class="sub" style="margin-top:6px">The human steps work the same way. The baker's review screen is simply the list of rows with <code>status = 'AWAITING_BAKER'</code>, and the button the baker clicks performs the same kind of update as any agent.</p>
+
+<!-- ======================================================= -->
+<h2>3. Watch one row fill in</h2>
+<p>Order B (the custom unicorn cake) from start to finish. Each line is the <b>same row</b> after one more step. A coloured cell has a value, and the outlined cell was written in that step. Read it top to bottom and the row grows from left to right, stage by stage.</p>
+<div class="legend">
+  <span><span class="sw" style="background:var(--s0)"></span>always present</span>
+  <span><span class="sw" style="background:var(--s1)"></span>Stage 1 Ordering</span>
+  <span><span class="sw" style="background:var(--s2)"></span>Stage 2 Production</span>
+  <span><span class="sw" style="background:var(--s3)"></span>Stage 3 Fulfillment</span>
+  <span><span class="sw" style="background:var(--s4)"></span>Stage 4 Done</span>
+</div>
+<div class="grid card" style="padding:10px"><table id="grow"></table></div>
+<p class="sub" style="margin-top:6px">Order A (the standard cake) looks the same, except that the router sets <code>APPROVED</code> straight away, so the <code>approval</code> cell stays empty: that order never waited for a person.</p>
+
+<!-- ======================================================= -->
+<h2>4. Stage contracts, in terms of the table</h2>
+<table>
+  <thead><tr><th>Business stage</th><th>Input: the row when…</th><th>Fills columns</th><th>Output: the row when…</th></tr></thead>
+  <tbody>
+    <tr><td><b>1 Ordering</b></td><td>is created, status <code>REQUESTED</code></td><td><code>spec quote slot brief review approval confirmation</code></td><td>status <code>CONFIRMED</code> (or <code>DECLINED</code>, the end)</td></tr>
+    <tr><td><b>2 Production</b></td><td>status <code>CONFIRMED</code></td><td><code>plan made qc release</code></td><td>status <code>READY</code></td></tr>
+    <tr><td><b>3 Fulfillment</b></td><td>status <code>READY</code></td><td><code>fulfillment handover</code></td><td>status <code>HANDED_OVER</code></td></tr>
+    <tr><td><b>4 Done</b></td><td>status <code>HANDED_OVER</code></td><td><code>receipt feedback</code></td><td>status <code>CLOSED</code></td></tr>
+  </tbody>
+</table>
+<div class="note"><b>Building one stage on its own:</b> to work on Production before Ordering exists, insert a sample row with status <code>CONFIRMED</code> and the Stage 1 columns filled in. Production cannot tell whether a real Ordering stage wrote it.</div>
+
+<!-- ======================================================= -->
+<h2>5. The three queries every part of the system uses</h2>
+<div class="cols">
+  <div class="card"><b>Find work (an agent's inbox)</b><pre>
+SELECT * FROM orders
+WHERE status = 'PARSED'          <span class="c">-- e.g. Pricing</span>
+ORDER BY created_at;</pre>
+  <p style="margin:10px 0 0"><b>Hand on (one update does it all)</b></p><pre>
+UPDATE orders SET
+  quote      = :quoteJson,
+  status     = 'PRICED',
+  updated_at = :now,
+  events     = json_insert(events, '$[#]',
+                 json_object('at', :now, 'by', 'pricing',
+                             'from', 'PARSED', 'to', 'PRICED'))
+WHERE id = :id
+  AND status = 'PARSED';         <span class="c">-- only if still my turn</span></pre>
+  <p class="sub" style="margin:8px 0 0">The last line is the safety catch. If two copies of an agent pick up the same order, only the first update changes the row. The second changes nothing and gives up. The status check is the lock, so no separate locking is needed.</p>
+  </div>
+  <div class="card"><b>Capacity: how full is a day?</b><pre>
+SELECT COALESCE(SUM(json_extract(slot, '$.units')), 0)
+FROM orders
+WHERE json_extract(slot, '$.productionDay') = :day
+  AND status &lt;&gt; 'DECLINED';</pre>
+  <p class="sub" style="margin:8px 0 0">There is no calendar table. The bookings are the <code>slot</code> values already in the table.</p>
+  <p style="margin:12px 0 0"><b>The baker's review inbox</b></p><pre>
+SELECT id, request, spec, quote, brief, review
+FROM orders
+WHERE status = 'AWAITING_BAKER'
+ORDER BY created_at;</pre>
+  <p style="margin:12px 0 0"><b>An order's history</b></p><pre>
+SELECT value FROM orders, json_each(orders.events)
+WHERE orders.id = 'C-1043';</pre>
+  </div>
+</div>
+
+<!-- ======================================================= -->
+<h2>6. One finished row</h2>
+<p class="sub">Order B after it is closed. Fictional data, shortened.</p>
+<div class="card"><pre id="sample" style="white-space:pre-wrap;word-break:break-word"></pre></div>
+
+<!-- ======================================================= -->
+<h2>7. What we gave up, and when to split the table</h2>
+<table>
+  <thead><tr><th>Simplification</th><th>Fine while…</th><th>Split out when…</th></tr></thead>
+  <tbody>
+    <tr><td>Customer details inside <code>request</code></td><td>we don't need to recognise repeat customers</td><td>we want order history per customer → <code>customers</code> table</td></tr>
+    <tr><td>Event log as a JSON list in the row</td><td>orders have about 20 events and we read them one order at a time</td><td>we want to search events across orders → <code>order_events</code> table</td></tr>
+    <tr><td>Kitchen tasks inside <code>plan</code> / <code>made</code></td><td>staff look at one order at a time</td><td>staff need a "today's tasks" board across orders → <code>tasks</code> table</td></tr>
+    <tr><td>Calendar worked out from <code>slot</code></td><td>capacity is a simple count per day</td><td>shifts, staff and ovens are planned separately → <code>calendar</code> table</td></tr>
+    <tr><td>Columns written once, no loop-backs</td><td>the flow only goes forward (agreed)</td><td>rework or changes arrive → keep versions, or a table per attempt</td></tr>
+  </tbody>
+</table>
+
+</main>
+
+<script>
+(function () {
+  // [status, picked up by, kind, reads, writes, next status, stage]
+  var FLOW = [
+    ['REQUESTED', 'Intake', 'ai', 'request', 'spec', 'PARSED', 1],
+    ['PARSED', 'Pricing', 'rules', 'spec', 'quote', 'PRICED', 1],
+    ['PRICED', 'Capacity', 'rules', 'spec (+ other rows’ slot)', 'slot', 'SLOT_HELD', 1],
+    ['SLOT_HELD', 'Design brief', 'ai', 'spec', 'brief', 'BRIEFED', 1],
+    ['BRIEFED', 'Review router', 'rules', 'spec, quote, slot, brief', 'review', 'APPROVED or AWAITING_BAKER', 1],
+    ['AWAITING_BAKER', 'Baker review', 'gate', 'everything so far', 'approval', 'APPROVED or DECLINED', 1],
+    ['APPROVED', 'Confirmer', 'rules', 'quote, approval', 'confirmation', 'CONFIRMED', 1],
+    ['CONFIRMED', 'Production planner', 'rules', 'spec, slot, brief, approval', 'plan', 'PRODUCTION_PLANNED', 2],
+    ['PRODUCTION_PLANNED', 'Kitchen staff', 'human', 'plan, brief, approval', 'made', 'MADE', 2],
+    ['MADE', 'Photo check', 'ai', 'made (photo), brief', 'qc', 'QC_CHECKED', 2],
+    ['QC_CHECKED', 'Baker release', 'gate', 'made, qc', 'release', 'READY', 2],
+    ['READY', 'Dispatcher + Notifier', 'rules', 'spec (pickup/delivery), request', 'fulfillment', 'AWAITING_PICKUP or OUT_FOR_DELIVERY', 3],
+    ['AWAITING_PICKUP / OUT_FOR_DELIVERY', 'Counter staff / Driver', 'human', 'fulfillment', 'handover', 'HANDED_OVER', 3],
+    ['HANDED_OVER', 'Closer', 'rules', 'quote, confirmation, handover', 'receipt', 'COMPLETED', 4],
+    ['COMPLETED', 'Feedback summariser', 'ai', 'customer reply', 'feedback', 'CLOSED', 4],
+    ['DECLINED, CLOSED', 'nobody: the order has ended', '', '', '', '', 0]
+  ];
+  var KIND = { ai: 'AI', rules: 'Rules', human: 'Human', gate: 'Human gate', cust: 'Customer' };
+  var STAGE = ['', 'Stage 1 · Ordering', 'Stage 2 · Production', 'Stage 3 · Fulfillment', 'Stage 4 · Done'];
+  var html = '', last = -1;
+  FLOW.forEach(function (r) {
+    if (r[6] !== last) { html += '<tr class="sep"><td colspan="6">' + (r[6] ? STAGE[r[6]] : 'End states') + '</td></tr>'; last = r[6]; }
+    html += '<tr><td class="st">' + r[0] + '</td><td>' + r[1] + '</td><td>' + (r[2] ? '<span class="k ' + r[2] + '">' + KIND[r[2]] + '</span>' : '') +
+      '</td><td>' + r[3] + '</td><td>' + (r[4] ? '<code>' + r[4] + '</code>' : '') + '</td><td class="st">' + r[5] + '</td></tr>';
+  });
+  document.getElementById('inbox').innerHTML = html;
+
+  // growing row
+  var COLS = [['id', 0], ['status', 0], ['created_at', 0], ['updated_at', 0],
+    ['request', 1], ['spec', 1], ['quote', 1], ['slot', 1], ['brief', 1], ['review', 1], ['approval', 1], ['confirmation', 1],
+    ['plan', 2], ['made', 2], ['qc', 2], ['release', 2], ['fulfillment', 3], ['handover', 3], ['receipt', 4], ['feedback', 4], ['events', 0]];
+  // [status after step, who, column written]
+  var STEPS = [['REQUESTED', 'Customer', 'request'], ['PARSED', 'Intake', 'spec'], ['PRICED', 'Pricing', 'quote'], ['SLOT_HELD', 'Capacity', 'slot'],
+    ['BRIEFED', 'Design brief', 'brief'], ['AWAITING_BAKER', 'Review router', 'review'], ['APPROVED', 'Baker review', 'approval'], ['CONFIRMED', 'Confirmer', 'confirmation'],
+    ['PRODUCTION_PLANNED', 'Production planner', 'plan'], ['MADE', 'Kitchen staff', 'made'], ['QC_CHECKED', 'Photo check', 'qc'], ['READY', 'Baker release', 'release'],
+    ['OUT_FOR_DELIVERY', 'Dispatcher', 'fulfillment'], ['HANDED_OVER', 'Driver', 'handover'], ['COMPLETED', 'Closer', 'receipt'], ['CLOSED', 'Feedback summariser', 'feedback']];
+  var g = '<thead><tr><th>status after the step</th><th>written by</th>';
+  COLS.forEach(function (c) { g += '<th class="v g' + c[1] + '">' + c[0] + '</th>'; });
+  g += '</tr></thead><tbody>';
+  var filled = { id: 1, status: 1, created_at: 1, updated_at: 1, events: 1 };
+  STEPS.forEach(function (s) {
+    filled[s[2]] = 1;
+    g += '<tr><td class="lbl">' + s[0] + '</td><td class="who">' + s[1] + '</td>';
+    COLS.forEach(function (c) {
+      g += '<td class="' + (filled[c[0]] ? 'f' + c[1] : '') + (c[0] === s[2] ? ' new' : '') + '">' + (c[0] === s[2] ? '●' : '') + '</td>';
+    });
+    g += '</tr>';
+  });
+  document.getElementById('grow').innerHTML = g + '</tbody>';
+
+  var row = {
+    id: 'C-1043', status: 'CLOSED', created_at: '2026-11-16T09:40', updated_at: '2026-11-22T09:15',
+    request: { customer: { name: 'Jordan', contact: 'jordan@example.com' }, message: 'Chocolate cake for about 20 people, unicorn theme …', wantedDate: '2026-11-21', fulfillment: 'delivery', address: '12 Elm Street' },
+    spec: { servings: 20, flavor: 'chocolate', dietary: ['gluten-free'], design: { type: 'custom', theme: 'unicorn' }, dueAt: '2026-11-21T15:00', fulfillment: 'delivery', confidence: 0.88 },
+    quote: { lines: [['Medium cake (11-20)', 65], ['Gluten-free', 15], ['Sculpted design', 60], ['Delivery', 10]], total: 150 },
+    slot: { productionDay: '2026-11-20', units: 2, glutenFreeFirstBake: true },
+    brief: { text: 'Two-layer 8-inch round, gluten-free chocolate …', risks: ['decorations must be gluten-free', 'tall horn may tip'] },
+    review: { needed: true, reasons: ['custom design', 'dietary: gluten-free'] },
+    approval: { by: 'baker', decision: 'approve', priceOverride: null, edits: ['horn in gluten-free modelling chocolate'] },
+    confirmation: { payment: 'paid 150.00 (simulated)', sentAt: '2026-11-16T10:02' },
+    plan: { tasks: [['bake (gluten-free, first)', 'Fri 07:00'], ['sculpt horn', 'Fri 10:00'], ['assemble and decorate', 'Sat 08:00']] },
+    made: { tasksDoneAt: ['Fri 08:10', 'Fri 12:30', 'Sat 11:40'], photo: 'C-1043-final.jpg' },
+    qc: { result: 'match', notes: ['mane shows 5 colours, brief implies 6'] },
+    release: { by: 'baker', at: '2026-11-21T12:05' },
+    fulfillment: { method: 'delivery', driver: 'Driver 1', window: '14:30-15:00' },
+    handover: { at: '2026-11-21T14:48', by: 'driver', proof: 'photo at door' },
+    receipt: { number: 'R-1043', amount: 150, sentAt: '2026-11-21T15:10' },
+    feedback: { sentiment: 'positive', themes: ['looks', 'taste'], issue: 'horn a little wobbly in transit' },
+    events: [{ at: '2026-11-16T09:40', by: 'customer', to: 'REQUESTED' }, { at: '2026-11-16T09:40', by: 'intake', from: 'REQUESTED', to: 'PARSED' }, '… 14 more …']
+  };
+  var out = Object.keys(row).map(function (k) { return '  ' + k + ': ' + JSON.stringify(row[k]); }).join('\n');
+  document.getElementById('sample').textContent = 'orders row\n' + out;
+})();
+</script>
+</body>
+</html>

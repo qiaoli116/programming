@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cake Order Desk – The business: what the bakery sells</title>
+<style>
+  :root {
+    --bg:#f5f6f8; --card:#fff; --text:#1d2330; --muted:#5d6677; --line:#d5dae2; --accent:#0f766e; --soft:#e0f2f0;
+    --ai:#fdf3dc; --ai-line:#b8860b; --rules:#eef2f6; --rules-line:#64748b; --human:#f3e8ff; --human-line:#7e22ce;
+    --bad:#fde8e6; --bad-line:#b42318; --good:#e5f6ea; --good-line:#1f7a3a; --hl:#fff4b8;
+    --cake:#f8dfe6; --cake-line:#b9788b; --cake2:#fff3d6; --cake2-line:#b88a2e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg:#12151c; --card:#1a1f2a; --text:#e6e9ef; --muted:#9aa3b5; --line:#2f3747; --accent:#4fd1c5; --soft:#173a37;
+      --ai:#3a3114; --ai-line:#e0b341; --rules:#232a37; --rules-line:#94a3b8; --human:#2e1d45; --human-line:#c084fc;
+      --bad:#3d1b18; --bad-line:#f08a80; --good:#16321f; --good-line:#6fd391; --hl:#4a4215;
+      --cake:#4a2a35; --cake-line:#e3a3b6; --cake2:#4a3b1c; --cake2-line:#e8c070;
+    }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:16px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif; }
+  main { max-width:1240px; margin:0 auto; padding:24px 20px 60px; }
+  h1 { font-size:1.7rem; margin:0 0 6px; }
+  h2 { font-size:1.3rem; margin:44px 0 8px; padding-bottom:6px; border-bottom:2px solid var(--line); }
+  h3 { font-size:1.05rem; margin:22px 0 6px; }
+  p { margin:0 0 10px; max-width:85ch; }
+  .sub { color:var(--muted); }
+  code { font:.85em ui-monospace,Consolas,monospace; background:var(--rules); padding:1px 5px; border-radius:4px; }
+  .note { border-left:4px solid var(--accent); background:var(--soft); padding:10px 16px; border-radius:0 8px 8px 0; margin:14px 0; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px 18px; }
+  table { width:100%; border-collapse:collapse; background:var(--card); border:1px solid var(--line); font-size:.9rem; }
+  th, td { text-align:left; padding:8px 12px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { background:var(--bg); font-size:.75rem; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); }
+
+  svg.dia { width:100%; height:auto; background:var(--card); border:1px solid var(--line); border-radius:10px; }
+  svg.dia text { fill:var(--text); font-family:system-ui,"Segoe UI",sans-serif; }
+  .b-occ { fill:var(--ai); stroke:var(--ai-line); stroke-width:2; stroke-dasharray:7 4; }
+  .b-line { fill:var(--rules); stroke:var(--rules-line); stroke-width:2; }
+  .b-tpl { fill:var(--soft); stroke:var(--accent); stroke-width:2.5; }
+  .b-opt { fill:var(--human); stroke:var(--human-line); stroke-width:2; }
+  .b-des { fill:var(--card); stroke:var(--text); stroke-width:3; }
+  .ln { stroke:var(--text); stroke-width:2; fill:none; marker-end:url(#arr); }
+  .lnd { stroke:var(--muted); stroke-width:1.5; fill:none; stroke-dasharray:4 4; marker-end:url(#arrm); }
+  #arr path { fill:var(--text); } #arrm path { fill:var(--muted); }
+  .t { font-size:14px; } .tb { font-size:16px; font-weight:700; } .ts { font-size:12.5px; } .tl { font-size:12px; font-weight:700; }
+  .tm { fill:var(--muted) !important; }
+
+  /* product line cards */
+  .lines { display:grid; grid-template-columns:repeat(auto-fill, minmax(240px, 1fr)); gap:12px; }
+  .lc { display:flex; flex-direction:column; gap:6px; }
+  .lc h3 { margin:0; display:flex; justify-content:space-between; align-items:baseline; }
+  .lc .band { font-size:.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.05em; padding:1px 8px; border-radius:99px; border:1px solid var(--line); color:var(--muted); }
+  .lc svg { width:100%; height:110px; background:var(--bg); border-radius:8px; }
+  .cake-a { fill:var(--cake); stroke:var(--cake-line); stroke-width:2; }
+  .cake-b { fill:var(--cake2); stroke:var(--cake2-line); stroke-width:2; }
+  .plate { fill:var(--line); }
+  .lc ul { margin:0; padding-left:18px; font-size:.86rem; }
+  .lc .lim { font-size:.8rem; color:var(--muted); border-top:1px dashed var(--line); padding-top:6px; }
+
+  /* menu grid */
+  .menu { overflow-x:auto; }
+  .menu table { min-width:980px; }
+  .menu td, .menu th { border-right:1px solid var(--line); }
+  .menu th.occ { text-transform:none; letter-spacing:0; font-size:.86rem; color:var(--text); background:var(--ai); width:170px; }
+  .menu th.occ .sub { display:block; font-weight:400; font-size:.75rem; }
+  .chip { display:inline-block; margin:2px 4px 2px 0; padding:2px 9px; border-radius:99px; background:var(--soft); border:1px solid var(--accent); font-size:.8rem; cursor:pointer; }
+  .chip:hover, .chip.on { background:var(--accent); color:var(--card); }
+  .chip.season { border-style:dashed; }
+  .menu td.fit { background:color-mix(in srgb, var(--soft) 35%, var(--card)); }
+  .detail { margin-top:12px; display:grid; grid-template-columns:200px 1fr; gap:16px; }
+  @media (max-width:800px) { .detail { grid-template-columns:1fr; } }
+  .detail dl { display:grid; grid-template-columns:auto 1fr; gap:3px 14px; margin:0; font-size:.9rem; }
+  .detail dt { color:var(--muted); } .detail dd { margin:0; }
+
+  /* option matrix */
+  .y { color:var(--good-line); font-weight:700; } .n { color:var(--muted); } .lim2 { color:var(--ai-line); font-size:.82rem; }
+  .levels { display:flex; flex-direction:column; gap:8px; }
+  .lvl { display:grid; grid-template-columns:200px 1fr; gap:14px; align-items:start; }
+  .lvl .tag { font-weight:700; padding:8px 12px; border-radius:8px; border:2px solid; }
+  .lvl:nth-child(1) .tag { background:var(--bad); border-color:var(--bad-line); }
+  .lvl:nth-child(2) .tag { background:var(--rules); border-color:var(--rules-line); }
+  .lvl:nth-child(3) .tag { background:var(--soft); border-color:var(--accent); }
+  .lvl:nth-child(4) .tag { background:var(--human); border-color:var(--human-line); }
+  .lvl ul { margin:4px 0 0; padding-left:18px; font-size:.9rem; }
+
+  /* finder */
+  .finder { display:grid; grid-template-columns:300px 1fr; gap:16px; }
+  @media (max-width:900px) { .finder { grid-template-columns:1fr; } }
+  .finder form { display:flex; flex-direction:column; gap:10px; font-size:.9rem; }
+  .finder label { display:flex; flex-direction:column; gap:3px; color:var(--muted); font-size:.82rem; }
+  .finder label.cb { flex-direction:row; align-items:center; gap:8px; color:var(--text); font-size:.9rem; }
+  select, input { font:inherit; font-size:.9rem; padding:5px 8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--text); }
+  .res { display:flex; flex-direction:column; gap:6px; }
+  .res .r { display:grid; grid-template-columns:22px 1fr auto; gap:8px; padding:7px 10px; border-radius:8px; border:1px solid var(--line); background:var(--card); font-size:.88rem; }
+  .res .r.ok { border-color:var(--good-line); background:var(--good); }
+  .res .r.no { opacity:.75; }
+  .res .r .why { color:var(--muted); font-size:.82rem; }
+  .res .price { font-weight:700; white-space:nowrap; }
+  .step { font-size:.78rem; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); margin:8px 0 2px; }
+</style>
+</head>
+<body>
+<main>
+
+<h1>The business: what the bakery sells</h1>
+<p class="sub">Cake Order Desk · iteration 1 · devlog <a href="../20261113-03-product-catalog.md">20261113-03-product-catalog</a> · all names, prices and designs are fictional</p>
+
+<p>Before we design the system, we define the business. A bakery menu answers four questions. <b>Why</b> is the customer buying? That is the <b>occasion</b>. <b>What</b> kind of cake suits them, and how big? That is the <b>product line</b> and its size. <b>Which design</b> do they want? That is the <b>template</b>. <b>What can they change</b>? Those are the <b>options</b>. The answers to these questions are the <b>design</b> of one order.</p>
+
+<!-- ============================== 1 ============================== -->
+<h2>1. The structure: four layers and one tag</h2>
+<svg class="dia" viewBox="0 0 1160 356" role="img" aria-label="Catalog structure: occasions tag templates, templates are built on product lines, a design is a template plus option values">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z"/></marker>
+    <marker id="arrm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z"/></marker>
+  </defs>
+  <rect class="b-occ" x="20" y="24" width="260" height="104" rx="12"/>
+  <text class="tl tm" x="36" y="46">TAG · WHY THEY BUY</text>
+  <text class="tb" x="36" y="70">Occasion</text>
+  <text class="ts" x="36" y="92">birthday, wedding, baby, office,</text>
+  <text class="ts" x="36" y="110">seasonal, just because…</text>
+
+  <rect class="b-line" x="20" y="196" width="260" height="114" rx="12"/>
+  <text class="tl tm" x="36" y="218">LAYER 1 · WHAT IT IS</text>
+  <text class="tb" x="36" y="242">Product line</text>
+  <text class="ts" x="36" y="264">cupcakes, mini, round, number,</text>
+  <text class="ts" x="36" y="282">sheet, tiered</text>
+  <text class="ts tm" x="36" y="300">sizes · base price · notice · limits</text>
+
+  <rect class="b-tpl" x="400" y="106" width="270" height="124" rx="12"/>
+  <text class="tl tm" x="416" y="128">LAYER 2 · A NAMED DESIGN</text>
+  <text class="tb" x="416" y="152">Template</text>
+  <text class="ts" x="416" y="174">e.g. "Unicorn round"</text>
+  <text class="ts" x="416" y="192">fixed parts · defaults ·</text>
+  <text class="ts" x="416" y="210">which options are open</text>
+
+  <rect class="b-opt" x="790" y="24" width="250" height="104" rx="12"/>
+  <text class="tl tm" x="806" y="46">LAYER 3 · CUSTOMIZATION</text>
+  <text class="tb" x="806" y="70">Option library</text>
+  <text class="ts" x="806" y="92">size, sponge, filling, colour,</text>
+  <text class="ts" x="806" y="110">decoration, message, dietary… + price</text>
+
+  <rect class="b-des" x="790" y="196" width="250" height="114" rx="12"/>
+  <text class="tl tm" x="806" y="218">LAYER 4 · ONE CUSTOMER'S CAKE</text>
+  <text class="tb" x="806" y="242">Design</text>
+  <text class="ts" x="806" y="264">= template + chosen option values</text>
+  <text class="ts tm" x="806" y="284">what the order holds and</text>
+  <text class="ts tm" x="806" y="300">what the kitchen makes</text>
+
+  <path class="ln" d="M280 76 H340 V140 H396"/>
+  <text class="ts" x="290" y="66">tags (many ↔ many)</text>
+  <path class="ln" d="M280 252 H340 V196 H396"/>
+  <text class="ts" x="290" y="272">1 line → many templates</text>
+  <path class="ln" d="M670 190 H730 V252 H786"/>
+  <text class="ts" x="680" y="276">starts from</text>
+  <path class="ln" d="M915 128 V192"/>
+  <text class="ts" x="924" y="166">chosen values</text>
+  <path class="lnd" d="M150 310 V326 H1090 V76 H1044"/>
+  <text class="ts tm" x="560" y="344" text-anchor="middle">the line says which option groups apply</text>
+</svg>
+<p style="margin-top:10px"><b>The occasion is a tag, not a layer.</b> One template can suit several occasions: a message mini cake works for a birthday, an anniversary or a thank-you. <b>The occasion drives the suggestions</b>, and <b>the product line drives the rules</b>. Notice, sizes, dietary limits and base prices come from how a cake is made, not from why it is bought.</p>
+
+<!-- ============================== 2 ============================== -->
+<h2>2. Product lines: from small to big</h2>
+<p>Six kinds of cake. Every size says how many people it serves (party portions), so the assistant can turn "about 20 kids" into the sizes that fit across all lines.</p>
+<div class="lines" id="lines"></div>
+
+<h3>Servings ruler: which line fits how many people</h3>
+<svg class="dia" id="ruler" viewBox="0 0 1160 316" role="img" aria-label="Servings per size for each product line, from 2 to 120"></svg>
+<p class="sub" style="font-size:.86rem;margin-top:6px">Each dot is one size and its price. For 20 guests, look at the dashed line: a 10" round, a 2-digit number cake, a half sheet and a box of 24 cupcakes all fit. Tiered cakes start at 30.</p>
+
+<!-- ============================== 3 ============================== -->
+<h2>3. The menu: occasions × product lines</h2>
+<p>Each row is an occasion, each column a product line, and each chip a template. A template can appear in several rows. Click a chip to see what is fixed and what the customer can change. Dashed chips are seasonal.</p>
+<div class="menu"><table id="menu"></table></div>
+<div class="card detail" id="detail"></div>
+
+<!-- ============================== 4 ============================== -->
+<h2>4. The option library: one shared list</h2>
+<p>All customizations come from one list. Each <b>product line</b> says which option groups apply, and each <b>template</b> may fix or narrow them further. Every value has a price, so the price of any design can be added up from the catalog.</p>
+<table id="optMatrix"></table>
+<p class="sub" style="font-size:.86rem;margin-top:6px">Price of a design = base price of the line and size + each chosen option + extras. Flat prices for iteration 1 (open question Q2: should they scale with size?).</p>
+
+<!-- ============================== 5 ============================== -->
+<h2>5. Rules, four levels</h2>
+<p>These rules keep every design makeable. In the system, the <b>Design checker</b> applies all four levels to every design the AI proposes.</p>
+<div class="levels">
+  <div class="lvl"><div class="tag">1 · Shop-wide: never</div><ul><li>3D sculpted shapes, likenesses of real people (sculpted or printed), more than 3 tiers</li><li>alcohol in the cake, delivery outside the local area, less than 2 days' notice</li></ul></div>
+  <div class="lvl"><div class="tag">2 · Product line</div><ul><li>sizes and minimum notice (tiered: 7 days, 3 tiers: 14 days)</li><li>which option groups apply; dietary limits (tiered cakes can't be gluten-free or vegan)</li></ul></div>
+  <div class="lvl"><div class="tag">3 · Template</div><ul><li>fixed parts can't be removed (a Unicorn round always has the unicorn topper)</li><li>a narrowed palette or sizes; a seasonal date window (Snowy Christmas: pickups 1–24 Dec)</li></ul></div>
+  <div class="lvl"><div class="tag">4 · Option compatibility</div><ul><li>red velvet and carrot can't be gluten-free or vegan; vegan only with vanilla or chocolate sponge</li><li>fondant only on round and tiered; printed picture only on sheet and round; at most 2 decorations (1 on cupcakes and minis)</li></ul></div>
+</div>
+
+<!-- ============================== 6 ============================== -->
+<h2>6. Try it: find designs for an order</h2>
+<p>This is the first thing the Design assistant does with a new customer: work out the <b>occasion</b>, <b>how many people</b>, <b>when</b> and any <b>dietary</b> need, then shortlist templates. The shortlist below is worked out by the rules from the catalog. In the chat, the AI picks 2–4 of them as options and adds its designer's notes.</p>
+<div class="finder">
+  <form class="card" id="fForm" onsubmit="return false">
+    <label>Occasion<select id="fOcc"></select></label>
+    <label>Number of guests<input id="fGuests" type="number" min="1" max="150" value="20"></label>
+    <label>Pickup date (today is Fri 13 Nov 2026)<select id="fDate"></select></label>
+    <label class="cb"><input id="fGF" type="checkbox" checked> Gluten-free</label>
+    <label class="cb"><input id="fVegan" type="checkbox"> Vegan</label>
+    <div class="sub" style="font-size:.8rem">Preset: Mia's unicorn birthday (20 kids, gluten-free, Sat 21 Nov), the example used in the Ordering chat.</div>
+  </form>
+  <div id="fOut"></div>
+</div>
+
+<!-- ============================== 7 ============================== -->
+<h2>7. Open questions</h2>
+<table>
+  <tr><th style="width:50px">#</th><th style="width:280px">Question</th><th>Proposal</th></tr>
+  <tr><td>Q1</td><td>Fully custom cakes outside the catalog?</td><td>Not in iteration 1. The assistant says what we can't do and offers the nearest templates. A "custom request" path straight to the baker could come later.</td></tr>
+  <tr><td>Q2</td><td>Should option prices scale with size?</td><td>Flat prices for now. Later: one price per size band (small, medium, large), because fondant on a 3-tier cake costs more than on a 6" round.</td></tr>
+  <tr><td>Q3</td><td>Party portions or wedding portions?</td><td>Sizes state party portions. For weddings, the assistant also shows the wedding-portion number (about 1.5 times as many, because the slices are thinner).</td></tr>
+  <tr><td>Q4</td><td>How much to build for iteration 1?</td><td>All six lines and the full option library, but about 8 templates (2 per main occasion), so the preview pictures stay manageable.</td></tr>
+</table>
+
+</main>
+<script>
+/* ===================== the catalog (fictional) ===================== */
+const TODAY = '2026-11-13';
+const LINES = [
+  { id:'cupcakes', name:'Cupcakes', band:'small–medium', sizes:[{l:'Box of 6',s:6,p:18},{l:'Box of 12',s:12,p:32},{l:'Box of 24',s:24,p:60}], notice:2, gf:true, vegan:true,
+    blurb:'Individual cakes in a box. Easy to share, no cutting.', lim:'No message on the cakes (a message card is an extra). 1 decoration.' },
+  { id:'mini', name:'Mini cake', band:'small', sizes:[{l:'4" mini',s:4,min:2,p:28}], notice:2, gf:true, vegan:true,
+    blurb:'A small round cake for 2–4 people. A gift or a treat.', lim:'Message up to 20 characters. 1 decoration.' },
+  { id:'round', name:'Round cake', band:'medium', sizes:[{l:'6" round',s:8,p:40},{l:'8" round',s:16,p:60},{l:'10" round',s:24,p:85}], notice:3, gf:true, vegan:true,
+    blurb:'One round layer cake. Our most flexible line.', lim:'All option groups. Message up to 30 characters.' },
+  { id:'number', name:'Number cake', band:'medium', sizes:[{l:'1 character',s:12,p:55},{l:'2 characters',s:24,p:100}], notice:3, gf:true, vegan:false,
+    blurb:'Cut in the shape of digits or letters, with toppings.', lim:'No message, no topper. Toppings are the decoration.' },
+  { id:'sheet', name:'Sheet cake', band:'medium–large', sizes:[{l:'Half sheet',s:24,p:70},{l:'Full sheet',s:48,p:120}], notice:3, gf:true, vegan:true,
+    blurb:'A flat rectangle for a crowd. Can carry a printed picture.', lim:'Best value per slice. Message up to 40 characters.' },
+  { id:'tiered', name:'Tiered cake', band:'large', sizes:[{l:'2 tiers, small',s:30,p:150},{l:'2 tiers, large',s:50,p:220},{l:'3 tiers',s:80,p:340,notice:14},{l:'3 tiers, large',s:120,p:480,notice:14}], notice:7, gf:false, vegan:false,
+    blurb:'Stacked tiers for weddings and big parties.', lim:'No gluten-free or vegan. Finish required. 3 tiers: delivery and setup only.' }
+];
+const LINE = Object.fromEntries(LINES.map(l => [l.id, l]));
+
+const OCCASIONS = [
+  { id:'kids', name:"Kids' birthday", ask:'age, theme, number of kids' },
+  { id:'adult', name:'Adult birthday & milestones', ask:'age, elegant or fun' },
+  { id:'wedding', name:'Wedding & anniversary', ask:'guests, colours, venue' },
+  { id:'baby', name:'Baby & family', ask:'shower, reveal or christening' },
+  { id:'achieve', name:'Achievement', ask:'graduation, retirement, well done' },
+  { id:'office', name:'Office & events', ask:'headcount, logo' },
+  { id:'season', name:'Seasonal', ask:'only in its season' },
+  { id:'just', name:'Just because', ask:'who it is for, a message' }
+];
+
+/* addon = price of the fixed parts, added to the size's base price. minSize = index of the smallest size offered. */
+const TEMPLATES = [
+  { name:'Unicorn round', line:'round', occ:['kids'], addon:12, fixed:'unicorn topper (horn and ears)', open:'size, sponge, filling, colour, 2 decorations, message, dietary' },
+  { name:'Dinosaur round', line:'round', occ:['kids'], addon:12, fixed:'dinosaur topper, green palette', open:'size, sponge, filling, shade of green, message, dietary' },
+  { name:'Picture sheet', line:'sheet', occ:['kids','office','achieve'], addon:12, fixed:'a printed picture: a logo the customer owns, or one from our library (unicorn, dinosaur, football…)', open:'size, sponge, frosting colour, sprinkles, message, dietary' },
+  { name:'Football pitch', line:'sheet', occ:['kids','achieve'], addon:10, fixed:'green pitch with goals', open:'size, sponge, team colours, message' },
+  { name:'Sweet number', line:'number', occ:['kids','adult'], addon:10, fixed:'sweets on top', open:'digits, sponge, colour' },
+  { name:'Rainbow cupcakes', line:'cupcakes', occ:['kids','office'], addon:0, fixed:'rainbow sprinkles', open:'box size, sponge, dietary' },
+  { name:'Drip cake', line:'round', occ:['adult'], addon:10, fixed:'drip around the top', open:'size, sponge, filling, colour, drip colour, topper, message, dietary' },
+  { name:'Milestone number', line:'number', occ:['adult'], addon:26, fixed:'gold leaf and macarons', open:'digits, sponge, colour' },
+  { name:'Message mini', line:'mini', occ:['adult','wedding','just'], addon:0, fixed:'piped message on top', open:'sponge, filling, colour, message, dietary' },
+  { name:'Fruit-topped round', line:'round', occ:['just','adult'], addon:10, fixed:'fresh fruit on top', open:'size, sponge, filling, message, dietary' },
+  { name:'Classic white tiered', line:'tiered', occ:['wedding'], addon:36, fixed:'white fondant, ribbon', open:'tiers and size, sponge per tier, fresh flowers' },
+  { name:'Rustic semi-naked', line:'tiered', occ:['wedding'], addon:15, fixed:'semi-naked finish, fresh flowers', open:'tiers and size, sponge per tier, flower colours' },
+  { name:'Cupcake tower', line:'cupcakes', occ:['wedding','baby'], addon:15, minSize:2, fixed:'tower stand, white frosting, flowers', open:'box size (24 and more), sponge, flower colour' },
+  { name:'Gender reveal', line:'round', occ:['baby'], addon:8, fixed:'secret pink or blue inside', open:'size, sponge, outside colour, message, dietary' },
+  { name:'Baby shower cupcakes', line:'cupcakes', occ:['baby'], addon:8, fixed:'pastel rosettes', open:'box size, sponge, pastel colour, dietary' },
+  { name:'Christening tiered', line:'tiered', occ:['baby'], addon:12, maxSize:1, fixed:'2 tiers, white, dove topper', open:'size, sponge, message' },
+  { name:'Grad cap', line:'round', occ:['achieve'], addon:12, fixed:'graduation cap topper', open:'size, sponge, colours (school colours), message' },
+  { name:'Team cupcakes', line:'cupcakes', occ:['office'], addon:0, fixed:'company colours', open:'box size, sponge, two colours, dietary' },
+  { name:'Snowy Christmas', line:'round', occ:['season'], addon:8, season:['2026-12-01','2026-12-24'], fixed:'white frosting, snowflakes', open:'size, sponge, message' },
+  { name:'Easter nest cupcakes', line:'cupcakes', occ:['season'], addon:14, season:['2027-03-15','2027-04-04'], fixed:'chocolate nest and eggs', open:'box size, sponge' },
+  { name:'Love mini', line:'mini', occ:['wedding','just'], addon:4, fixed:'heart in rosettes', open:'sponge, colour, short message' }
+];
+
+const OPTIONS = [
+  { g:'Sponge', v:'vanilla, chocolate, lemon (free) · red velvet, carrot (+$8)', on:{ cupcakes:'y', mini:'y', round:'y', number:'y', sheet:'y', tiered:'one per tier' } },
+  { g:'Filling', v:'buttercream (free) · jam (+$4) · lemon curd (+$6) · ganache (+$8)', on:{ cupcakes:'n', mini:'y', round:'y', number:'n', sheet:'y', tiered:'y' } },
+  { g:'Finish', v:'buttercream, semi-naked (free) · fondant (+$30)', on:{ cupcakes:'n', mini:'buttercream only', round:'y', number:'buttercream only', sheet:'buttercream only', tiered:'required' } },
+  { g:'Colour', v:'8 frosting colours (free)', on:{ cupcakes:'y', mini:'y', round:'y', number:'y', sheet:'y', tiered:'y' } },
+  { g:'Decoration', v:'sprinkles (free) · rosettes (+$8) · drip, fruit (+$10) · gold leaf (+$12) · macarons (+$14) · flowers (+$15)', on:{ cupcakes:'1', mini:'1', round:'up to 2', number:'up to 2 toppings', sheet:'up to 2', tiered:'up to 2' } },
+  { g:'Topper', v:'theme topper (+$12) · number candles (+$4)', on:{ cupcakes:'mini toppers', mini:'n', round:'y', number:'n', sheet:'n', tiered:'y' } },
+  { g:'Message', v:'piped message (free)', on:{ cupcakes:'n (card +$2)', mini:'20 chars', round:'30 chars', number:'n', sheet:'40 chars', tiered:'30 chars' } },
+  { g:'Printed picture', v:'edible print (+$12); no photos of people', on:{ cupcakes:'n', mini:'n', round:'y', number:'n', sheet:'y', tiered:'n' } },
+  { g:'Gluten-free', v:'+$15; not red velvet or carrot', on:{ cupcakes:'y', mini:'y', round:'y', number:'y', sheet:'y', tiered:'n' } },
+  { g:'Vegan', v:'+$15; vanilla or chocolate sponge only', on:{ cupcakes:'y', mini:'y', round:'y', number:'n', sheet:'y', tiered:'n' } },
+  { g:'Extras', v:'candles (+$3) · gift box (+$5) · local delivery (+$10) · setup at venue (+$25)', on:{ cupcakes:'y', mini:'y', round:'y', number:'y', sheet:'y', tiered:'setup: tiered only' } }
+];
+
+/* ===================== helpers ===================== */
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const Dt = s => new Date(s + 'T00:00:00Z');
+const iso = d => d.toISOString().slice(0,10);
+const addDays = (s,n) => { const d = Dt(s); d.setUTCDate(d.getUTCDate()+n); return iso(d); };
+const daysBetween = (a,b) => Math.round((Dt(b)-Dt(a))/864e5);
+const fmt = s => Dt(s).toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',timeZone:'UTC'});
+const sizesOf = t => LINE[t.line].sizes.filter((s, i) => i >= (t.minSize || 0) && i <= (t.maxSize ?? 99));
+const fromPrice = t => sizesOf(t)[0].p + t.addon;
+
+/* ===================== product line drawings ===================== */
+function cyl(cx, bottom, w, h, cls) {
+  const rx = w/2, ry = Math.max(4, w*0.12), top = bottom - h;
+  return `<path class="${cls}" d="M${cx-rx} ${top} V${bottom} A${rx} ${ry} 0 0 0 ${cx+rx} ${bottom} V${top} Z"/><ellipse class="${cls}" cx="${cx}" cy="${top}" rx="${rx}" ry="${ry}"/>`;
+}
+const plate = (cx, y, w) => `<ellipse class="plate" cx="${cx}" cy="${y}" rx="${w/2}" ry="${w*0.09}"/>`;
+function cupcake(x, y) {
+  return `<path class="cake-b" d="M${x-16} ${y-30} L${x-11} ${y} H${x+11} L${x+16} ${y-30} Z"/><path class="cake-a" d="M${x-19} ${y-30} C${x-22} ${y-44} ${x-8} ${y-46} ${x-6} ${y-50} C${x-2} ${y-60} ${x+10} ${y-56} ${x+8} ${y-48} C${x+20} ${y-46} ${x+22} ${y-36} ${x+19} ${y-30} Z"/>`;
+}
+const DRAW = {
+  cupcakes: () => cupcake(100, 92) + cupcake(150, 92) + cupcake(200, 92),
+  mini: () => plate(150, 94, 110) + cyl(150, 90, 70, 40, 'cake-a'),
+  round: () => plate(150, 96, 190) + cyl(150, 90, 150, 52, 'cake-a'),
+  number: () => `<path class="cake-a" d="M88 22 H160 L128 98 H104 L130 40 H88 Z"/><path class="cake-a" d="M170 98 V30 H192 V98 Z" opacity=".9"/><circle cx="110" cy="31" r="5" class="cake-b"/><circle cx="140" cy="31" r="5" class="cake-b"/><circle cx="181" cy="40" r="5" class="cake-b"/>`,
+  sheet: () => `<path class="cake-b" d="M50 92 L80 98 H250 V70 L220 64 H50 Z"/><path class="cake-a" d="M50 64 L80 70 H250 L220 64 Z"/><path class="cake-a" d="M50 64 H220 L250 70 H80 Z"/><rect class="cake-b" x="80" y="70" width="170" height="28"/><path class="cake-b" d="M50 64 L80 70 V98 L50 92 Z"/>`,
+  tiered: () => plate(150, 102, 170) + cyl(150, 96, 140, 30, 'cake-a') + cyl(150, 62, 100, 26, 'cake-b') + cyl(150, 33, 62, 20, 'cake-a')
+};
+
+document.getElementById('lines').innerHTML = LINES.map(l => `
+  <div class="card lc">
+    <h3>${l.name}<span class="band">${l.band}</span></h3>
+    <svg viewBox="0 0 300 110" aria-hidden="true">${DRAW[l.id]()}</svg>
+    <div class="sub" style="font-size:.86rem">${l.blurb}</div>
+    <ul>${l.sizes.map(s => `<li>${s.l}: serves ${s.min ? s.min + '–' : ''}${s.s} · <b>$${s.p}</b>${s.notice ? ` · ${s.notice} days' notice` : ''}</li>`).join('')}</ul>
+    <div class="lim">${l.notice} days' notice · ${l.gf ? 'gluten-free ✓' : '<b>no gluten-free</b>'} · ${l.vegan ? 'vegan ✓' : 'no vegan'}<br>${l.lim}</div>
+  </div>`).join('');
+
+/* ===================== servings ruler ===================== */
+(function () {
+  const X0 = 170, X1 = 1130, maxS = 120, x = s => X0 + (X1 - X0) * Math.sqrt(s / maxS), rowH = 40, y0 = 50;
+  let s = '';
+  [2, 6, 12, 24, 48, 80, 120].forEach(v => { s += `<line x1="${x(v)}" y1="${y0-14}" x2="${x(v)}" y2="${y0 + rowH*LINES.length - 10}" stroke="var(--line)"/><text class="ts tm" x="${x(v)}" y="${y0 + rowH*LINES.length + 6}" text-anchor="middle">${v}</text>`; });
+  s += `<text class="ts tm" x="${X1}" y="${y0 + rowH*LINES.length + 24}" text-anchor="end">guests served (square-root scale)</text>`;
+  s += `<line x1="${x(20)}" y1="${y0-20}" x2="${x(20)}" y2="${y0 + rowH*LINES.length - 10}" stroke="var(--accent)" stroke-width="2" stroke-dasharray="5 4"/><text class="tl" x="${x(20)}" y="${y0-26}" text-anchor="middle" style="fill:var(--accent)">20 guests</text>`;
+  LINES.forEach((l, i) => {
+    const y = y0 + i * rowH + 10, lo = l.sizes[0].min || l.sizes[0].s, hi = l.sizes[l.sizes.length-1].s;
+    s += `<text class="t" x="20" y="${y+5}" style="font-weight:600">${l.name}</text>`;
+    s += `<line x1="${x(lo)}" y1="${y}" x2="${x(hi)}" y2="${y}" stroke="var(--cake-line)" stroke-width="8" stroke-linecap="round" opacity=".45"/>`;
+    l.sizes.forEach((z, j) => {
+      s += `<circle cx="${x(z.s)}" cy="${y}" r="7" class="cake-a"/>`;
+      s += `<text class="ts" x="${x(z.s)}" y="${y - 12}" text-anchor="middle">$${z.p}</text>`;
+    });
+  });
+  document.getElementById('ruler').innerHTML = s;
+})();
+
+/* ===================== menu grid ===================== */
+let selected = TEMPLATES[0].name;
+function renderMenu() {
+  let h = `<tr><th style="width:170px">Occasion ↓ · line →</th>${LINES.map(l => `<th>${l.name}</th>`).join('')}</tr>`;
+  OCCASIONS.forEach(o => {
+    h += `<tr><th class="occ">${o.name}<span class="sub">asks: ${o.ask}</span></th>`;
+    LINES.forEach(l => {
+      const ts = TEMPLATES.filter(t => t.line === l.id && t.occ.includes(o.id));
+      h += `<td class="${ts.length ? 'fit' : ''}">${ts.map(t => `<span class="chip ${t.season ? 'season' : ''} ${t.name === selected ? 'on' : ''}" data-t="${esc(t.name)}">${esc(t.name)}</span>`).join('')}</td>`;
+    });
+    h += '</tr>';
+  });
+  const m = document.getElementById('menu'); m.innerHTML = h;
+  m.querySelectorAll('.chip').forEach(c => c.onclick = () => { selected = c.dataset.t; renderMenu(); });
+  const t = TEMPLATES.find(x => x.name === selected), l = LINE[t.line];
+  document.getElementById('detail').innerHTML = `
+    <div><svg viewBox="0 0 300 110" style="width:100%;background:var(--bg);border-radius:8px" aria-hidden="true">${DRAW[l.id]()}</svg>
+      <div class="sub" style="font-size:.78rem;text-align:center">${l.name} (line drawing; the real preview is drawn by the Preview agent)</div></div>
+    <div><h3 style="margin:0 0 6px">${esc(t.name)} <span class="sub" style="font-weight:400">· from $${fromPrice(t)}</span></h3>
+    <dl>
+      <dt>Product line</dt><dd>${l.name}</dd>
+      <dt>Occasions</dt><dd>${t.occ.map(id => OCCASIONS.find(o => o.id === id).name).join(', ')}</dd>
+      <dt>Fixed (the design itself)</dt><dd>${esc(t.fixed)}${t.addon ? ` · +$${t.addon}` : ''}</dd>
+      <dt>Customer can change</dt><dd>${esc(t.open)}</dd>
+      <dt>Sizes</dt><dd>${sizesOf(t).map(s => `${s.l} (serves ${s.s}) $${s.p + t.addon}`).join(' · ')}</dd>
+      <dt>Notice</dt><dd>${l.notice} days${l.sizes.some(s => s.notice) ? ' (3 tiers: 14 days)' : ''}</dd>
+      <dt>Dietary</dt><dd>${l.gf ? 'gluten-free available' : 'no gluten-free'} · ${l.vegan ? 'vegan available' : 'no vegan'}</dd>
+      ${t.season ? `<dt>Season</dt><dd>pickups ${fmt(t.season[0])} – ${fmt(t.season[1])} only</dd>` : ''}
+    </dl></div>`;
+}
+renderMenu();
+
+/* ===================== option matrix ===================== */
+document.getElementById('optMatrix').innerHTML =
+  `<tr><th>Option group</th><th>Values and prices</th>${LINES.map(l => `<th>${l.name}</th>`).join('')}</tr>` +
+  OPTIONS.map(o => `<tr><td><b>${o.g}</b></td><td style="font-size:.84rem">${esc(o.v)}</td>${LINES.map(l => {
+    const v = o.on[l.id];
+    return `<td>${v === 'y' ? '<span class="y">✓</span>' : v === 'n' ? '<span class="n">–</span>' : v.startsWith('n ') ? `<span class="n">–</span> <span class="lim2">${esc(v.slice(2))}</span>` : `<span class="lim2">${esc(v)}</span>`}</td>`;
+  }).join('')}</tr>`).join('');
+
+/* ===================== finder ===================== */
+const fOcc = document.getElementById('fOcc'), fDate = document.getElementById('fDate');
+fOcc.innerHTML = OCCASIONS.map(o => `<option value="${o.id}">${o.name}</option>`).join('');
+const dates = []; for (let i = 1; i <= 45; i++) dates.push(addDays(TODAY, i));
+fDate.innerHTML = dates.map(d => `<option value="${d}" ${d === '2026-11-21' ? 'selected' : ''}>${fmt(d)} (${daysBetween(TODAY, d)} days)</option>`).join('');
+function find() {
+  const occ = fOcc.value, guests = +document.getElementById('fGuests').value || 1, date = fDate.value;
+  const gf = document.getElementById('fGF').checked, vegan = document.getElementById('fVegan').checked, notice = daysBetween(TODAY, date);
+  const rows = TEMPLATES.filter(t => t.occ.includes(occ)).map(t => {
+    const l = LINE[t.line], why = [];
+    if (gf && !l.gf) why.push(`${l.name}: no gluten-free`);
+    if (vegan && !l.vegan) why.push(`${l.name}: no vegan`);
+    if (t.season && (date < t.season[0] || date > t.season[1])) why.push(`seasonal: ${fmt(t.season[0])} – ${fmt(t.season[1])} only`);
+    const size = sizesOf(t).find(s => s.s >= guests);
+    if (!size) why.push(`biggest size serves ${sizesOf(t).slice(-1)[0].s}, not ${guests}`);
+    const need = size ? (size.notice || l.notice) : l.notice;
+    if (notice < need) why.push(`needs ${need} days' notice, ${fmt(date)} is ${notice} away`);
+    const total = size ? size.p + t.addon + (gf ? 15 : 0) + (vegan ? 15 : 0) : null;
+    return { t, l, size, why, total };
+  });
+  const ok = rows.filter(r => !r.why.length).sort((a, b) => a.total - b.total), no = rows.filter(r => r.why.length);
+  const o = OCCASIONS.find(x => x.id === occ);
+  document.getElementById('fOut').innerHTML = `
+    <div class="step">1 · Understood</div>
+    <div class="card" style="font-size:.9rem;padding:10px 14px">${o.name} · ${guests} guests · ${fmt(date)} (${notice} days away)${gf ? ' · gluten-free' : ''}${vegan ? ' · vegan' : ''}. The designer would also ask: <i>${o.ask}</i>.</div>
+    <div class="step">2 · Templates that fit (${ok.length}), cheapest first. The smallest size that serves everyone</div>
+    <div class="res">${ok.length ? ok.map(r => `<div class="r ok"><span>✓</span><span><b>${esc(r.t.name)}</b> · ${r.l.name}, ${r.size.l} (serves ${r.size.s})<br><span class="why">fixed: ${esc(r.t.fixed)}</span></span><span class="price">from $${r.total}</span></div>`).join('') : '<div class="r no"><span>✗</span><span>Nothing in the catalog fits. The assistant explains why and suggests changing the date, the number of guests or the dietary need.</span><span></span></div>'}</div>
+    ${no.length ? `<div class="step">3 · Ruled out for this order (${no.length})</div><div class="res">${no.map(r => `<div class="r no"><span>✗</span><span><b>${esc(r.t.name)}</b> · ${r.l.name}<br><span class="why">${r.why.map(esc).join('; ')}</span></span><span></span></div>`).join('')}</div>` : ''}
+    <p class="sub" style="font-size:.84rem;margin-top:8px">"From" prices include the fixed parts and the dietary option, before other options. In the Ordering chat, the AI picks 2–4 of the ✓ templates, fills in options to match the wish, and Pricing adds up the real total.</p>`;
+}
+['fOcc','fGuests','fDate','fGF','fVegan'].forEach(id => document.getElementById(id).addEventListener('input', find));
+find();
+</script>
+</body>
+</html>

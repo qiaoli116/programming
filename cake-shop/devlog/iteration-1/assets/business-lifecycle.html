@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cake Order Desk – the business and its life cycle</title>
+<style>
+  :root {
+    --bg:#f5f6f8; --card:#fff; --text:#1d2330; --muted:#5d6677; --line:#d5dae2; --accent:#0f766e; --soft:#e0f2f0;
+    --ai:#fdf3dc; --ai-line:#b8860b; --rules:#eef2f6; --rules-line:#64748b; --human:#f3e8ff; --human-line:#7e22ce;
+    --bad:#fde8e6; --bad-line:#b42318; --hl:#fff4b8;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg:#12151c; --card:#1a1f2a; --text:#e6e9ef; --muted:#9aa3b5; --line:#2f3747; --accent:#4fd1c5; --soft:#173a37;
+      --ai:#3a3114; --ai-line:#e0b341; --rules:#232a37; --rules-line:#94a3b8; --human:#2e1d45; --human-line:#c084fc;
+      --bad:#3d1b18; --bad-line:#f08a80; --hl:#4a4215;
+    }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:16px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif; }
+  main { max-width:1240px; margin:0 auto; padding:24px 20px 60px; }
+  h1 { font-size:1.7rem; margin:0 0 6px; }
+  h2 { font-size:1.3rem; margin:44px 0 8px; padding-bottom:6px; border-bottom:2px solid var(--line); }
+  h3 { font-size:1.05rem; margin:22px 0 6px; }
+  p { margin:0 0 10px; max-width:85ch; }
+  .sub { color:var(--muted); }
+  code { font:.85em ui-monospace,Consolas,monospace; background:var(--rules); padding:1px 5px; border-radius:4px; }
+  .note { border-left:4px solid var(--accent); background:var(--soft); padding:10px 16px; border-radius:0 8px 8px 0; margin:14px 0; max-width:none; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px 18px; }
+
+  /* agent kind chips */
+  .k { display:inline-block; padding:0 8px; border-radius:99px; font-size:.72rem; font-weight:700; letter-spacing:.02em; border:1.5px solid; white-space:nowrap; vertical-align:1px; }
+  .k.ai { background:var(--ai); border-color:var(--ai-line); border-style:dashed; }
+  .k.rules { background:var(--rules); border-color:var(--rules-line); }
+  .k.human { background:var(--human); border-color:var(--human-line); }
+  .k.gate { background:var(--human); border-color:var(--human-line); border-width:2.5px; }
+  .k.cust { background:var(--soft); border-color:var(--accent); }
+  .legend { display:flex; flex-wrap:wrap; gap:8px 22px; margin:12px 0 4px; font-size:.9rem; color:var(--muted); }
+
+  /* life cycle */
+  .cycle { display:grid; grid-template-columns:1fr 34px 1fr 34px 1fr 34px 1fr; align-items:stretch; margin-top:16px; }
+  .arrow { display:flex; align-items:center; justify-content:center; font-size:1.6rem; color:var(--muted); }
+  .stage { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px 14px 12px; display:flex; flex-direction:column; gap:8px; position:relative; }
+  .stage.focus { border:3px solid var(--accent); box-shadow:0 4px 18px rgba(15,118,110,.18); }
+  .stage .num { font-size:.72rem; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); }
+  .stage h3 { margin:0; font-size:1.15rem; }
+  .stage .goal { font-size:.88rem; color:var(--muted); margin:0; }
+  .badge { position:absolute; top:-12px; right:12px; background:var(--accent); color:var(--card); font-size:.72rem; font-weight:700; padding:2px 10px; border-radius:99px; }
+  .io { border-radius:8px; padding:7px 10px; font-size:.85rem; }
+  .io b { display:block; font-size:.68rem; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); }
+  .io .art { font-weight:700; }
+  .io.in { background:var(--rules); border:1px dashed var(--rules-line); }
+  .io.out { background:var(--soft); border:1.5px solid var(--accent); }
+  .agents { list-style:none; margin:0; padding:0; font-size:.86rem; display:flex; flex-direction:column; gap:4px; flex:1; }
+  .agents li { display:flex; justify-content:space-between; gap:6px; align-items:baseline; }
+  .states { font:.72rem/1.5 ui-monospace,Consolas,monospace; color:var(--muted); border-top:1px solid var(--line); padding-top:6px; }
+  @media (max-width:1000px) {
+    .cycle { grid-template-columns:1fr; }
+    .arrow { transform:rotate(90deg); height:34px; }
+  }
+
+  table { width:100%; border-collapse:collapse; background:var(--card); border:1px solid var(--line); font-size:.9rem; }
+  th, td { text-align:left; padding:8px 12px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { background:var(--bg); font-size:.75rem; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); }
+  td .art { font-weight:700; }
+
+  pre { margin:0; font:.8rem/1.45 ui-monospace,Consolas,monospace; overflow-x:auto; white-space:pre; }
+  .samples { display:grid; grid-template-columns:repeat(auto-fit,minmax(540px,1fr)); gap:12px; margin-top:10px; }
+  @media (max-width:600px) { .samples { grid-template-columns:1fr; } }
+  .samples .card h3 { margin:0 0 6px; font-size:.95rem; }
+
+  /* flowchart */
+  svg { width:100%; height:auto; background:var(--card); border:1px solid var(--line); border-radius:10px; }
+  svg text { fill:var(--text); font-family:system-ui,"Segoe UI",sans-serif; }
+  .s-rules { fill:var(--rules); stroke:var(--rules-line); stroke-width:2; }
+  .s-ai { fill:var(--ai); stroke:var(--ai-line); stroke-width:2.5; stroke-dasharray:8 4; }
+  .s-gate { fill:var(--human); stroke:var(--human-line); stroke-width:4; }
+  .s-cust { fill:var(--soft); stroke:var(--accent); stroke-width:2; }
+  .s-bad { fill:var(--bad); stroke:var(--bad-line); stroke-width:2; }
+  .s-out { fill:var(--soft); stroke:var(--accent); stroke-width:3; }
+  .s-data { fill:var(--card); stroke:var(--rules-line); stroke-width:1.5; stroke-dasharray:3 3; }
+  .ln { stroke:var(--text); stroke-width:2; fill:none; marker-end:url(#arr); }
+  .dl { stroke:var(--rules-line); stroke-width:1.5; fill:none; stroke-dasharray:4 4; }
+  .t { font-size:14px; } .tb { font-size:14.5px; font-weight:700; } .ts { font-size:12.5px; } .tk { font-size:11.5px; font-weight:700; letter-spacing:.04em; }
+  .lbl { font-size:12.5px; font-weight:700; fill:var(--accent) !important; }
+  #arr path { fill:var(--text); }
+
+  /* walkthrough */
+  .controls { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:12px 0; }
+  button { font:inherit; font-size:.9rem; padding:6px 14px; border-radius:8px; border:1px solid var(--line); background:var(--card); color:var(--text); cursor:pointer; }
+  button:hover:not(:disabled) { border-color:var(--accent); }
+  button:disabled { opacity:.45; cursor:default; }
+  button.on { border:2px solid var(--accent); background:var(--soft); font-weight:700; padding:5px 13px; }
+  .spacer { flex:1; }
+  .track { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:12px; }
+  .track .seg { background:var(--card); border:1px solid var(--line); border-radius:8px; padding:6px 8px; }
+  .track .seg.now { border:2px solid var(--accent); background:var(--soft); }
+  .track .seg span { font-size:.75rem; font-weight:700; color:var(--muted); display:block; }
+  .dots { display:flex; gap:4px; flex-wrap:wrap; margin-top:4px; }
+  .dot { width:22px; height:22px; border-radius:50%; border:1.5px solid var(--line); font-size:.68rem; display:flex; align-items:center; justify-content:center; cursor:pointer; background:var(--bg); color:var(--muted); }
+  .dot.ai { border-color:var(--ai-line); border-style:dashed; }
+  .dot.human, .dot.gate { border-color:var(--human-line); }
+  .dot.rules { border-color:var(--rules-line); }
+  .dot.cust { border-color:var(--accent); }
+  .dot.done { background:var(--rules); color:var(--text); }
+  .dot.cur { background:var(--accent); color:var(--card); border-color:var(--accent); border-style:solid; }
+  .walk { display:grid; grid-template-columns:minmax(0,5fr) minmax(0,6fr); gap:14px; }
+  @media (max-width:900px) { .walk { grid-template-columns:1fr; } .track { grid-template-columns:1fr 1fr; } }
+  .who { font-size:1.15rem; font-weight:700; margin:2px 0 6px; }
+  .kv { display:grid; grid-template-columns:90px 1fr; gap:6px 10px; font-size:.9rem; margin-top:10px; }
+  .kv dt { color:var(--muted); font-size:.75rem; text-transform:uppercase; letter-spacing:.04em; padding-top:2px; }
+  .kv dd { margin:0; }
+  .status { font:700 .85rem ui-monospace,Consolas,monospace; color:var(--accent); }
+  #record { white-space:pre-wrap; word-break:break-word; }
+  .rec .new { background:var(--hl); display:inline-block; min-width:100%; }
+  .rec .dim { color:var(--muted); }
+  .log { list-style:none; margin:10px 0 0; padding:0; font:.78rem/1.6 ui-monospace,Consolas,monospace; max-height:240px; overflow-y:auto; }
+  .log li.cur { color:var(--accent); font-weight:700; }
+  .log .t0 { color:var(--muted); }
+</style>
+</head>
+<body>
+<main>
+
+<h1>Cake Order Desk: the business and its life cycle</h1>
+<p class="sub">A teaching example of a multi-agent system. Some agents are <b>AI</b>, some follow <b>fixed rules</b>, and at set points a <b>person</b> must approve before work goes on.</p>
+
+<div class="card" style="margin-top:14px">
+  <p><b>The business.</b> A small neighbourhood bakery makes celebration cakes to order. Customers write in their own words, for example <i>"chocolate cake for about 20 people, unicorn theme, one guest is gluten-free, Saturday please"</i>. Today the baker reads every message, works out a price, checks the calendar and writes back by hand. The <b>Cake Order Desk</b> gives that work to a team of agents. AI agents read the messy human input, rule agents do the sums and the scheduling, and the baker steps in only when an order really needs a human decision.</p>
+  <p style="margin:0">Every order moves through <b>four stages, in a straight line</b>. Each stage takes <b>one input</b>, produces <b>one output</b>, and hands that output to the next stage. Because the stages only talk through these hand-offs, each stage can be designed, built and tested on its own.</p>
+</div>
+
+<div class="legend">
+  <span><span class="k cust">Customer</span> the person ordering</span>
+  <span><span class="k ai">AI</span> AI agent: reads or writes natural language</span>
+  <span><span class="k rules">Rules</span> deterministic agent: same input, same output</span>
+  <span><span class="k human">Human</span> a person doing the work</span>
+  <span><span class="k gate">Human gate</span> a person must approve before the flow continues</span>
+</div>
+
+<!-- ======================================================= -->
+<h2>1. The life cycle: four stages in a straight line</h2>
+<p>Each card shows what goes <b>in</b>, who works on it, and what comes <b>out</b>. The output of one stage is exactly the input of the next one.</p>
+
+<div class="cycle">
+  <div class="stage focus">
+    <span class="badge">Iteration 1 builds this</span>
+    <span class="num">Stage 1</span>
+    <h3>Ordering</h3>
+    <p class="goal">Turn a customer's message into a priced, scheduled order that is approved for production.</p>
+    <div class="io in"><b>Input</b><span class="art">Order request</span><br>the customer's message, name, contact, wanted date, pickup or delivery</div>
+    <ul class="agents">
+      <li>Intake <span class="k ai">AI</span></li>
+      <li>Pricing <span class="k rules">Rules</span></li>
+      <li>Capacity <span class="k rules">Rules</span></li>
+      <li>Design brief <span class="k ai">AI</span></li>
+      <li>Review router <span class="k rules">Rules</span></li>
+      <li>Baker review <span class="k gate">Human gate</span></li>
+      <li>Confirmer <span class="k rules">Rules</span></li>
+    </ul>
+    <div class="io out"><b>Output</b><span class="art">Confirmed order</span><br>spec, quote, production slot, design brief, approval, confirmation sent to the customer</div>
+    <div class="states">REQUESTED → PARSED → PRICED → SLOT_HELD → BRIEFED → (AWAITING_BAKER) → APPROVED → CONFIRMED</div>
+  </div>
+
+  <div class="arrow" aria-hidden="true">➜</div>
+
+  <div class="stage">
+    <span class="num">Stage 2</span>
+    <h3>Production</h3>
+    <p class="goal">Bake and decorate the cake on time and to the brief.</p>
+    <div class="io in"><b>Input</b><span class="art">Confirmed order</span><br>from Stage 1</div>
+    <ul class="agents">
+      <li>Production planner <span class="k rules">Rules</span></li>
+      <li>Ingredient reserver <span class="k rules">Rules</span></li>
+      <li>Kitchen staff <span class="k human">Human</span></li>
+      <li>Photo check <span class="k ai">AI</span></li>
+      <li>Baker release <span class="k gate">Human gate</span></li>
+    </ul>
+    <div class="io out"><b>Output</b><span class="art">Finished cake record</span><br>completed tasks, final photo, photo-check result, release sign-off</div>
+    <div class="states">PRODUCTION_PLANNED → MADE → QC_CHECKED → READY</div>
+  </div>
+
+  <div class="arrow" aria-hidden="true">➜</div>
+
+  <div class="stage">
+    <span class="num">Stage 3</span>
+    <h3>Fulfillment</h3>
+    <p class="goal">Get the cake into the customer's hands.</p>
+    <div class="io in"><b>Input</b><span class="art">Finished cake record</span><br>plus the pickup or delivery details from the order</div>
+    <ul class="agents">
+      <li>Dispatcher <span class="k rules">Rules</span></li>
+      <li>Notifier <span class="k rules">Rules</span></li>
+      <li>Driver or counter staff <span class="k human">Human</span></li>
+    </ul>
+    <div class="io out"><b>Output</b><span class="art">Handover record</span><br>when and how the cake was handed over, with proof (signature or photo)</div>
+    <div class="states">AWAITING_PICKUP | OUT_FOR_DELIVERY → HANDED_OVER</div>
+  </div>
+
+  <div class="arrow" aria-hidden="true">➜</div>
+
+  <div class="stage">
+    <span class="num">Stage 4</span>
+    <h3>Done</h3>
+    <p class="goal">Close the order and learn from the customer's reply.</p>
+    <div class="io in"><b>Input</b><span class="art">Handover record</span><br>from Stage 3</div>
+    <ul class="agents">
+      <li>Closer <span class="k rules">Rules</span></li>
+      <li>Feedback summariser <span class="k ai">AI</span></li>
+    </ul>
+    <div class="io out"><b>Output</b><span class="art">Closed order</span><br>receipt sent, feedback summary, order archived</div>
+    <div class="states">COMPLETED → CLOSED</div>
+  </div>
+</div>
+
+<div class="note"><b>Simplification for this course:</b> the flow only goes forward. Nothing loops back to an earlier stage. There is no rework, no change request after confirmation and no complaint handling. The only branch is in Stage 1, where the baker may <b>decline</b> an order, which ends it. Problems and loop-backs are a later topic.</div>
+
+<!-- ======================================================= -->
+<h2>2. Stage contracts: the hand-offs</h2>
+<p>A <b>contract</b> is the agreed shape of the data passed from one stage to the next. If Stage 2 is built against a sample <i>Confirmed order</i>, it does not need Stage 1 to exist yet. That is what lets each stage be built on its own.</p>
+
+<table>
+  <thead><tr><th>Stage</th><th>Input (contract in)</th><th>Output (contract out)</th><th>Human involved</th><th>Ends when</th></tr></thead>
+  <tbody>
+    <tr><td><b>1 Ordering</b></td><td><span class="art">Order request</span>, from the customer</td><td><span class="art">Confirmed order</span>, or the order is <i>declined</i> and ends</td><td>Baker review <span class="k gate">gate</span>, only for flagged orders</td><td>The customer has the confirmation</td></tr>
+    <tr><td><b>2 Production</b></td><td><span class="art">Confirmed order</span></td><td><span class="art">Finished cake record</span></td><td>Kitchen staff <span class="k human">work</span>, baker release <span class="k gate">gate</span></td><td>The baker releases the cake</td></tr>
+    <tr><td><b>3 Fulfillment</b></td><td><span class="art">Finished cake record</span></td><td><span class="art">Handover record</span></td><td>Driver or counter staff <span class="k human">work</span></td><td>The cake is in the customer's hands</td></tr>
+    <tr><td><b>4 Done</b></td><td><span class="art">Handover record</span></td><td><span class="art">Closed order</span></td><td>None</td><td>The receipt is sent and the feedback is summarised</td></tr>
+  </tbody>
+</table>
+
+<h3>Sample hand-off data</h3>
+<p class="sub">Fictional data. Every stage adds its section to the same <b>order record</b>, so each output is the input plus something new.</p>
+<div class="samples">
+  <div class="card"><h3>Order request <span class="sub">(Stage 1 in)</span></h3><pre>{
+  "customer": { "name": "Jordan", "contact": "jordan@example.com" },
+  "message": "Chocolate cake for about 20 people, unicorn
+              theme with a big horn and rainbow mane. One
+              guest is gluten-free. Deliver Saturday ~3pm?",
+  "wantedDate": "2026-11-21",
+  "fulfillment": "delivery",
+  "address": "12 Elm Street"
+}</pre></div>
+  <div class="card"><h3>Confirmed order <span class="sub">(Stage 1 out → Stage 2 in)</span></h3><pre>{
+  "id": "C-1043", "status": "CONFIRMED",
+  "spec":  { "servings": 20, "flavor": "chocolate",
+             "dietary": ["gluten-free"],
+             "design": { "type": "custom", "theme": "unicorn" },
+             "dueAt": "2026-11-21T15:00", "fulfillment": "delivery" },
+  "quote": { "total": 150.00, "lines": 5 },
+  "slot":  { "productionDay": "2026-11-20", "units": 2 },
+  "brief": "Two-layer 8-inch round, gluten-free chocolate …",
+  "approval": { "by": "baker", "decision": "approve" },
+  "confirmation": { "sentAt": "2026-11-16T10:02" }
+}</pre></div>
+  <div class="card"><h3>Finished cake record <span class="sub">(Stage 2 out → Stage 3 in)</span></h3><pre>{
+  "id": "C-1043", "status": "READY",
+  "plan":    { "tasks": 3 },
+  "made":    { "allDone": "2026-11-21T11:40", "photo": "C-1043-final.jpg" },
+  "qc":      { "result": "match" },
+  "release": { "by": "baker", "at": "2026-11-21T12:05" }
+}</pre></div>
+  <div class="card"><h3>Handover record <span class="sub">(Stage 3 out → Stage 4 in)</span></h3><pre>{
+  "id": "C-1043", "status": "HANDED_OVER",
+  "handover": { "method": "delivery", "at": "2026-11-21T14:48",
+                "by": "driver", "proof": "photo at door" }
+}</pre></div>
+  <div class="card"><h3>Closed order <span class="sub">(Stage 4 out)</span></h3><pre>{
+  "id": "C-1043", "status": "CLOSED",
+  "receipt":  { "number": "R-1043", "sentAt": "2026-11-21T15:10" },
+  "feedback": { "sentiment": "positive",
+                "themes": ["looks", "taste"],
+                "issue": "horn a little wobbly" }
+}</pre></div>
+</div>
+
+<!-- ======================================================= -->
+<h2>3. Zoom in: Stage 1 Ordering (what iteration 1 builds)</h2>
+<p>Inside the stage, an <b>orchestrator</b> runs the agents one after another. Each agent reads what earlier agents wrote on the order and adds its own part. The orchestrator itself is <b>rules only</b>. It decides nothing clever, it just moves the order along and keeps the log.</p>
+
+<svg viewBox="0 0 1240 530" role="img" aria-label="Flowchart of Stage 1 Ordering: customer request goes through Intake, Pricing, Capacity and Design brief, then a review rule either confirms the order directly or sends it to the baker, who approves or declines">
+  <defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z"/></marker></defs>
+
+  <!-- orchestrator -->
+  <rect class="s-rules" x="180" y="16" width="1045" height="56" rx="10"/>
+  <text class="tb" x="200" y="40">Orchestrator <tspan class="ts" font-weight="400">(rules)</tspan></text>
+  <text class="ts" x="200" y="60">Runs the steps in order · saves each output on the order record · logs every event · pauses the order at the baker gate</text>
+  <path class="dl" d="M265 72 V150 M440 72 V150 M615 72 V150 M790 72 V150 M960 72 V160 M1150 72 V150"/>
+
+  <!-- customer -->
+  <rect class="s-cust" x="20" y="160" width="130" height="110" rx="10"/>
+  <text class="tb" x="85" y="194" text-anchor="middle">Customer</text>
+  <text class="ts" x="85" y="218" text-anchor="middle">sends an</text>
+  <text class="ts" x="85" y="236" text-anchor="middle">order request</text>
+  <text class="ts" x="85" y="254" text-anchor="middle">(free text)</text>
+  <path class="ln" d="M150 215 H188"/>
+
+  <!-- 1 intake -->
+  <rect class="s-ai" x="190" y="150" width="150" height="130" rx="8"/>
+  <text class="tb" x="265" y="178" text-anchor="middle">1 Intake</text>
+  <text class="tk" x="265" y="198" text-anchor="middle">AI AGENT</text>
+  <text class="ts" x="265" y="228" text-anchor="middle">reads: request</text>
+  <text class="ts" x="265" y="248" text-anchor="middle">writes: spec</text>
+  <text class="ts" x="265" y="266" text-anchor="middle">+ confidence</text>
+  <path class="ln" d="M340 215 H363"/>
+
+  <!-- 2 pricing -->
+  <rect class="s-rules" x="365" y="150" width="150" height="130" rx="8"/>
+  <text class="tb" x="440" y="178" text-anchor="middle">2 Pricing</text>
+  <text class="tk" x="440" y="198" text-anchor="middle">RULES</text>
+  <text class="ts" x="440" y="228" text-anchor="middle">reads: spec</text>
+  <text class="ts" x="440" y="248" text-anchor="middle">writes: quote</text>
+  <path class="ln" d="M515 215 H538"/>
+
+  <!-- 3 capacity -->
+  <rect class="s-rules" x="540" y="150" width="150" height="130" rx="8"/>
+  <text class="tb" x="615" y="178" text-anchor="middle">3 Capacity</text>
+  <text class="tk" x="615" y="198" text-anchor="middle">RULES</text>
+  <text class="ts" x="615" y="228" text-anchor="middle">reads: spec</text>
+  <text class="ts" x="615" y="248" text-anchor="middle">writes: slot</text>
+  <path class="ln" d="M690 215 H713"/>
+
+  <!-- 4 design brief -->
+  <rect class="s-ai" x="715" y="150" width="150" height="130" rx="8"/>
+  <text class="tb" x="790" y="178" text-anchor="middle">4 Design brief</text>
+  <text class="tk" x="790" y="198" text-anchor="middle">AI AGENT</text>
+  <text class="ts" x="790" y="228" text-anchor="middle">reads: spec</text>
+  <text class="ts" x="790" y="248" text-anchor="middle">writes: brief</text>
+  <text class="ts" x="790" y="266" text-anchor="middle">+ risk notes</text>
+  <path class="ln" d="M865 215 H878"/>
+
+  <!-- reference data -->
+  <rect class="s-data" x="200" y="320" width="130" height="46" rx="8"/>
+  <text class="ts" x="265" y="340" text-anchor="middle">cake catalog</text>
+  <text class="ts" x="265" y="357" text-anchor="middle">(reference data)</text>
+  <rect class="s-data" x="375" y="320" width="130" height="46" rx="8"/>
+  <text class="ts" x="440" y="340" text-anchor="middle">price table</text>
+  <text class="ts" x="440" y="357" text-anchor="middle">(reference data)</text>
+  <rect class="s-data" x="550" y="320" width="130" height="46" rx="8"/>
+  <text class="ts" x="615" y="340" text-anchor="middle">booked slots</text>
+  <text class="ts" x="615" y="357" text-anchor="middle">(other orders)</text>
+  <path class="dl" d="M265 320 V280 M440 320 V280 M615 320 V280"/>
+
+  <!-- 5 decision -->
+  <path class="s-rules" d="M960 160 L1040 215 L960 270 L880 215 Z"/>
+  <text class="tb" x="960" y="208" text-anchor="middle">5 Needs</text>
+  <text class="tb" x="960" y="226" text-anchor="middle">review?</text>
+  <text class="tk" x="960" y="245" text-anchor="middle">RULES</text>
+
+  <!-- 7 confirm -->
+  <rect class="s-rules" x="1075" y="150" width="150" height="130" rx="8"/>
+  <text class="tb" x="1150" y="178" text-anchor="middle">7 Confirmer</text>
+  <text class="tk" x="1150" y="198" text-anchor="middle">RULES</text>
+  <text class="ts" x="1150" y="228" text-anchor="middle">writes: confirmation</text>
+  <text class="ts" x="1150" y="248" text-anchor="middle">tells the customer</text>
+  <text class="ts" x="1150" y="266" text-anchor="middle">status CONFIRMED</text>
+  <path class="ln" d="M1040 215 H1073"/><text class="lbl" x="1046" y="206">no</text>
+
+  <!-- 6 baker -->
+  <path class="ln" d="M960 270 V318"/><text class="lbl" x="968" y="300">yes</text>
+  <rect class="s-gate" x="885" y="320" width="150" height="130" rx="8"/>
+  <text class="tb" x="960" y="348" text-anchor="middle">6 Baker review</text>
+  <text class="tk" x="960" y="368" text-anchor="middle">HUMAN GATE</text>
+  <text class="ts" x="960" y="396" text-anchor="middle">reads: whole order</text>
+  <text class="ts" x="960" y="416" text-anchor="middle">corrections → approval</text>
+  <text class="ts" x="960" y="436" text-anchor="middle">writes: approval</text>
+
+  <path class="ln" d="M1035 385 H1110 V282"/><text class="lbl" x="1042" y="377">approve</text>
+  <path class="ln" d="M885 420 H822"/><text class="lbl" x="830" y="412">decline</text>
+  <rect class="s-bad" x="660" y="385" width="160" height="70" rx="8"/>
+  <text class="tb" x="740" y="413" text-anchor="middle">Declined</text>
+  <text class="ts" x="740" y="433" text-anchor="middle">customer told; order ends</text>
+
+  <!-- output -->
+  <path class="ln" d="M1190 280 V466"/>
+  <rect class="s-out" x="1080" y="468" width="150" height="50" rx="8"/>
+  <text class="tb" x="1155" y="490" text-anchor="middle">Confirmed order</text>
+  <text class="ts" x="1155" y="508" text-anchor="middle">→ Stage 2 Production</text>
+
+  <text class="ts" x="20" y="470" fill-opacity=".8">The order waits in AWAITING_BAKER</text>
+  <text class="ts" x="20" y="488" fill-opacity=".8">until the baker acts. Nothing else blocks:</text>
+  <text class="ts" x="20" y="506" fill-opacity=".8">other orders keep flowing.</text>
+</svg>
+
+<h3>The agents of Stage 1</h3>
+<table>
+  <thead><tr><th>#</th><th>Agent</th><th>Kind</th><th>Input</th><th>Output</th><th>What it does</th></tr></thead>
+  <tbody>
+    <tr><td>1</td><td><b>Intake</b></td><td><span class="k ai">AI</span></td><td>Order request, cake catalog</td><td><code>spec</code>, <code>confidence</code>, <code>assumptions</code>, <code>missing</code></td><td>Reads the free text and fills in a fixed structure: servings, flavour, dietary needs, design (catalog or custom), due time, pickup or delivery. It says what it assumed and what is missing.</td></tr>
+    <tr><td>2</td><td><b>Pricing</b></td><td><span class="k rules">Rules</span></td><td><code>spec</code>, price table</td><td><code>quote</code> (lines and total)</td><td>Size from servings, flavour and dietary surcharges, design fee, delivery fee, rush fee. Same spec, same price, every time.</td></tr>
+    <tr><td>3</td><td><b>Capacity</b></td><td><span class="k rules">Rules</span></td><td><code>spec</code>, slots already booked by other orders</td><td><code>slot</code> (production day, load), or "no slot"</td><td>Picks the production day before the due date and holds room for it. Custom sculpted cakes use two units of the day's capacity.</td></tr>
+    <tr><td>4</td><td><b>Design brief</b></td><td><span class="k ai">AI</span></td><td><code>spec</code></td><td><code>brief</code>, <code>risks</code></td><td>Writes clear instructions for the decorator and flags anything risky (for example, a tall topper on a delivered cake).</td></tr>
+    <tr><td>5</td><td><b>Review router</b></td><td><span class="k rules">Rules</span></td><td>the whole order so far</td><td><code>review</code> (needed? and why)</td><td>Applies the review rule below. No AI here: the decision to involve a person must be predictable and easy to explain.</td></tr>
+    <tr><td>6</td><td><b>Baker review</b></td><td><span class="k gate">Human gate</span></td><td>the whole order, with reasons and risks</td><td><code>approval</code> (approve or decline, edits, note)</td><td>Only for flagged orders. The baker approves or declines with a reason. Any correction (for example a different price) is written in <code>approval</code>, not over the earlier agent's output.</td></tr>
+    <tr><td>7</td><td><b>Confirmer</b></td><td><span class="k rules">Rules</span></td><td>approved order</td><td><code>confirmation</code>, status <code>CONFIRMED</code></td><td>Books the slot for good, records the (simulated) payment and sends the confirmation to the customer. Its output is the stage's output.</td></tr>
+  </tbody>
+</table>
+
+<div class="cols" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px">
+  <div class="card"><b>Review rule: when does the baker look?</b>
+    <p style="margin:6px 0 0">The order goes to the baker if <b>any</b> of these is true:</p>
+    <ul style="margin:4px 0 0">
+      <li>the design is <b>custom</b> (not a catalog cake)</li>
+      <li>there is a <b>dietary or allergy</b> need</li>
+      <li>the quote is <b>over $150</b></li>
+      <li>Intake's <b>confidence is below 0.8</b>, or a field is <b>missing</b></li>
+      <li>Capacity found <b>no slot</b> (the baker decides, usually to decline)</li>
+    </ul>
+    <p style="margin:6px 0 0">Otherwise the order is confirmed straight away, with no person involved.</p>
+  </div>
+  <div class="card"><b>Why AI here, rules there?</b>
+    <ul style="margin:6px 0 0">
+      <li><b>AI</b> where the input is human language: understanding the request, and writing a brief a decorator can follow.</li>
+      <li><b>Rules</b> where the answer must be exact and repeatable: money, calendar, routing.</li>
+      <li><b>Human</b> where judgement and responsibility matter: can we really make this, and is it safe for the allergy?</li>
+      <li>The rule agents also <b>check</b> the AI. If Intake reads "20 people" as 2, the price and the review show it.</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ======================================================= -->
+<h2>4. Watch an order go through</h2>
+<p>Step through one order from the first message to the closed record. On the right is the <b>order record</b>: each step adds a section (highlighted), and earlier sections are folded. Try both orders. The standard cake never reaches the baker, while the custom cake stops at the gate.</p>
+
+<div class="controls">
+  <button id="scA" class="on">A · Standard birthday cake</button>
+  <button id="scB">B · Custom unicorn cake</button>
+  <span class="spacer"></span>
+  <button id="prev">◀ Back</button>
+  <button id="next">Next step ▶</button>
+  <button id="reset">Restart</button>
+</div>
+
+<div class="track" id="track"></div>
+
+<div class="walk">
+  <div class="card">
+    <div id="stepStage" class="sub" style="font-size:.8rem;text-transform:uppercase;letter-spacing:.05em"></div>
+    <div class="who" id="stepWho"></div>
+    <div id="stepKind"></div>
+    <dl class="kv">
+      <dt>Did</dt><dd id="stepDid"></dd>
+      <dt>Reads</dt><dd id="stepReads"></dd>
+      <dt>Adds</dt><dd id="stepAdds"></dd>
+      <dt>Status</dt><dd><span class="status" id="stepStatus"></span></dd>
+    </dl>
+    <h3 style="margin-top:18px;font-size:.9rem">Event log (kept by the orchestrator)</h3>
+    <ul class="log" id="log"></ul>
+  </div>
+  <div class="card rec">
+    <div class="sub" style="font-size:.8rem;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Order record</div>
+    <pre id="record"></pre>
+  </div>
+</div>
+
+<p class="sub" style="margin-top:22px">All names, addresses and orders are fictional. Prices: up to 10 servings $40 · 11–20 $65 · 21–35 $110 · 36–60 $180; red velvet +$8; gluten-free +$15; simple custom design +$25, sculpted +$60; delivery +$10; rush (under 72 hours) +20%.</p>
+
+</main>
+
+<script>
+(function () {
+  var KIND = { cust: 'Customer', ai: 'AI agent', rules: 'Rules agent', human: 'Human', gate: 'Human gate' };
+  var STAGES = ['Stage 1 · Ordering', 'Stage 2 · Production', 'Stage 3 · Fulfillment', 'Stage 4 · Done'];
+
+  var A = [
+    { st: 0, who: 'Customer', kind: 'cust', at: 'Mon 16 Nov 09:10', status: 'REQUESTED',
+      did: 'Sends a message through the order form.', reads: '—',
+      set: { id: 'C-1042', request: { customer: { name: 'Sam', contact: 'sam@example.com' },
+        message: "Hi! Could I get a vanilla birthday cake for about 10 kids, Saturday afternoon pickup? Please write 'Happy 7th Birthday, Mia' on it.",
+        wantedDate: '2026-11-21', fulfillment: 'pickup' } } },
+    { st: 0, who: 'Intake', kind: 'ai', at: 'Mon 16 Nov 09:10', status: 'PARSED',
+      did: 'Reads the free text and fills in the structured spec. It notes one assumption.', reads: 'request, cake catalog',
+      set: { spec: { servings: 10, flavor: 'vanilla', dietary: [], design: { type: 'catalog', item: 'Classic round', inscription: 'Happy 7th Birthday, Mia' },
+        dueAt: '2026-11-21T14:00', fulfillment: 'pickup', confidence: 0.9, assumptions: ["'afternoon' read as 14:00"], missing: [] } } },
+    { st: 0, who: 'Pricing', kind: 'rules', at: 'Mon 16 Nov 09:10', status: 'PRICED',
+      did: 'Looks up the price table.', reads: 'spec, price table',
+      set: { quote: { lines: [['Small cake (up to 10)', 40], ['Vanilla', 0], ['Inscription', 0]], total: 40.00 } } },
+    { st: 0, who: 'Capacity', kind: 'rules', at: 'Mon 16 Nov 09:10', status: 'SLOT_HELD',
+      did: 'Finds room on the day before pickup and holds it.', reads: "spec, other orders' slots",
+      set: { slot: { productionDay: '2026-11-20', units: 1, dayLoadAfter: '3 / 6' } } },
+    { st: 0, who: 'Design brief', kind: 'ai', at: 'Mon 16 Nov 09:11', status: 'BRIEFED',
+      did: 'Writes instructions for the decorator. No risks found.', reads: 'spec',
+      set: { brief: { text: "6-inch round, vanilla sponge and buttercream. White finish, rainbow sprinkle border. Blue piped inscription: 'Happy 7th Birthday, Mia'.", risks: [] } } },
+    { st: 0, who: 'Review router', kind: 'rules', at: 'Mon 16 Nov 09:11', status: 'APPROVED',
+      did: 'Checks the review rule. Nothing applies, so the order is approved by rule and the baker is not needed.', reads: 'whole order',
+      set: { review: { needed: false, reasons: [], approvedBy: 'rule' } } },
+    { st: 0, who: 'Confirmer', kind: 'rules', at: 'Mon 16 Nov 09:11', status: 'CONFIRMED',
+      did: 'Books the slot, records the payment (simulated) and sends the confirmation. Stage 1 output: the Confirmed order.', reads: 'approved order',
+      set: { confirmation: { payment: 'paid $40.00 (simulated)', message: 'Thanks Sam! Your vanilla cake (serves 10) is confirmed for pickup Sat 21 Nov at 2:00 pm. Order C-1042.' } } },
+    { st: 1, who: 'Production planner', kind: 'rules', at: 'Mon 16 Nov 09:11', status: 'PRODUCTION_PLANNED',
+      did: 'Plans the tasks backwards from the due time and reserves the ingredients.', reads: 'Confirmed order',
+      set: { plan: { tasks: [['bake', 'Fri 09:00'], ['fill and crumb coat', 'Fri 13:00'], ['decorate and inscribe', 'Sat 09:00']], ingredients: "reserved" } } },
+    { st: 1, who: 'Kitchen staff', kind: 'human', at: 'Sat 21 Nov 10:20', status: 'MADE',
+      did: 'Bake, fill and decorate the cake, ticking off each task, then take a photo.', reads: 'tasks, brief',
+      set: { made: { tasksDoneAt: ['Fri 09:50', 'Fri 13:40', 'Sat 10:15'], ingredients: 'used', photo: 'C-1042-final.jpg' } } },
+    { st: 1, who: 'Photo check', kind: 'ai', at: 'Sat 21 Nov 10:21', status: 'QC_CHECKED',
+      did: 'Compares the photo with the brief.', reads: 'photo, brief',
+      set: { qc: { result: 'match', notes: ['inscription spelled correctly', 'sprinkle border present'] } } },
+    { st: 1, who: 'Baker release', kind: 'gate', at: 'Sat 21 Nov 10:30', status: 'READY',
+      did: 'Looks at the cake and the photo check, and releases it. Stage 2 output: the Finished cake record.', reads: 'cake, qc',
+      set: { release: { by: 'baker', at: '2026-11-21T10:30' } } },
+    { st: 2, who: 'Dispatcher + Notifier', kind: 'rules', at: 'Sat 21 Nov 10:30', status: 'AWAITING_PICKUP',
+      did: 'Pickup order: puts it on the counter shelf and tells the customer it is ready.', reads: 'Finished cake record',
+      set: { fulfillment: { method: 'pickup', shelf: 'P-3', readyNoticeSent: '2026-11-21T10:30' } } },
+    { st: 2, who: 'Counter staff', kind: 'human', at: 'Sat 21 Nov 14:05', status: 'HANDED_OVER',
+      did: 'Hands the cake over and records it. Stage 3 output: the Handover record.', reads: 'order id',
+      set: { handover: { at: '2026-11-21T14:05', by: 'counter staff', proof: 'customer signature' } } },
+    { st: 3, who: 'Closer', kind: 'rules', at: 'Sat 21 Nov 14:06', status: 'COMPLETED',
+      did: 'Sends the receipt and asks for feedback.', reads: 'Handover record',
+      set: { receipt: { number: 'R-1042', amount: 40.00, sentAt: '2026-11-21T14:06' } } },
+    { st: 3, who: 'Feedback summariser', kind: 'ai', at: 'Sun 22 Nov 08:30', status: 'CLOSED',
+      did: "Reads the customer's reply (\"Kids loved it, thank you!\") and summarises it for the bakery. Stage 4 output: the Closed order.", reads: 'customer reply',
+      set: { feedback: { sentiment: 'positive', themes: ['taste', 'looks'], issue: null } } }
+  ];
+
+  var B = [
+    { st: 0, who: 'Customer', kind: 'cust', at: 'Mon 16 Nov 09:40', status: 'REQUESTED',
+      did: 'Sends a message through the order form.', reads: '—',
+      set: { id: 'C-1043', request: { customer: { name: 'Jordan', contact: 'jordan@example.com' },
+        message: "Hello, we need a cake for my daughter's party on Saturday, about 20 people. Chocolate please, unicorn theme with a big horn and rainbow mane if possible! One guest is gluten-free so the whole cake should be. Can you deliver to 12 Elm Street around 3?",
+        wantedDate: '2026-11-21', fulfillment: 'delivery', address: '12 Elm Street' } } },
+    { st: 0, who: 'Intake', kind: 'ai', at: 'Mon 16 Nov 09:40', status: 'PARSED',
+      did: 'Reads the free text. It recognises a custom design and a dietary need.', reads: 'request, cake catalog',
+      set: { spec: { servings: 20, flavor: 'chocolate', dietary: ['gluten-free'], design: { type: 'custom', theme: 'unicorn', elements: ['sculpted horn', 'rainbow mane'] },
+        dueAt: '2026-11-21T15:00', fulfillment: 'delivery', confidence: 0.88, assumptions: [], missing: [] } } },
+    { st: 0, who: 'Pricing', kind: 'rules', at: 'Mon 16 Nov 09:40', status: 'PRICED',
+      did: 'Looks up the price table.', reads: 'spec, price table',
+      set: { quote: { lines: [['Medium cake (11-20)', 65], ['Chocolate', 0], ['Gluten-free', 15], ['Sculpted design', 60], ['Delivery', 10]], total: 150.00 } } },
+    { st: 0, who: 'Capacity', kind: 'rules', at: 'Mon 16 Nov 09:40', status: 'SLOT_HELD',
+      did: 'A sculpted cake takes two units. Gluten-free bakes go first in the day, before any wheat.', reads: "spec, other orders' slots",
+      set: { slot: { productionDay: '2026-11-20', units: 2, dayLoadAfter: '5 / 6', glutenFreeFirstBake: true } } },
+    { st: 0, who: 'Design brief', kind: 'ai', at: 'Mon 16 Nov 09:41', status: 'BRIEFED',
+      did: 'Writes instructions for the decorator and flags two risks.', reads: 'spec',
+      set: { brief: { text: 'Two-layer 8-inch round, gluten-free chocolate sponge, chocolate buttercream. White finish. Sculpted gold horn on top, rainbow mane piped down one side, closed eyes with lashes.',
+        risks: ['Horn and decorations must also be gluten-free', 'A tall horn may tip over during delivery'] } } },
+    { st: 0, who: 'Review router', kind: 'rules', at: 'Mon 16 Nov 09:41', status: 'AWAITING_BAKER',
+      did: 'Checks the review rule. Two reasons apply, so the order stops and waits for the baker.', reads: 'whole order',
+      set: { review: { needed: true, reasons: ['custom design', 'dietary: gluten-free'] } } },
+    { st: 0, who: 'Baker review', kind: 'gate', at: 'Mon 16 Nov 10:02', status: 'APPROVED',
+      did: 'Opens the order in the review inbox, reads the reasons and risks, adds two changes and approves. The price stays the same.', reads: 'whole order, reasons, risks',
+      set: { approval: { by: 'baker', decision: 'approve', edits: ['Horn in gluten-free modelling chocolate, not fondant', 'Use a tall delivery box with an internal support'], noteToCustomer: 'We will make the horn from chocolate so it is safe for everyone.' } } },
+    { st: 0, who: 'Confirmer', kind: 'rules', at: 'Mon 16 Nov 10:02', status: 'CONFIRMED',
+      did: 'Books the slot, records the payment (simulated) and sends the confirmation with the baker’s note. Stage 1 output: the Confirmed order.', reads: 'approved order',
+      set: { confirmation: { payment: 'paid $150.00 (simulated)', message: 'Thanks Jordan! Your gluten-free unicorn cake (serves 20) is confirmed for delivery Sat 21 Nov, 2:30-3:00 pm, to 12 Elm Street. Order C-1043.' } } },
+    { st: 1, who: 'Production planner', kind: 'rules', at: 'Mon 16 Nov 10:02', status: 'PRODUCTION_PLANNED',
+      did: 'Plans the tasks backwards from the due time. The gluten-free bake is placed first.', reads: 'Confirmed order',
+      set: { plan: { tasks: [['bake (gluten-free, first)', 'Fri 07:00'], ['sculpt horn', 'Fri 10:00'], ['assemble and decorate', 'Sat 08:00']], ingredients: "reserved" } } },
+    { st: 1, who: 'Kitchen staff', kind: 'human', at: 'Sat 21 Nov 11:40', status: 'MADE',
+      did: 'Make the cake and take the final photo.', reads: 'tasks, brief, baker edits',
+      set: { made: { tasksDoneAt: ['Fri 08:10', 'Fri 12:30', 'Sat 11:40'], ingredients: 'used', photo: 'C-1043-final.jpg' } } },
+    { st: 1, who: 'Photo check', kind: 'ai', at: 'Sat 21 Nov 11:41', status: 'QC_CHECKED',
+      did: 'Compares the photo with the brief. It is a match, with one small note.', reads: 'photo, brief',
+      set: { qc: { result: 'match', notes: ['horn, mane and eyes present', 'mane shows 5 colours, brief implies 6'] } } },
+    { st: 1, who: 'Baker release', kind: 'gate', at: 'Sat 21 Nov 12:05', status: 'READY',
+      did: 'Accepts the note ("5 colours is fine") and releases the cake. Stage 2 output: the Finished cake record.', reads: 'cake, qc',
+      set: { release: { by: 'baker', at: '2026-11-21T12:05', comment: '5 colours is fine' } } },
+    { st: 2, who: 'Dispatcher + Notifier', kind: 'rules', at: 'Sat 21 Nov 12:05', status: 'OUT_FOR_DELIVERY',
+      did: 'Delivery order: assigns the driver, sets the time window and tells the customer.', reads: 'Finished cake record',
+      set: { fulfillment: { method: 'delivery', driver: 'Driver 1', window: '14:30-15:00', zone: 'A' } } },
+    { st: 2, who: 'Driver', kind: 'human', at: 'Sat 21 Nov 14:48', status: 'HANDED_OVER',
+      did: 'Delivers the cake and records it. Stage 3 output: the Handover record.', reads: 'route, order id',
+      set: { handover: { at: '2026-11-21T14:48', by: 'driver', proof: 'photo at door' } } },
+    { st: 3, who: 'Closer', kind: 'rules', at: 'Sat 21 Nov 15:10', status: 'COMPLETED',
+      did: 'Sends the receipt and asks for feedback.', reads: 'Handover record',
+      set: { receipt: { number: 'R-1043', amount: 150.00, sentAt: '2026-11-21T15:10' } } },
+    { st: 3, who: 'Feedback summariser', kind: 'ai', at: 'Sun 22 Nov 09:15', status: 'CLOSED',
+      did: "Reads the reply (\"The unicorn was amazing! The horn was a little wobbly in the car though.\") and summarises it. Stage 4 output: the Closed order.", reads: 'customer reply',
+      set: { feedback: { sentiment: 'positive', themes: ['looks', 'taste'], issue: 'horn a little wobbly in transit' } } }
+  ];
+
+  var scenarios = { A: A, B: B }, cur = 'A', i = 0;
+  var $ = function (id) { return document.getElementById(id); };
+  function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+  function chip(k) { return '<span class="k ' + k + '">' + KIND[k] + '</span>'; }
+
+  function renderTrack(steps) {
+    var html = '';
+    for (var s = 0; s < 4; s++) {
+      html += '<div class="seg' + (steps[i].st === s ? ' now' : '') + '"><span>' + STAGES[s] + '</span><div class="dots">';
+      steps.forEach(function (st, n) {
+        if (st.st !== s) return;
+        var cls = 'dot ' + st.kind + (n < i ? ' done' : '') + (n === i ? ' cur' : '');
+        html += '<span class="' + cls + '" data-n="' + n + '" title="' + esc(st.who) + '">' + (n + 1) + '</span>';
+      });
+      html += '</div></div>';
+    }
+    $('track').innerHTML = html;
+    Array.prototype.forEach.call($('track').querySelectorAll('.dot'), function (d) {
+      d.onclick = function () { i = +d.getAttribute('data-n'); render(); };
+    });
+  }
+
+  function renderRecord(steps) {
+    var rec = {}, order = [];
+    for (var n = 0; n <= i; n++) {
+      Object.keys(steps[n].set).forEach(function (k) { if (order.indexOf(k) < 0) order.push(k); rec[k] = steps[n].set[k]; });
+      if (order.indexOf('status') < 0) order.splice(1, 0, 'status');
+      rec.status = steps[n].status;
+    }
+    var fresh = Object.keys(steps[i].set).concat(['status']);
+    var lines = ['{'];
+    order.forEach(function (k, idx) {
+      var comma = idx < order.length - 1 ? ',' : '';
+      var v = rec[k], isNew = fresh.indexOf(k) >= 0, body;
+      if (isNew || typeof v !== 'object' || v === null) {
+        body = JSON.stringify(v, null, 2).split('\n').join('\n  ');
+      } else {
+        body = Array.isArray(v) ? '[ … ]' : '{ … }';
+      }
+      var line = '  ' + JSON.stringify(k) + ': ' + body + comma;
+      lines.push(isNew ? '<span class="new">' + esc(line) + '</span>' : '<span class="dim">' + esc(line) + '</span>');
+    });
+    lines.push('}');
+    $('record').innerHTML = lines.join('\n');
+  }
+
+  function render() {
+    var steps = scenarios[cur], s = steps[i];
+    renderTrack(steps);
+    $('stepStage').textContent = STAGES[s.st] + ' · step ' + (i + 1) + ' of ' + steps.length;
+    $('stepWho').textContent = s.who;
+    $('stepKind').innerHTML = chip(s.kind);
+    $('stepDid').textContent = s.did;
+    $('stepReads').textContent = s.reads;
+    $('stepAdds').innerHTML = Object.keys(s.set).filter(function (k) { return k !== 'id'; }).map(function (k) { return '<code>' + k + '</code>'; }).join(' ');
+    $('stepStatus').textContent = s.status;
+    var log = '';
+    for (var n = 0; n <= i; n++) {
+      log += '<li class="' + (n === i ? 'cur' : '') + '"><span class="t0">' + esc(steps[n].at) + '</span>  ' + esc(steps[n].who) + ' → ' + esc(steps[n].status) + '</li>';
+    }
+    $('log').innerHTML = log;
+    $('log').scrollTop = $('log').scrollHeight;
+    renderRecord(steps);
+    $('prev').disabled = i === 0;
+    $('next').disabled = i === steps.length - 1;
+  }
+
+  function pick(k) { cur = k; i = 0; $('scA').classList.toggle('on', k === 'A'); $('scB').classList.toggle('on', k === 'B'); render(); }
+  $('scA').onclick = function () { pick('A'); };
+  $('scB').onclick = function () { pick('B'); };
+  $('prev').onclick = function () { if (i > 0) { i--; render(); } };
+  $('next').onclick = function () { if (i < scenarios[cur].length - 1) { i++; render(); } };
+  $('reset').onclick = function () { i = 0; render(); };
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowRight') $('next').click();
+    if (e.key === 'ArrowLeft') $('prev').click();
+  });
+  render();
+})();
+</script>
+</body>
+</html>

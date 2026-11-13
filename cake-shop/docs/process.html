@@ -1,0 +1,603 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cake Order Desk – Development Process</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --card: #ffffff; --text: #1d2330; --muted: #5d6677; --line: #dde1e8;
+    --accent: #2563eb; --accent-soft: #e3ecff;
+    --must: #b42318; --must-bg: #fde8e6;
+    --should: #b54708; --should-bg: #fdf0dc;
+    --could: #175cd3; --could-bg: #e3ecff;
+    --wont: #5d6677; --wont-bg: #eceef2;
+    --done: #067647;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12151c; --card: #1a1f2a; --text: #e6e9ef; --muted: #9aa3b5; --line: #2c3342;
+      --accent: #6b9bff; --accent-soft: #1d2a47;
+      --must: #ff9a8f; --must-bg: #3a1f1d;
+      --should: #f5b46a; --should-bg: #3a2c17;
+      --could: #8ab4ff; --could-bg: #1d2a47;
+      --wont: #9aa3b5; --wont-bg: #262c39;
+      --done: #4ade80;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+  .layout { display: grid; grid-template-columns: 260px minmax(0, 1fr); min-height: 100vh; }
+  .content { min-width: 0; }
+  main { max-width: 980px; margin: 0 auto; padding: 0 28px; }
+  .panel { padding-top: 32px; padding-bottom: 20px; }
+  .panel + .panel { margin-top: 20px; }
+  .js .panel + .panel { margin-top: 0; }
+  [hidden] { display: none !important; }
+  code { font: .85em ui-monospace, Consolas, monospace; background: var(--wont-bg); padding: 1px 5px; border-radius: 4px; }
+  .dash { color: var(--muted); }
+
+  /* ---- compact stage bar: appears when the big tracker scrolls out of view ---- */
+  .stagebar { display: none; position: fixed; top: 0; left: 260px; right: 0; z-index: 20; gap: 6px;
+    padding: 8px 28px; background: var(--card); border-bottom: 1px solid var(--line);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, .15); flex-wrap: wrap; justify-content: center; }
+  .stagebar.visible { display: flex; }
+  .stagebar a { flex: 0 1 auto; text-align: center; padding: 4px 12px; border: 1px solid var(--line); border-radius: 8px;
+    font-size: .85rem; font-weight: 600; white-space: nowrap; text-decoration: none; }
+  .stagebar a:hover { border-color: var(--accent); color: inherit; }
+  .stagebar .grp { display: inline-flex; flex: 0 0 auto; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .stagebar .grp:has(a.current) { border-color: var(--accent); }
+  .stagebar .grp a { border: 0; border-radius: 0; }
+  .stagebar .grp a + a { border-left: 1px solid var(--line); }
+  .stagebar a.current { border-color: var(--accent); background: var(--accent-soft); }
+  .stagebar a.done::before { content: "✓ "; color: var(--done); }
+  h2, h3, h4, details.uc { scroll-margin-top: 64px; }
+
+  @media (max-width: 1100px) { h2, h3, h4, details.uc { scroll-margin-top: 100px; } }
+
+  /* ---- sidebar tabs ---- */
+  .sidebar { position: sticky; top: 0; height: 100vh; overflow-y: auto; background: var(--card); border-right: 1px solid var(--line); padding: 22px 14px; }
+  .brand { padding: 0 10px 14px; border-bottom: 1px solid var(--line); margin-bottom: 6px; }
+  .brand b { display: block; font-size: 1.15rem; }
+  .brand span { color: var(--muted); font-size: .85rem; }
+  .group-label { margin: 18px 10px 6px; color: var(--muted); font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; }
+  .tab { display: block; padding: 8px 10px; margin: 2px 0; border-radius: 8px; border-left: 3px solid transparent; text-decoration: none; }
+  .tab b { display: block; font-size: .95rem; }
+  .tab span { display: block; color: var(--muted); font-size: .78rem; line-height: 1.3; }
+  .tab:hover { background: var(--bg); color: inherit; }
+  .tab.active { background: var(--accent-soft); border-left-color: var(--accent); }
+  @media (max-width: 800px) {
+    .layout { grid-template-columns: 1fr; }
+    .stagebar { left: 0; padding: 8px 12px; }
+    .sidebar { position: static; height: auto; border-right: 0; border-bottom: 1px solid var(--line); }
+    main { padding: 0 16px; }
+  }
+  h1 { margin: 0 0 4px; font-size: 1.9rem; }
+  h2 { margin: 40px 0 8px; font-size: 1.35rem; padding-bottom: 6px; border-bottom: 2px solid var(--line); }
+  h3 { margin: 20px 0 6px; font-size: 1.05rem; }
+  h4 { margin: 18px 0 6px; font-size: .98rem; }
+  .options { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px; margin: 10px 0 6px; }
+  .opt { position: relative; display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; font-size: .88rem; }
+  .opt:has(input:not(:disabled)):hover { border-color: var(--accent); }
+  .opt input { position: absolute; opacity: 0; pointer-events: none; }
+  .opt:has(input:checked) { border: 2px solid var(--accent); background: var(--accent-soft); padding: 11px 13px; }
+  .opt:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .opt-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+  .opt-name { font-weight: 700; font-size: .98rem; }
+  .opt-what { color: var(--muted); }
+  .pc { display: block; padding-left: 14px; text-indent: -14px; }
+  .pc.plus { color: var(--done); }
+  .pc.minus { color: var(--muted); }
+  .chosen-line { margin: 4px 0 0; font-size: .9rem; color: var(--muted); }
+  .decision.is-chosen .chosen-line { color: var(--accent); }
+  .decision { margin-top: 26px; }
+  details.draft { margin: 30px 0 0; padding: 10px 16px; border: 1px dashed var(--line); border-radius: 10px; }
+  details.draft summary { cursor: pointer; color: var(--muted); font-weight: 600; }
+  h3.phase { margin: 34px 0 8px; padding: 10px 14px; font-size: 1.12rem; background: var(--card); border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 0 8px 8px 0; }
+  .phases { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; list-style: none; padding: 0; margin: 16px 0 0; }
+  .phases li { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; position: relative; }
+  .phases li:hover { border-color: var(--accent); }
+  .phases .n { display: block; color: var(--muted); font-size: .72rem; text-transform: uppercase; letter-spacing: .05em; }
+  .phases b { display: block; font-size: 1rem; }
+  .phases b a { text-decoration: none; }
+  .phases b a::after { content: ""; position: absolute; inset: 0; border-radius: 10px; }
+  .phases p { margin: 4px 0 0; font-size: .88rem; color: var(--muted); }
+  @media (max-width: 760px) { .phases { grid-template-columns: 1fr; } }
+  p, li { max-width: 75ch; }
+  a { color: inherit; text-decoration: underline; text-decoration-color: var(--muted); text-underline-offset: 3px; }
+  a:hover { color: var(--accent); text-decoration-color: var(--accent); }
+  .sub { color: var(--muted); margin: 0; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px 20px; margin: 12px 0; }
+  .note { border-left: 4px solid var(--accent); background: var(--accent-soft); padding: 10px 16px; border-radius: 0 8px 8px 0; margin: 14px 0; }
+
+  /* ---- stage tracker ---- */
+  .stages { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; list-style: none; padding: 0; margin: 20px 0 0; }
+  .stages li { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; font-size: .85rem; position: relative; }
+  .stages .n { display: block; color: var(--muted); font-size: .72rem; text-transform: uppercase; letter-spacing: .05em; }
+  .stages b { display: block; font-size: .95rem; }
+  .stages .state { display: block; margin-top: 4px; color: var(--muted); font-size: .75rem; }
+  .stages li.current { border: 2px solid var(--accent); background: var(--accent-soft); }
+  .stages li a { text-decoration: none; }
+  .stages li a::after { content: ""; position: absolute; inset: 0; border-radius: 10px; }
+  .stages li:hover { border-color: var(--accent); }
+  .stages li.multi a::after { display: none; }
+  .stages.has-summary { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+  .stages li.summary { border-style: dashed; }
+  .stages li.summary .state { color: var(--accent); font-weight: 600; }
+  .stages .links { display: flex; flex-direction: column; gap: 4px; margin-top: 4px; }
+  .stages .links a { position: relative; z-index: 1; flex: 1; text-align: center; padding: 2px 6px; border: 1px solid var(--line); border-radius: 6px; font-size: .78rem; font-weight: 600; background: var(--bg); }
+  .stages .links a:hover { border-color: var(--accent); color: var(--accent); }
+  html { scroll-behavior: smooth; }
+  .stages li.current .state { color: var(--accent); font-weight: 600; }
+  .stages li.done .state { color: var(--done); }
+  @media (max-width: 760px) { .stages, .stages.has-summary { grid-template-columns: repeat(2, 1fr); } }
+
+  /* ---- tables ---- */
+  table { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; font-size: .92rem; }
+  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { background: var(--bg); font-size: .78rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+  tr:last-child td { border-bottom: 0; }
+  td.dash { color: var(--muted); }
+
+  .tag { display: inline-block; padding: 1px 9px; border-radius: 99px; font-size: .75rem; font-weight: 600; white-space: nowrap; }
+  .must { color: var(--must); background: var(--must-bg); }
+  .should { color: var(--should); background: var(--should-bg); }
+  .could { color: var(--could); background: var(--could-bg); }
+  .tag.done { color: var(--done); background: var(--wont-bg); }
+  .wont { color: var(--wont); background: var(--wont-bg); }
+  .id { font-family: ui-monospace, Consolas, monospace; font-size: .85rem; color: var(--muted); white-space: nowrap; }
+
+  /* ---- use cases ---- */
+  details.uc { background: var(--card); border: 1px solid var(--line); border-radius: 10px; margin: 10px 0; }
+  details.uc > summary { cursor: pointer; padding: 12px 18px; display: flex; gap: 12px; align-items: center; list-style: none; }
+  details.uc > summary::-webkit-details-marker { display: none; }
+  details.uc > summary::before { content: "▸"; color: var(--muted); transition: transform .15s; }
+  details.uc[open] > summary::before { transform: rotate(90deg); }
+  details.uc > summary .title { font-weight: 600; flex: 1; }
+  .uc-body { padding: 0 18px 16px 42px; border-top: 1px solid var(--line); }
+  dl { display: grid; grid-template-columns: 140px 1fr; gap: 6px 14px; margin: 12px 0 0; }
+  dt { color: var(--muted); font-size: .85rem; text-transform: uppercase; letter-spacing: .03em; padding-top: 2px; }
+  dd { margin: 0; }
+  dd ol, dd ul { margin: 0; padding-left: 20px; }
+  @media (max-width: 600px) { dl { grid-template-columns: 1fr; } .uc-body { padding-left: 18px; } }
+
+  pre.diagram { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px 18px; overflow-x: auto; font: .85rem/1.45 ui-monospace, Consolas, monospace; }
+  .stage-card h3 { margin-top: 0; }
+  .stage-card.current { border: 2px solid var(--accent); }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 700px) { .cols { grid-template-columns: 1fr; } }
+  footer { max-width: 980px; margin: 40px auto; padding: 0 28px; color: var(--muted); font-size: .85rem; }
+  @media print { details.uc:not([open]) > .uc-body { display: block; } .sidebar, .stagebar { display: none !important; } .layout { display: block; } .panel[hidden] { display: block !important; } }
+</style>
+</head>
+<body>
+
+<div class="layout">
+<nav class="sidebar" aria-label="Iterations">
+  <div class="brand">
+    <b>Cake Order Desk</b>
+    <span>Development process</span>
+  </div>
+  <div class="group-label">Guide</div>
+  <a class="tab" href="#overview"><b>Process overview</b><span>The six stages</span></a>
+  <div class="group-label">Iterations</div>
+  <a class="tab" href="#iteration-1"><b>Iteration 1</b><span>Ordering desk · Stage 1 Requirements</span></a>
+  <div class="group-label">Reuse</div>
+  <a class="tab" href="#template"><b>Template</b><span>Blank skeleton for new iterations</span></a>
+</nav>
+
+<div class="content">
+<main>
+
+<section class="panel" id="overview">
+<h1>Process overview</h1>
+<p class="sub">How every iteration of the Cake Order Desk is run.</p>
+<!-- ============================ STAGES ============================ -->
+<h2 id="stages">The development cycle</h2>
+<p>Every software project moves through the same broad stages. Each pass around the loop is an <b>iteration</b>. Every iteration has its own tab on the left and uses the <b>same template</b>, so the process stays the same while the scope changes. These pages are our single record of what we decided at each stage and why.</p>
+
+<div class="card stage-card">
+  <h3>Stage 1 – Requirements</h3>
+  <p><b>Question answered:</b> <i>What should the system do, and for whom?</i></p>
+  <p><b>Output:</b> a list of actors and use cases, each with a priority, agreed with the "client" (the class). See the Requirements section of an iteration.</p>
+</div>
+<div class="card stage-card">
+  <h3>Stage 2 – Design</h3>
+  <p><b>Question answered:</b> <i>How will it be structured and what will it look like?</i></p>
+  <p><b>Output:</b> done in three phases. <b>2A Graphic design:</b> screens, navigation and clickable mockups of what the user sees. <b>2B Software design:</b> data model, web technology decisions, code structure and the functions we will build. <b>2C Test plan:</b> how we will prove it works. See the Design section of an iteration.</p>
+</div>
+<div class="card stage-card">
+  <h3>Stage 3 – Implementation</h3>
+  <p><b>Question answered:</b> <i>Can we build it?</i></p>
+  <p><b>Output:</b> working code for the "Must have" use cases, built in small steps, one use case at a time.</p>
+</div>
+<div class="card stage-card">
+  <h3>Stage 4 – Testing</h3>
+  <p><b>Question answered:</b> <i>Does it do what the requirements said?</i></p>
+  <p><b>Output:</b> for each use case, a check that its main flow and alternative flows actually work. Every run of the whole test plan is saved as a dated test result. Each failure, or each item that needs a person to judge it, becomes a <b>ticket</b> (report, investigation, solution, verification) that is closed only when a later run proves it. See the Testing section of an iteration.</p>
+</div>
+<div class="card stage-card">
+  <h3>Stage 5 – Deployment</h3>
+  <p><b>Question answered:</b> <i>How do real users get it?</i></p>
+  <p><b>Output:</b> the prototype published at a URL (for example GitHub Pages), or, when the iteration is only for the class, run on local host. Either way, write down where it runs and how to start it.</p>
+</div>
+<div class="card stage-card">
+  <h3>Stage 6 – Review &amp; Maintenance</h3>
+  <p><b>Question answered:</b> <i>What did we learn, and what comes next?</i></p>
+  <p><b>Output:</b> a retrospective, the deferred ideas that become the next cycle's requirements, a decision on whether the product is maintained or retired, and a one-page <b>summary report</b> of the whole iteration.</p>
+</div>
+
+<div class="note">
+  <b>Teaching point:</b> real projects rarely go in a straight line. Testing often reveals a missing requirement, which sends us back to Stage 1. Each stage's output is the next stage's input, which is why we write things down.
+</div>
+
+
+</section>
+
+<section class="panel" id="iteration-1">
+<h1>Iteration 1 – Ordering desk (Stage 1 of the business)</h1>
+<p class="sub"><b>Goal:</b> an orchestrator that runs a chain of AI, rule and human agents to turn a customer's free-text cake request into a confirmed order, with the baker approving the orders that need it.</p>
+<p class="sub"><b>Visual:</b> <a href="../devlog/iteration-1/assets/business-lifecycle.html">the business and its life cycle</a>, <a href="../devlog/iteration-1/assets/data-model.html">data model (one table)</a> · <b>Devlog:</b> <a href="../devlog/iteration-1/20261113-01-business-lifecycle.md">business life cycle and stage contracts</a></p>
+<ol class="stages has-summary" aria-label="Development stages">
+  <li class="current"><span class="n">Stage 1</span><b><a href="#i1-requirements">Requirements</a></b><span class="state">● We are here</span></li>
+  <li class="multi"><span class="n">Stage 2</span><b>Design</b><span class="links"><a href="#i1-design-graphic" data-bar="Graphic design">Graphic</a><a href="#i1-design-software" data-bar="Software design">Software</a><a href="#i1-design-testplan" data-bar="Test plan">Test plan</a></span><span class="state">Planned</span></li>
+  <li><span class="n">Stage 3</span><b><a href="#i1-stage3">Implementation</a></b><span class="state">Planned</span></li>
+  <li><span class="n">Stage 4</span><b><a href="#i1-stage4">Testing</a></b><span class="state">Planned</span></li>
+  <li><span class="n">Stage 5</span><b><a href="#i1-stage5">Deployment</a></b><span class="state">Planned</span></li>
+  <li><span class="n">Stage 6</span><b><a href="#i1-stage6">Review &amp; Maintenance</a></b><span class="state">Planned</span></li>
+  <li class="summary"><span class="n">Report</span><b><a href="#i1-stage6">Summary</a></b><span class="state">Written in Stage 6</span></li>
+</ol>
+
+<div class="note"><b>Two kinds of "stage" on this page.</b> The <b>development stages</b> (Requirements, Design, …) are how we build software. The <b>business stages</b> (Ordering, Production, Fulfillment, Done) are how a cake order moves through the bakery. This iteration runs all six development stages for <b>one</b> business stage: Ordering.</div>
+
+<!-- ============================ REQUIREMENTS ============================ -->
+<h2 id="i1-requirements">Stage 1 – Requirements (use cases) <span class="tag could">current</span></h2>
+<p><b>Question answered:</b> <i>What should the system do, and for whom?</i></p>
+
+<h3>Carried over from the previous iteration</h3>
+<p>None. This is the first iteration.</p>
+
+<h3>The business life cycle</h3>
+<p>Every order moves through four business stages in a straight line. Each stage takes one input and produces one output, and that output is the next stage's input. Full detail, sample data and a step-through of two orders are in the <a href="../devlog/iteration-1/assets/business-lifecycle.html">life cycle visual</a>.</p>
+<table>
+  <thead><tr><th>Business stage</th><th>Input</th><th>Output</th><th>This iteration?</th></tr></thead>
+  <tbody>
+    <tr><td><b>1 Ordering</b></td><td>Order request (customer's message)</td><td>Confirmed order, or Declined</td><td><span class="tag must">In scope</span></td></tr>
+    <tr><td><b>2 Production</b></td><td>Confirmed order</td><td>Finished cake record</td><td><span class="tag wont">Described only</span></td></tr>
+    <tr><td><b>3 Fulfillment</b></td><td>Finished cake record</td><td>Handover record</td><td><span class="tag wont">Described only</span></td></tr>
+    <tr><td><b>4 Done</b></td><td>Handover record</td><td>Closed order</td><td><span class="tag wont">Described only</span></td></tr>
+  </tbody>
+</table>
+
+<h3>Actors</h3>
+<table>
+  <thead><tr><th>Actor</th><th>Who they are</th><th>In this iteration?</th></tr></thead>
+  <tbody>
+    <tr><td><b>Customer</b></td><td>Orders a cake by writing a message in their own words</td><td>Yes</td></tr>
+    <tr><td><b>Baker</b></td><td>Owns the bakery. Reviews and approves or declines flagged orders</td><td>Yes</td></tr>
+    <tr><td><b>Kitchen staff, driver, counter staff</b></td><td>Make, deliver and hand over the cake</td><td>No (Stages 2–3)</td></tr>
+  </tbody>
+</table>
+
+<h3>Use cases</h3>
+<p class="dash">To be written next, in the Ordering devlog. The life cycle and its stage contracts come first so that the Ordering output is shaped for Stage 2.</p>
+
+<h3>Deferred (not in this iteration)</h3>
+<table>
+  <thead><tr><th>Idea</th><th>Priority</th><th>Why deferred</th></tr></thead>
+  <tbody>
+    <tr><td>Business stages 2–4: Production, Fulfillment, Done</td><td><span class="tag wont">Won't (yet)</span></td><td>Each stage is built on its own. Ordering comes first</td></tr>
+    <tr><td>Loop-backs: clarify with the customer, rework, changes after confirmation, complaints</td><td><span class="tag wont">Won't (yet)</span></td><td>Kept out to make the flow strictly sequential</td></tr>
+    <tr><td>Real payment</td><td><span class="tag wont">Won't (yet)</span></td><td>Simulated. Not part of the multi-agent lesson</td></tr>
+  </tbody>
+</table>
+
+<h3>Open questions for the client</h3>
+<div class="card"><ol style="margin:0">
+  <li>When a request is missing information, is it enough for the baker to fill it in at review (no message back to the customer)?</li>
+  <li>Is the review rule right: custom design, dietary need, over $150, low AI confidence, or no slot?</li>
+</ol></div>
+
+<h3>Decision log</h3>
+<table>
+  <thead><tr><th>#</th><th>Stage</th><th>Decision</th><th>Why</th></tr></thead>
+  <tbody>
+    <tr><td>1</td><td>Requirements</td><td>The business is a bakery's custom cake orders, run by a mix of AI, rule and human agents</td><td>A simple domain everyone knows, with a clear split between language work (AI) and exact work (rules)</td></tr>
+    <tr><td>2</td><td>Requirements</td><td>Four business stages in a straight line, with no loop-backs</td><td>Keeps the flow simple. Each stage can be designed and built on its own</td></tr>
+    <tr><td>3</td><td>Requirements</td><td>Each business stage has one input and one output contract</td><td>Stages depend only on the shape of the data passed between them, not on each other's code</td></tr>
+    <tr><td>4</td><td>Requirements</td><td>Iteration 1 builds only Ordering, as an orchestrated chain with a human gate</td><td>It has the most interesting mix: two AI agents, rule agents and the baker approval</td></tr>
+  </tbody>
+</table>
+
+<h2 id="i1-design">Stage 2 – Design <span class="tag wont">not started</span></h2>
+<p><b>Question answered:</b> <i>How will it be structured and what will it look like?</i></p>
+<h3 id="i1-design-graphic" class="phase">Phase 2A – Graphic design</h3>
+<p class="dash">Not started. Expected screens: customer order form, baker review inbox, order detail with its event log.</p>
+<h3 id="i1-design-software" class="phase">Phase 2B – Software design</h3>
+<p class="dash">Not started. Expected: order record and agent contracts, orchestrator state machine, AI provider choice.</p>
+<h3 id="i1-design-testplan" class="phase">Phase 2C – Test plan</h3>
+<p class="dash">Not started.</p>
+
+<h2 id="i1-stage3">Stage 3 – Implementation <span class="tag wont">not started</span></h2>
+<p class="dash">—</p>
+<h2 id="i1-stage4">Stage 4 – Testing <span class="tag wont">not started</span></h2>
+<p class="dash">—</p>
+<h2 id="i1-stage5">Stage 5 – Deployment <span class="tag wont">not started</span></h2>
+<p class="dash">—</p>
+<h2 id="i1-stage6">Stage 6 – Review &amp; Maintenance <span class="tag wont">not started</span></h2>
+<p class="dash">—</p>
+
+<h2 id="i1-next">Next step</h2>
+<div class="note">Agree the life cycle and stage contracts (devlog <code>20261113-01</code>). Then write the Ordering devlog with its use cases: placing a request, auto-confirmation, baker review (approve, edit, decline), and the confirmation the customer receives.</div>
+</section>
+
+<section class="panel" id="template">
+<h1>Iteration template</h1>
+<p class="sub">The blank skeleton every iteration starts from.</p>
+<div class="note"><b>Starting a new iteration:</b> copy this panel, give it the id <code>iteration-N</code>, add a tab for it in the sidebar, prefix every id inside it with <code>iN-</code> so links stay unique, and replace everything in [brackets]. Keep the sections in this order. Each iteration also has its own folder, <code>iteration-N/</code>, holding <code>static-design/</code>, <code>test-plan/</code>, <code>test-result/</code>, <code>tickets/</code> and <code>summary-report.html</code>.</div>
+
+<h1>Iteration N – [Name]</h1>
+<p class="sub"><b>Goal:</b> [one sentence describing what this iteration should achieve]</p>
+<ol class="stages has-summary" aria-label="Development stages">
+  <li class="current"><span class="n">Stage 1</span><b><a href="#tpl-requirements">Requirements</a></b><span class="state">● We are here</span></li>
+  <li class="multi"><span class="n">Stage 2</span><b>Design</b><span class="links"><a href="#tpl-design-graphic" data-bar="Graphic design">Graphic</a><a href="#tpl-design-software" data-bar="Software design">Software</a><a href="#tpl-design-testplan" data-bar="Test plan">Test plan</a></span><span class="state">Planned</span></li>
+  <li><span class="n">Stage 3</span><b><a href="#tpl-stage3">Implementation</a></b><span class="state">Planned</span></li>
+  <li><span class="n">Stage 4</span><b><a href="#tpl-stage4">Testing</a></b><span class="state">Planned</span></li>
+  <li><span class="n">Stage 5</span><b><a href="#tpl-stage5">Deployment</a></b><span class="state">Planned</span></li>
+  <li><span class="n">Stage 6</span><b><a href="#tpl-stage6">Review &amp; Maintenance</a></b><span class="state">Planned</span></li>
+  <li class="summary"><span class="n">Report</span><b><a href="#tpl-stage6">Summary</a></b><span class="state">Written in Stage 6</span></li>
+</ol>
+
+<h2 id="tpl-requirements">Stage 1 – Requirements (use cases) <span class="tag could">current</span></h2>
+<p><b>Question answered:</b> <i>What should the system do, and for whom?</i></p>
+
+<h3>Carried over from the previous iteration</h3>
+<p class="dash">[Deferred ideas, failed tests and review notes that are now in scope. Write "none" for the first iteration.]</p>
+
+<h3>Actors</h3>
+<table>
+  <thead><tr><th>Actor</th><th>Who they are</th><th>In this iteration?</th></tr></thead>
+  <tbody><tr><td><b>[Actor]</b></td><td>[Description]</td><td>[Yes / No]</td></tr></tbody>
+</table>
+
+<h3>Scope</h3>
+<div class="cols">
+  <div class="card"><b>[Actor] can…</b><ul style="margin:6px 0 0"><li>[goal]</li></ul></div>
+  <div class="card"><b>[Actor] can…</b><ul style="margin:6px 0 0"><li>[goal]</li></ul></div>
+</div>
+
+<h3>Use case overview</h3>
+<table>
+  <thead><tr><th>ID</th><th>Use case</th><th>Actor</th><th>Priority</th></tr></thead>
+  <tbody>
+    <tr><td class="id">UC-xx</td><td>[Use case name]</td><td>[Actor]</td><td><span class="tag must">Must</span></td></tr>
+  </tbody>
+</table>
+<p class="sub">Priorities: <span class="tag must">Must</span> <span class="tag should">Should</span> <span class="tag could">Could</span> <span class="tag wont">Won't (yet)</span>. Use case IDs are stable and never reused, even across iterations.</p>
+
+<h3>Use case details</h3>
+<details class="uc" open>
+  <summary><span class="id">UC-xx</span><span class="title">[Use case name]</span><span class="tag must">Must</span></summary>
+  <div class="uc-body"><dl>
+    <dt>Actor</dt><dd>[Who wants the goal]</dd>
+    <dt>Goal</dt><dd>[One sentence]</dd>
+    <dt>Preconditions</dt><dd>[What must be true before it starts]</dd>
+    <dt>Main flow</dt><dd><ol><li>[Step]</li><li>[Step]</li></ol></dd>
+    <dt>Alternative flows</dt><dd><ul><li><b>[Step id]a. [Condition]:</b> [what happens]</li></ul></dd>
+    <dt>Postconditions</dt><dd>[What is true when it ends successfully]</dd>
+  </dl></div>
+</details>
+
+<h3>Deferred (not in this iteration)</h3>
+<table>
+  <thead><tr><th>Idea</th><th>Priority</th><th>Why deferred</th></tr></thead>
+  <tbody><tr><td>[Idea]</td><td><span class="tag wont">Won't (yet)</span></td><td>[Reason]</td></tr></tbody>
+</table>
+
+<h3>Open questions for the client</h3>
+<div class="card"><ol style="margin:0"><li>[Question]</li></ol></div>
+
+<h3>Decision log</h3>
+<table>
+  <thead><tr><th>#</th><th>Stage</th><th>Decision</th><th>Why</th></tr></thead>
+  <tbody><tr><td>1</td><td>Requirements</td><td>[Decision]</td><td>[Reason]</td></tr></tbody>
+</table>
+
+<h2 id="tpl-design">Stage 2 – Design <span class="tag wont">not started</span></h2>
+<p><b>Question answered:</b> <i>How will it be structured and what will it look like?</i> Done in two phases.</p>
+
+<h3 id="tpl-design-graphic" class="phase">Phase 2A – Graphic design</h3>
+<p class="sub">What the user sees and how they move around.</p>
+
+<h4>Screens</h4>
+<table>
+  <thead><tr><th>ID</th><th>Screen</th><th>Used by</th><th>Shows / does</th><th>Use cases</th><th>Mockup</th></tr></thead>
+  <tbody><tr><td class="id">S-xx</td><td>[Screen]</td><td>[Actor]</td><td>[Content and actions]</td><td>UC-xx</td><td>[Link]</td></tr></tbody>
+</table>
+<p class="sub">Check both ways: every use case appears on a screen, and every screen serves a use case.</p>
+
+<h4>Navigation</h4>
+<pre class="diagram">[Text diagram of how screens link together]</pre>
+
+<h4>Static mockups</h4>
+<p class="dash">[One clickable HTML page per screen, in docs/design/iteration-N/. Include the alternative states.]</p>
+
+<h3 id="tpl-design-software" class="phase">Phase 2B – Software design</h3>
+<p class="sub">What the code is made of, and the web technology decisions.</p>
+
+<h4>Data model</h4>
+<table>
+  <thead><tr><th colspan="3">[Entity]</th></tr></thead>
+  <tbody><tr><td class="id">[field]</td><td>[type]</td><td>[required / optional]</td></tr></tbody>
+</table>
+<p class="sub">[Relationships and rules between entities.]</p>
+
+<h4>Technology decisions</h4>
+<table>
+  <thead><tr><th>ID</th><th>Question</th><th>Options</th><th>Proposal and reason</th><th>Status</th></tr></thead>
+  <tbody><tr><td class="id">T-x</td><td>[Question]</td><td>[Option A / Option B]</td><td>[Proposal and why]</td><td>[Proposed / Decided]</td></tr></tbody>
+</table>
+<p class="sub">Typical questions: architecture, backend, database, API style, frontend, authentication, authorization, hosting. Give each option pros and cons, mark a recommendation, and record the final choice in the decision log.</p>
+
+<h4>Architecture and functions</h4>
+<pre class="diagram">[Layers and what each one may call]</pre>
+<table>
+  <thead><tr><th>Function</th><th>Use cases</th><th>What it does</th></tr></thead>
+  <tbody><tr><td class="id">[name(args)]</td><td>UC-xx</td><td>[Behaviour]</td></tr></tbody>
+</table>
+
+<h4>Project structure</h4>
+<pre class="diagram">[Folders and files of the app]</pre>
+
+<h3 id="tpl-design-testplan" class="phase">Phase 2C – Test plan</h3>
+<p class="sub">How we will prove it works. Write the plan in design, write the tests in implementation, run them in testing.</p>
+
+<h4>Test levels and tools</h4>
+<table>
+  <thead><tr><th>Level</th><th>What it checks</th><th>Tool</th><th>Written when</th></tr></thead>
+  <tbody><tr><td>[Unit / API / End-to-end / Manual]</td><td>[What]</td><td>[Tool]</td><td>[Stage]</td></tr></tbody>
+</table>
+
+<h4>Test cases by use case</h4>
+<table>
+  <thead><tr><th>Use case</th><th>Id</th><th>Test case</th><th>Levels</th></tr></thead>
+  <tbody><tr><td>UC-xx</td><td class="id">TC-xx-1</td><td>[Main flow, then each alternative flow]</td><td>[U, A, E]</td></tr></tbody>
+</table>
+<p class="sub">Also plan the test data, entry and exit criteria, security and permission tests, and a manual checklist.</p>
+
+<h2 id="tpl-stage3">Stage 3 – Implementation <span class="tag wont">not started</span></h2>
+<p><b>Question answered:</b> <i>Can we build it?</i></p>
+<table>
+  <thead><tr><th>Use case</th><th>Status</th><th>Files / notes</th></tr></thead>
+  <tbody><tr><td class="id">UC-xx</td><td>Not started</td><td class="dash">—</td></tr></tbody>
+</table>
+<p class="sub">Build one use case at a time, in priority order, and write its tests from the test plan as you go. A use case is done when its main flow works in the browser and its tests pass.</p>
+<h2 id="tpl-stage4">Stage 4 – Testing <span class="tag wont">not started</span></h2>
+<p><b>Question answered:</b> <i>Does it do what the requirements said?</i></p>
+<table>
+  <thead><tr><th>Use case</th><th>Flow tested</th><th>Result</th><th>Notes</th></tr></thead>
+  <tbody><tr><td class="id">UC-xx</td><td>Main flow / alternative flow id</td><td>Pass / Fail</td><td class="dash">—</td></tr></tbody>
+</table>
+<table>
+  <thead><tr><th>Run (date and time)</th><th>Result</th><th>Test result file</th></tr></thead>
+  <tbody><tr><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td></tr></tbody>
+</table>
+<table>
+  <thead><tr><th>Ticket</th><th>Found by</th><th>Problem</th><th>Fix and proof</th><th>Status</th></tr></thead>
+  <tbody><tr><td class="id">[PRJ-001]</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td></tr></tbody>
+</table>
+<p class="sub">Every run of the test plan is saved as a dated file in <code>test-result/</code>. Each failure or "needs review" item gets a ticket in <code>tickets/</code>; a ticket is closed only when a later run passes. Stage 4 is signed off when every exit criterion of the test plan is met.</p>
+<p class="sub">Each flow written in Stage 1 becomes one test case. The plan was made in Phase 2C of Stage 2 (see Test plan) and the tests were written in Stage 3; this stage runs them and reports the results. A failure either sends us back to fix code, or back to Stage 1 if the requirement was wrong.</p>
+<h2 id="tpl-stage5">Stage 5 – Deployment <span class="tag wont">not started</span></h2>
+<p><b>Question answered:</b> <i>How do real users get it?</i></p>
+<table>
+  <tbody>
+    <tr><th>Where</th><td class="dash">— (a web host, or local host only)</td></tr>
+    <tr><th>URL</th><td class="dash">—</td></tr>
+    <tr><th>How it was published</th><td class="dash">— (the steps to start it)</td></tr>
+  </tbody>
+</table>
+<h2 id="tpl-stage6">Stage 6 – Review &amp; Maintenance <span class="tag wont">not started</span></h2>
+<p><b>Question answered:</b> <i>What did we learn, and what comes next?</i></p>
+<div class="cols">
+  <div class="card"><b>What went well</b><p class="dash" style="margin:6px 0 0">—</p></div>
+  <div class="card"><b>What to change next time</b><p class="dash" style="margin:6px 0 0">—</p></div>
+</div>
+<table>
+  <thead><tr><th>Deferred to the next iteration</th><th>Why</th></tr></thead>
+  <tbody><tr><td class="dash">—</td><td class="dash">—</td></tr></tbody>
+</table>
+<p class="sub"><b>Maintenance:</b> [kept running and fixed, or retired at the end of this iteration]. <b>Summary report:</b> write <code>iteration-N/summary-report.html</code> (goal and result, the six stages, what was built, test results, tickets, lessons, open items) and link it from the Summary box above.</p>
+<p class="sub">Anything deferred, or discovered along the way, becomes the starting point of the next iteration.</p>
+
+<h2 id="tpl-traceability">Traceability</h2>
+<table>
+  <thead><tr><th>Use case</th><th>Priority</th><th>Design (Stage 2)</th><th>Code (Stage 3)</th><th>Test (Stage 4)</th><th>Deployed (Stage 5)</th></tr></thead>
+  <tbody>
+    <tr><td><span class="id">UC-xx</span> [Name]</td><td><span class="tag must">Must</span></td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td><td class="dash">—</td></tr>
+  </tbody>
+</table>
+
+<h2 id="tpl-next">Next step</h2>
+<div class="note">[What must happen before the current stage can be marked done, and what comes next.]</div>
+
+</section>
+
+</main>
+
+<footer>Cake Order Desk · multi-agent teaching demo · living document, updated at the end of each stage.</footer>
+</div>
+</div>
+
+<script>
+(function () {
+  document.documentElement.classList.add('js');
+  var panels = Array.prototype.slice.call(document.querySelectorAll('.panel'));
+  var tabs = Array.prototype.slice.call(document.querySelectorAll('.tab'));
+
+  var bar = document.createElement('nav');
+  bar.className = 'stagebar';
+  bar.setAttribute('aria-label', 'Jump to stage');
+  document.querySelector('.content').prepend(bar);
+  var watcher = 'IntersectionObserver' in window ? new IntersectionObserver(function (entries) {
+    bar.classList.toggle('visible', !entries[0].isIntersecting);
+  }) : null;
+
+  function setupBar(panel) {
+    if (watcher) watcher.disconnect();
+    bar.classList.remove('visible');
+    bar.innerHTML = '';
+    var tracker = panel.querySelector('.stages');
+    if (!tracker || !watcher) return;
+    Array.prototype.forEach.call(tracker.querySelectorAll('li:not(.summary)'), function (li) {
+      var sub = li.querySelectorAll('.links a');
+      if (sub.length) {
+        var grp = document.createElement('span');
+        grp.className = 'grp';
+        Array.prototype.forEach.call(sub, function (l) {
+          var b = document.createElement('a');
+          b.href = l.getAttribute('href');
+          b.textContent = l.getAttribute('data-bar');
+          b.className = l.getAttribute('data-state') || '';
+          grp.appendChild(b);
+        });
+        bar.appendChild(grp);
+        return;
+      }
+      var a = document.createElement('a');
+      a.href = li.querySelector('a').getAttribute('href');
+      a.textContent = li.querySelector('b').textContent;
+      a.className = li.className;
+      bar.appendChild(a);
+    });
+    watcher.observe(tracker);
+  }
+
+  function show(id) {
+    panels.forEach(function (p) { p.hidden = p.id !== id; });
+    setupBar(document.getElementById(id));
+    tabs.forEach(function (t) {
+      var on = t.getAttribute('href') === '#' + id;
+      t.classList.toggle('active', on);
+      if (on) t.setAttribute('aria-current', 'page'); else t.removeAttribute('aria-current');
+    });
+  }
+
+  function route() {
+    var id = decodeURIComponent(location.hash.slice(1));
+    var target = id ? document.getElementById(id) : null;
+    var panel = target ? target.closest('.panel') : null;
+    if (!panel) { show('iteration-1'); return; }
+    show(panel.id);
+    if (target === panel) { window.scrollTo(0, 0); return; }
+    if (target.tagName === 'DETAILS') target.open = true;
+    target.scrollIntoView();
+  }
+
+  window.addEventListener('hashchange', route);
+  route();
+})();
+</script>
+
+</body>
+</html>
