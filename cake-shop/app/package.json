@@ -1,0 +1,21 @@
+{
+  "name": "cake-shop",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "shared",
+    "server",
+    "web",
+    "e2e"
+  ],
+  "scripts": {
+    "dev:server": "npm run dev -w server",
+    "dev:web": "npm run dev -w web",
+    "build": "npm run build -w web",
+    "start": "npm run start -w server",
+    "seed": "npm run seed -w server",
+    "test": "npm test -w shared -w server",
+    "test:e2e": "npm run build -w web && npm test -w e2e",
+    "typecheck": "npm run typecheck -w shared -w server -w web -w e2e"
+  }
+}

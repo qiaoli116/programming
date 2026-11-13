@@ -2,7 +2,7 @@
 
 **Date:** 2026-11-13
 
-**Status:** Spec
+**Status:** In Progress
 
 **Iteration:** Iteration 1, Stage 2 Design → Stage 3 Implementation (see [process.html](../../docs/process.html#i1-design))
 
@@ -431,11 +431,11 @@ Devlog 01 and `data-model.html` still show the first set of columns. §4 here is
 
 ## Implementation order
 
-1. [ ] Workspace skeleton (`app/`, four packages, scripts, `.env.example`)
-2. [ ] Shared types and the catalog data
-3. [ ] Design checker with its tests
-4. [ ] Pricing and servings with their tests
-5. [ ] Preview: port `cake-preview.js`, add cupcakes and mini, tests
+1. [x] Workspace skeleton (`app/`, four packages, scripts, `.env.example`)
+2. [x] Shared types and the catalog data
+3. [x] Design checker with its tests
+4. [x] Pricing and servings with their tests
+5. [x] Preview: port `cake-preview.js`, add cupcakes and mini, tests
 6. [ ] SQLite store, migrations, status moves, abandon sweep
 7. [ ] `applyChange` and the customer routes, with tests
 8. [ ] Baker routes, session, seed data, with tests
