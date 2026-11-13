@@ -1,0 +1,342 @@
+import { useEffect, useRef, useState } from 'react';
+import { DIETARY_PRICE, allowedValues, line, occasion, optionValues, template, type DesignField, type Dietary, type OrderView } from '@cakeshop/shared';
+import { ApiError, api } from '../api';
+import { Badge, Bill, Cake, Chip, Seg, Swatches, Switch, TopBar, fmtDate, fmtTime, money, withPrices } from '../ui';
+import { ConfirmSheet } from './ConfirmSheet';
+
+type Props = { id: string; token: string; view: OrderView; setView: (v: OrderView) => void };
+
+const LABELS: Partial<Record<DesignField, string>> = {
+  size: 'Size',
+  colour: 'Frosting',
+  sponge: 'Sponge',
+  filling: 'Filling',
+  finish: 'Finish',
+  decorations: 'Decoration',
+  topper: 'Topper',
+  message: 'Message',
+  picture: 'Picture',
+  digits: 'Digits',
+};
+const ORDER: DesignField[] = ['size', 'colour', 'sponge', 'filling', 'finish', 'decorations', 'topper', 'picture', 'message', 'digits'];
+
+export function Studio({ id, token, view, setView }: Props) {
+  const [text, setText] = useState('');
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [chosen, setChosen] = useState<number | null>(null);
+  const [confirming, setConfirming] = useState(false);
+  const ackTimer = useRef<number | undefined>(undefined);
+  const thread = useRef<HTMLDivElement>(null);
+
+  useEffect(() => () => window.clearTimeout(ackTimer.current), []);
+  useEffect(() => {
+    thread.current?.scrollTo({ top: thread.current.scrollHeight });
+  }, [view.chat.length, pending]);
+
+  const design = view.design;
+  const tpl = design ? template(design.template) : undefined;
+  const ln = tpl ? line(tpl.line) : undefined;
+
+  const fail = (e: unknown) => {
+    if (e instanceof ApiError && e.reasons?.length) setError(`Not changed: ${e.reasons.map((r) => r.text).join(' ')}`);
+    else setError(e instanceof ApiError ? e.message : 'Something went wrong. Try again.');
+  };
+
+  // A quick change: checked, priced and noted at once. The assistant acknowledges it two seconds after the last change.
+  async function quick(call: () => Promise<OrderView>) {
+    setError(null);
+    try {
+      setView(await call());
+      window.clearTimeout(ackTimer.current);
+      ackTimer.current = window.setTimeout(async () => {
+        try {
+          setView(await api.ack(id, token));
+        } catch {
+          /* the next refresh shows it */
+        }
+      }, 2000);
+    } catch (e) {
+      fail(e);
+    }
+  }
+  const change = (field: string, value: unknown) => quick(() => api.design(id, token, field, value));
+  const changeBrief = (field: string, value: unknown) => quick(() => api.brief(id, token, field, value));
+
+  async function send(message: string) {
+    const t = message.trim();
+    if (!t || pending) return;
+    window.clearTimeout(ackTimer.current);
+    setPending(true);
+    setError(null);
+    setText('');
+    setView({ ...view, chat: [...view.chat, { id: -1, kind: 'customer', text: t, at: new Date().toISOString() }] });
+    try {
+      setView(await api.message(id, token, t));
+    } catch (e) {
+      fail(e);
+      setView(await api.get(id, token));
+    } finally {
+      setPending(false);
+    }
+  }
+
+  async function choose(candidate: number) {
+    setError(null);
+    try {
+      setView(await api.choose(id, token, candidate));
+      setChosen(candidate);
+    } catch (e) {
+      fail(e);
+    }
+  }
+
+  const lastOptions = view.chat.reduce((m, c, i) => (c.optionsTurn ? i : m), -1);
+  const check = view.check;
+  const canConfirm = !!design && !!check && check.ok && !pending;
+  const total = view.quote?.total ?? 0;
+  const brief = view.brief;
+  const toggleDiet = (d: Dietary) => changeBrief('dietary', brief.dietary.includes(d) ? brief.dietary.filter((x) => x !== d) : [...brief.dietary, d]);
+
+  function control(field: DesignField) {
+    if (!design || !tpl || !ln || !tpl.changeable.includes(field) || !ln.groups.includes(field)) return null;
+    if (field === 'message' && !ln.messageMax) return null;
+    const label = LABELS[field]!;
+    let body;
+    if (field === 'message' || field === 'digits') {
+      body = <TextControl key={`${field}-${design[field] ?? ''}`} label={label} value={design[field] ?? ''} max={field === 'message' ? ln.messageMax : 3} onCommit={(v) => change(field, v)} />;
+    } else {
+      const allowed = allowedValues(design, brief, field, view.today);
+      const prices = new Map(optionValues(tpl.line, field).map((v) => [v.id, v.price]));
+      const priceOf = (v: string) => {
+        if (field === 'colour') return undefined;
+        const p = prices.get(v);
+        if (!p) return field === 'decorations' ? 'free' : undefined;
+        return `${field === 'size' || field === 'topper' ? '' : '+'}${money(p)}`;
+      };
+      if (field === 'colour') {
+        body = <Swatches value={design.colour} options={allowed.map((a) => ({ value: String(a.value), ok: a.ok, reason: a.reason }))} onPick={(v) => change('colour', v)} />;
+      } else if (field === 'decorations') {
+        body = (
+          <div className="chips">
+            {allowed.map((a) => {
+              const on = design.decorations.includes(String(a.value));
+              return (
+                <Chip key={String(a.value)} on={on} off={!a.ok && !on} disabled={!a.ok && !on} title={a.reason} price={priceOf(String(a.value))}
+                  onClick={() => change('decorations', on ? design.decorations.filter((d) => d !== a.value) : [...design.decorations, String(a.value)])}>
+                  {a.label}
+                </Chip>
+              );
+            })}
+          </div>
+        );
+      } else if (field === 'topper') {
+        body = (
+          <div className="chips">
+            {allowed.map((a) => (
+              <Chip key={String(a.value)} on={design.topper === a.value} off={!a.ok} disabled={!a.ok} title={a.reason} price={priceOf(String(a.value))} onClick={() => change('topper', design.topper === a.value ? '' : a.value)}>
+                {a.label}
+              </Chip>
+            ))}
+          </div>
+        );
+      } else {
+        body = (
+          <Seg
+            label={label}
+            value={design[field as 'size'] as string | undefined}
+            onPick={(v) => change(field, v)}
+            options={allowed.map((a) => ({
+              value: String(a.value),
+              label: field === 'size' ? `${a.label} · serves ${ln.sizes.find((s) => s.id === a.value)?.serves}` : a.label,
+              price: priceOf(String(a.value)),
+              ok: a.ok,
+              reason: a.reason,
+            }))}
+          />
+        );
+      }
+    }
+    return (
+      <div className="qrow" key={field}>
+        <span>{label}</span>
+        {body}
+      </div>
+    );
+  }
+
+  const gf = design && ln?.glutenFree ? allowedValues(design, brief, 'glutenFree', view.today) : [];
+  const gfNext = design ? gf.find((a) => a.value === !design.glutenFree) : undefined;
+
+  return (
+    <div className="page">
+      <TopBar id={view.id} at={0} right={<span className="link">Bookmark this page to come back</span>} />
+      <div className="studio">
+        <section className="chatcol" aria-label="Chat with the design assistant">
+          <div className="chathead">
+            <div className="who">
+              <div className="aiav" aria-hidden="true">✦</div>
+              <div>
+                <b>Design assistant</b>
+                <small>AI · suggests designs, the bakery's rules check every one</small>
+              </div>
+            </div>
+            <Badge tone="ai">● Online</Badge>
+          </div>
+          <div className="thread" ref={thread} aria-live="polite">
+            {view.chat.map((c, i) => {
+              if (c.kind === 'ui')
+                return (
+                  <div className="evt" key={c.id}>
+                    ✎ <span>You changed <b>{c.change ?? c.text}</b></span> · {fmtTime(c.at)}
+                  </div>
+                );
+              if (c.kind === 'system') return <div className="day" key={c.id}>{c.text}</div>;
+              if (c.kind === 'customer')
+                return (
+                  <div className="m me" key={`${c.id}-${i}`}>
+                    <div className="meta">You · {fmtTime(c.at)}</div>
+                    <div className="bub">{c.text}</div>
+                  </div>
+                );
+              return (
+                <div className={`m ai ${i === lastOptions ? 'wide' : ''}`} key={c.id}>
+                  <div className="meta">Design assistant · {fmtTime(c.at)}</div>
+                  <div className="bub">
+                    {withPrices(c.text)}
+                    {i === lastOptions && view.options.length > 0 && (
+                      <div className="optrow" style={{ gridTemplateColumns: `repeat(${Math.min(view.options.length, 3)},1fr)` }}>
+                        {view.options.map((o, n) => (
+                          <div key={o.id} className={`oc ${chosen === o.id ? 'chosen' : chosen !== null ? 'dim' : ''}`}>
+                            <Cake design={o.design} />
+                            <div className="b">
+                              <h5>
+                                {String.fromCharCode(65 + n)} · {o.title} <span className="pr">{money(o.quote.total)}</span>
+                              </h5>
+                              <div className="nt">{o.note}</div>
+                              {chosen === o.id ? (
+                                <span className="tag">✓ Chosen</span>
+                              ) : (
+                                <button type="button" className="btn sm" onClick={() => choose(o.id)}>
+                                  Choose {String.fromCharCode(65 + n)}
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {!!c.cantDo?.length && (
+                      <div className="cant">
+                        ✕ <span><b>Can't do:</b> {c.cantDo.join(' · ')}</span>
+                      </div>
+                    )}
+                    {!!c.suggestions?.length && (
+                      <div className="sugs">
+                        {c.suggestions.map((s) => (
+                          <button key={s} type="button" className="chip sug" disabled={pending} onClick={() => send(s)}>
+                            {s}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+            {pending && <div className="typing" role="status">Design assistant is typing…</div>}
+          </div>
+          <form className="composer" onSubmit={(e) => { e.preventDefault(); send(text); }}>
+            <div className="inp">
+              <input aria-label="Message" placeholder={pending ? 'The assistant is answering…' : 'Ask for a change, or ask a question…'} value={text} disabled={pending} onChange={(e) => setText(e.target.value)} />
+              <button className="btn primary sm" type="submit" disabled={pending || !text.trim()}>Send</button>
+            </div>
+            <div className="hint">Tip: small changes like colour or flavour are quicker in the panel on the right. The assistant will see them.</div>
+          </form>
+        </section>
+
+        <section className="designcol" aria-label="Your cake">
+          <div className="dhead">
+            <div>
+              <h3>Your cake</h3>
+              <small>{tpl ? `${tpl.name} · version ${design?.version ?? 1}` : 'No design yet. Pick one in the chat.'}</small>
+            </div>
+          </div>
+          <div className="brief" role="group" aria-label="Order details">
+            <span className="lbl" style={{ marginRight: 2 }}>Order</span>
+            <span className="chip">{occasion(brief.occasion).label}</span>
+            <label className="chip">
+              👥{' '}
+              <input className="field" aria-label="Guests" type="number" min={1} max={500} defaultValue={brief.guests} key={brief.guests} style={{ width: 62 }}
+                onBlur={(e) => Number(e.target.value) !== brief.guests && changeBrief('guests', Number(e.target.value))} />
+            </label>
+            <label className="chip">
+              📅{' '}
+              <input className="field" aria-label="Date" type="date" value={brief.date} onChange={(e) => e.target.value && changeBrief('date', e.target.value)} />
+            </label>
+            <Chip on={brief.dietary.includes('gluten-free')} onClick={() => toggleDiet('gluten-free')}>Gluten-free</Chip>
+            <Chip on={brief.dietary.includes('vegan')} onClick={() => toggleDiet('vegan')}>Vegan</Chip>
+          </div>
+          {design ? (
+            <>
+              <div className="stage">
+                {check?.ok ? <Badge tone="ok">✓ We can make this</Badge> : <Badge tone="bad">✕ Needs a change</Badge>}
+                <span className="vtag">v{design.version ?? 1}</span>
+                <Cake design={design} />
+                <div className="note">Picture drawn from your design. The real cake is made by hand and may vary slightly.</div>
+              </div>
+              {check && !check.ok && <div className="err" role="alert">✕ <span>{check.reasons.map((r) => r.text).join(' ')}</span></div>}
+              {view.warning && <div className="err" style={{ background: 'var(--warn-soft)', color: 'var(--warn)' }}>⚠ <span>{view.warning}</span></div>}
+              <div className="qc">
+                <div className="hd">
+                  <span className="lbl">✎ Quick changes</span>
+                  <span style={{ fontSize: '.75rem', color: 'var(--faint)' }}>No need to ask the assistant</span>
+                </div>
+                {ORDER.map(control)}
+                {ln?.glutenFree && (
+                  <div className="qrow">
+                    <span>Gluten-free</span>
+                    <div className="swrow">
+                      <Switch label="Gluten-free" on={design.glutenFree} disabled={!gfNext?.ok} onClick={() => change('glutenFree', !design.glutenFree)} />
+                      <span style={{ fontSize: '.8rem', color: 'var(--muted)' }}>
+                        +{money(DIETARY_PRICE['gluten-free'])}
+                        {gfNext && !gfNext.ok ? ` · ${gfNext.reason}` : ''}
+                      </span>
+                    </div>
+                  </div>
+                )}
+                {error && <div className="err" role="alert">✕ <span>{error}</span></div>}
+                <div className="foot">
+                  Each change is checked, priced and drawn at once, and noted in the chat so the assistant knows.
+                  {ln && ` Up to ${ln.maxDecorations} decoration${ln.maxDecorations === 1 ? '' : 's'} on this cake.`}
+                </div>
+              </div>
+              {view.quote && <Bill lines={view.quote.lines} total={view.quote.total} />}
+            </>
+          ) : (
+            <div className="stage empty">
+              Your cake will appear here once you choose a design in the chat.
+              {error && <div className="err inline" role="alert">✕ <span>{error}</span></div>}
+            </div>
+          )}
+          <div className="cta">
+            <button className="btn primary lg" disabled={!canConfirm} onClick={() => setConfirming(true)}>
+              Review &amp; confirm{design ? ` · ${money(total)}` : ''}
+            </button>
+            <div className="small">You won't be charged until the baker approves your order.{brief.date && ` For ${fmtDate(brief.date)}.`}</div>
+          </div>
+        </section>
+      </div>
+      {confirming && design && <ConfirmSheet id={id} token={token} view={view} onClose={() => setConfirming(false)} onDone={setView} />}
+    </div>
+  );
+}
+
+function TextControl({ label, value, max, onCommit }: { label: string; value: string; max: number; onCommit: (v: string) => void }) {
+  const [v, setV] = useState(value);
+  const commit = () => v !== value && onCommit(v);
+  return (
+    <input className="field" aria-label={label} value={v} maxLength={max || undefined} style={{ padding: '6px 10px' }}
+      onChange={(e) => setV(e.target.value)} onBlur={commit} onKeyDown={(e) => e.key === 'Enter' && commit()} />
+  );
+}
