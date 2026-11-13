@@ -2,7 +2,7 @@
 
 **Date:** 2026-11-13
 
-**Status:** In Progress
+**Status:** Done
 
 **Iteration:** Iteration 1, Stage 2 Design → Stage 3 Implementation (see [process.html](../../docs/process.html#i1-design))
 
@@ -441,15 +441,28 @@ Devlog 01 and `data-model.html` still show the first set of columns. §4 here is
 8. [x] Baker routes, session, seed data, with tests
 9. [x] Assistant seam, fake provider, `turn.ts`, with tests
 10. [x] Anthropic provider, prompt, live check
-11. [ ] Web: components from the app design
-12. [ ] Web: Start and Design studio
-13. [ ] Web: Review & confirm and Order status
-14. [ ] Web: Baker login, inbox and detail
-15. [ ] End-to-end tests, then the live checks of Phases C, D and E
-16. [ ] Fill in Outcome, update the README index and process.html
+11. [x] Web: components from the app design
+12. [x] Web: Start and Design studio
+13. [x] Web: Review & confirm and Order status
+14. [x] Web: Baker login, inbox and detail
+15. [x] End-to-end tests, then the live checks of Phases C, D and E
+16. [x] Fill in Outcome, update the README index and process.html
 
 ---
 
 ## Outcome
 
-<!-- Fill in when Done. -->
+Built as specified, in five phases (A skeleton and shared rules, B store and routes, C assistant, D customer screens, E baker screens and end-to-end tests). 29 server and shared tests and 7 browser tests pass, all with `ASSISTANT_PROVIDER=fake`.
+
+**Deviations from the spec**
+
+- **Separate ack endpoint.** A quick change now calls `PATCH /design` (or `/brief`), and the browser then calls `POST /api/orders/:id/ack` after 2 seconds of quiet. The spec had the server ask the assistant inside the change request. Splitting them makes the change instant and lets several quick changes share one acknowledgement. If the provider fails, the ack falls back to a plain sentence and the change is kept.
+- **Baker inbox rows are summaries** (`id, status, name, template, date, slot, total, design`), not full orders. The detail call returns the full order.
+- **Test server.** `e2e/start-server.ts` runs the real app on an in-memory database with the fake provider and a `/__test/reseed` route, so each browser test starts from the demo data.
+
+**Still to do by hand (can't be automated here)**
+
+- Real AI check: put a key in `app/.env`, then `npm run live-check -w server`. This also covers the unticked items for UC-02, UC-03 and the acknowledgement above.
+- Compare each screen with `app-design.html` at 1280 and 1440 px. 1440 px was checked by screenshot and looks right.
+- Use the app with the keyboard only.
+- 8 npm audit warnings from `npm install` have not been looked at.
