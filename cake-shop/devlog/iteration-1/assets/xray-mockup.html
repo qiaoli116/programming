@@ -8,13 +8,13 @@
   :root {
     --bg:#f5f6f8; --card:#fff; --text:#1d2330; --muted:#5d6677; --line:#d5dae2;
     --web:#0f766e; --api:#64748b; --ai:#b8860b; --data:#2b5fb8; --rules:#475569; --ok:#15803d; --bad:#b42318;
-    --glow:#f59e0b;
+    --glow:#f59e0b; --human:#7e22ce;
   }
   @media (prefers-color-scheme: dark) {
     :root {
       --bg:#12151c; --card:#1a1f2a; --text:#e6e9ef; --muted:#9aa3b5; --line:#2f3747;
       --web:#4fd1c5; --api:#94a3b8; --ai:#e0b341; --data:#7aa7f0; --rules:#94a3b8; --ok:#4ade80; --bad:#f08a80;
-      --glow:#fbbf24;
+      --glow:#fbbf24; --human:#c084fc;
     }
   }
   * { box-sizing:border-box; }
@@ -32,15 +32,18 @@
   svg { display:block; width:100%; height:auto; }
   .edge { stroke:var(--line); stroke-width:2; fill:none; transition:stroke .3s; }
   .edge.on { stroke:var(--glow); }
-  .node rect { fill:var(--card); stroke-width:2; rx:10; transition:filter .3s, stroke-width .3s; }
+  .node .shape { fill:var(--card); stroke-width:2; rx:10; transition:filter .3s, stroke-width .3s; }
+  .frame { fill:none; stroke:var(--line); stroke-width:1.5; stroke-dasharray:4 4; }
+  .fl { fill:var(--muted); font-size:11px; font-weight:700; letter-spacing:.07em; }
+  .c-human .shape { stroke:var(--human); }
   .node text { fill:var(--text); font-size:14px; font-weight:600; text-anchor:middle; dominant-baseline:middle; }
   .node .st { fill:var(--muted); font-size:11.5px; font-weight:400; }
-  .node.busy rect { stroke-width:3.5; filter:drop-shadow(0 0 6px var(--glow)); animation:pulse 1s ease-in-out infinite; }
-  .node.ok rect { stroke:var(--ok) !important; stroke-width:3.5; }
-  .node.bad rect { stroke:var(--bad) !important; stroke-width:3.5; }
+  .node.busy .shape { stroke-width:3.5; filter:drop-shadow(0 0 6px var(--glow)); animation:pulse 1s ease-in-out infinite; }
+  .node.ok .shape { stroke:var(--ok) !important; stroke-width:3.5; }
+  .node.bad .shape { stroke:var(--bad) !important; stroke-width:3.5; }
   @keyframes pulse { 50% { filter:drop-shadow(0 0 1px var(--glow)); } }
-  .c-web rect { stroke:var(--web); } .c-api rect { stroke:var(--api); } .c-ai rect { stroke:var(--ai); stroke-dasharray:6 4; }
-  .c-data rect { stroke:var(--data); } .c-rules rect { stroke:var(--rules); }
+  .c-web .shape { stroke:var(--web); } .c-api .shape { stroke:var(--api); } .c-ai .shape { stroke:var(--ai); stroke-dasharray:6 4; }
+  .c-data .shape { stroke:var(--data); } .c-rules .shape { stroke:var(--rules); }
   .dot { fill:var(--glow); }
 
   /* console */
@@ -52,7 +55,7 @@
   .ln .ms { color:var(--muted); float:right; }
   .ln.new { animation:flash 1.2s; }
   @keyframes flash { from { background:color-mix(in srgb, var(--glow) 25%, transparent); } }
-  .p-web { color:var(--web); } .p-api { color:var(--api); } .p-ai { color:var(--ai); } .p-data { color:var(--data); } .p-rules { color:var(--rules); }
+  .p-human { color:var(--human); } .p-web { color:var(--web); } .p-api { color:var(--api); } .p-ai { color:var(--ai); } .p-data { color:var(--data); } .p-rules { color:var(--rules); }
   .detail { margin:2px 14px 6px 160px; padding:6px 10px; background:var(--bg); border-radius:6px; white-space:pre-wrap; color:var(--text); cursor:auto; }
   .ok { color:var(--ok); } .bad { color:var(--bad); }
 </style>
@@ -66,7 +69,7 @@
 
 <div class="pane">
   <h2>MAP</h2>
-  <svg id="map" viewBox="0 0 820 330"></svg>
+  <svg id="map" viewBox="0 0 1150 470"></svg>
 </div>
 <div class="pane" style="margin-top:12px">
   <h2>CONSOLE</h2>
@@ -77,24 +80,35 @@
 <script>
 // ---- layout: name, colour class, centre --------------------------------------------------------------------------
 const NODES = {
-  studio:   { name: 'Studio',   c: 'web',   x: 80,  y: 165 },
-  api:      { name: 'API',      c: 'api',   x: 240, y: 165 },
-  host:     { name: 'Host',     c: 'ai',    x: 420, y: 55 },
-  board:    { name: 'Job board',c: 'data',  x: 420, y: 165 },
-  designer: { name: 'Designer', c: 'ai',    x: 420, y: 275 },
-  model:    { name: 'Model',    c: 'ai',    x: 600, y: 165 },
-  tools:    { name: 'Tools',    c: 'rules', x: 600, y: 275 },
-  checker:  { name: 'Checker',  c: 'rules', x: 750, y: 275 },
-  store:    { name: 'Store',    c: 'data',  x: 240, y: 275 },
+  user:     { name: 'User',         c: 'human', x: 70,   y: 180 },
+  studio:   { name: 'Studio',       c: 'web',   x: 230,  y: 180 },
+  api:      { name: 'API',          c: 'api',   x: 400,  y: 180 },
+  host:     { name: 'Host',         c: 'ai',    x: 570,  y: 70 },
+  board:    { name: 'Job board',    c: 'data',  x: 570,  y: 180 },
+  designer: { name: 'Designer',     c: 'ai',    x: 570,  y: 290 },
+  tools:    { name: 'Tools',        c: 'rules', x: 730,  y: 290 },
+  checker:  { name: 'Checker',      c: 'rules', x: 880,  y: 290 },
+  llm:      { name: 'LLM (Claude)', c: 'ai',    x: 1060, y: 180 },
+  db:       { name: 'DB (SQLite)',  c: 'data',  x: 400,  y: 420, db: true },
 };
-const EDGES = [['studio','api'],['api','host'],['api','store'],['host','board'],['host','model'],['board','designer'],
-               ['designer','model'],['designer','tools'],['tools','checker'],['designer','store']];
-const W = 104, H = 44;
+// Frames: where each part runs.
+const FRAMES = [
+  { label: 'BROWSER', x: 160, y: 120, w: 140, h: 120 },
+  { label: 'BACKEND (Node server)', x: 330, y: 18, w: 625, h: 330 },
+  { label: 'ANTHROPIC API', x: 985, y: 120, w: 150, h: 120 },
+];
+const EDGES = [['user','studio'],['studio','api'],['api','host'],['api','db'],['host','board'],['host','llm'],['board','designer'],
+               ['designer','llm'],['designer','tools'],['tools','checker'],['designer','db']];
+const W = 112, H = 44;
 
 const svg = document.getElementById('map');
 const NS = 'http://www.w3.org/2000/svg';
 const el = (tag, attrs, parent = svg) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); parent.appendChild(e); return e; };
 const key = (a, b) => [a, b].sort().join('-');
+for (const f of FRAMES) {
+  el('rect', { class: 'frame', x: f.x, y: f.y, width: f.w, height: f.h, rx: 12 });
+  el('text', { class: 'fl', x: f.x + 10, y: f.y + 16 }).textContent = f.label;
+}
 const edgeEl = {};
 for (const [a, b] of EDGES) edgeEl[key(a, b)] = el('line', { class: 'edge', x1: NODES[a].x, y1: NODES[a].y, x2: NODES[b].x, y2: NODES[b].y });
 const dotLayer = el('g', {});
@@ -102,7 +116,11 @@ const nodeEl = {}, statusEl = {};
 for (const id in NODES) {
   const n = NODES[id];
   const g = el('g', { class: `node c-${n.c}` });
-  el('rect', { x: n.x - W / 2, y: n.y - H / 2, width: W, height: H }, g);
+  if (n.db) {
+    // a cylinder: the usual sign for a database
+    const x = n.x - W / 2, y = n.y - H / 2, ry = 7;
+    el('path', { class: 'shape', d: `M${x},${y + ry} v${H - ry * 2} a${W / 2},${ry} 0 0 0 ${W},0 v${-(H - ry * 2)} a${W / 2},${ry} 0 0 0 ${-W},0 a${W / 2},${ry} 0 0 0 ${W},0` }, g);
+  } else el('rect', { class: 'shape', x: n.x - W / 2, y: n.y - H / 2, width: W, height: H }, g);
   el('text', { x: n.x, y: n.y }, g).textContent = n.name;
   statusEl[id] = el('text', { class: 'st', x: n.x, y: n.y + H / 2 + 14 }, g);
   nodeEl[id] = g;
@@ -146,7 +164,7 @@ function flash(id, cls) {
 
 // ---- console ------------------------------------------------------------------------------------------------------
 const box = document.getElementById('console');
-const PART = { studio: 'web', api: 'api', host: 'ai', designer: 'ai', model: 'ai', board: 'data', store: 'data', tools: 'rules', checker: 'rules' };
+const PART = { user: 'human', studio: 'web', api: 'api', host: 'ai', designer: 'ai', llm: 'ai', board: 'data', db: 'data', tools: 'rules', checker: 'rules' };
 let clock0 = 0;
 function log(part, text, data, ms) {
   const t = new Date(Date.UTC(2026, 10, 13, 12, 4, 1) + (performance.now() - clock0)).toISOString().slice(11, 23);
@@ -164,13 +182,13 @@ function log(part, text, data, ms) {
 
 // ---- the script: "actually it's only 10 people" -------------------------------------------------------------------
 async function modelStep(agent, model, ms, out, data) {
-  await send(agent, 'model');
+  await send(agent, 'llm');
   log(agent, `step → ${model}`);
-  busy('model', 'thinking');
+  busy('llm', 'thinking');
   await sleep(ms);
-  idle('model');
-  await send('model', agent);
-  log('model', `← ${out}`, data, ms);
+  idle('llm');
+  await send('llm', agent);
+  log('llm', `← ${out}`, data, ms);
 }
 async function tool(name, input, change) {
   await send('designer', 'tools');
@@ -190,11 +208,13 @@ async function play() {
   const say = (s) => (document.getElementById('state').textContent = s);
 
   say('The host answers…');
+  await send('user', 'studio');
+  log('user', `sends "actually it's only 10 people"`);
   await send('studio', 'api');
   log('studio', 'POST /orders/C-1046/messages', { text: "actually it's only 10 people" });
   busy('api', 'request');
-  await send('api', 'store', 300);
-  log('store', 'saved  chat +1');
+  await send('api', 'db', 300);
+  log('db', 'saved  chat +1');
   await send('api', 'host');
   busy('host', 'turn');
   log('host', 'message(C-1046)');
@@ -208,8 +228,8 @@ async function play() {
   await send('host', 'board');
   log('board', 'job 3 queued', { task: 'The customer now has 10 guests. Update the guests and re-fit the size.' });
   idle('host');
-  await send('api', 'store', 300);
-  log('store', 'saved  chat +2 (reply, handoff) · jobs');
+  await send('api', 'db', 300);
+  log('db', 'saved  chat +2 (reply, handoff) · jobs');
   idle('api');
   await send('api', 'studio');
   log('api', '200  busy: true', null, 1890);
@@ -225,8 +245,8 @@ async function play() {
   await modelStep('designer', 'claude-sonnet-5-5', 1500, 'set_design', { in_tokens: 3720, out_tokens: 58, calls: [{ name: 'set_design', input: { field: 'size', value: '8in' } }] });
   await tool('set_design', { field: 'size', value: '8in' }, 'set size 10in → 8in');
   await modelStep('designer', 'claude-sonnet-5-5', 1200, 'report', { calls: [{ name: 'report', input: { summary: 'Guests are now 10 and the cake is 8 inches, which serves 16.' } }] });
-  await send('designer', 'store');
-  log('store', 'saved  brief.guests 20→10 · design.size 10in→8in · quote · chat +2 · jobs', {
+  await send('designer', 'db');
+  log('db', 'saved  brief.guests 20→10 · design.size 10in→8in · quote · chat +2 · jobs', {
     brief: { guests: [20, 10] }, design: { size: ['10in', '8in'] }, quote: { total: [68, 52] }, undoGroup: 'g41',
   });
   await send('designer', 'board');
@@ -242,6 +262,8 @@ async function play() {
   idle('host');
   await send('studio', 'api', 300);
   log('studio', 'GET /orders/C-1046 (poll)  busy: false → panel unpaused');
+  await send('studio', 'user');
+  log('user', `sees "Done: it's now an 8-inch cake for 10." and the new cake`);
 
   say('Done. Click a console line to see its data.');
   document.getElementById('play').disabled = false;
