@@ -18,6 +18,12 @@ Today the assistant returns a reply of one of four kinds, and the server decides
 
 The new rule: **the app is a harness. The assistant sees every tool the app has and uses them. The UI only shows the order, so when a tool changes the order, the UI follows.**
 
+**The app is a shared workspace.** The order (brief, design, chat) is one thing that the customer and the assistant both work on, in the open. The customer uses the panel and the chat; the assistant uses tools. Neither has a private copy, both see every change as it happens, and both go through the same checker. This gives three working rules:
+
+1. **Every change is visible and attributed.** The chat note says who made it (the customer or the assistant).
+2. **Either side can undo the other's change.** The customer's Undo reverts the assistant's turn. The assistant is told about panel changes through the notes it already receives.
+3. **No overwriting while the other side is mid-change.** While a turn is running, the customer's panel and composer are locked and show "The assistant is working…". If the customer changed something while the model was thinking (a quick change sent just before), the server compares the design version when the turn starts and ends. If it moved, the assistant's changes from that turn are not applied; it is told what changed and tries again once. This is the one case where an assistant change is dropped, and the customer sees a short note saying so.
+
 The principle from devlog 04 stays: *AI for the conversation, rules for the promises.* The assistant gets more reach, not more authority. Every tool goes through the same path the panel uses (check, price, save, note), so it cannot make a promise the rules would refuse.
 
 ## 2. Tools
@@ -109,20 +115,23 @@ Expect: the chat shows "Something went wrong. Try again."; the design is as it w
 **F13. Too many tool calls (fake).** A scripted model that keeps calling tools.
 Expect: the loop stops after 6 calls, the changes already made stay, and the customer gets a text reply.
 
+**F14. Both at once (fake).** Start a turn that the fake delays, and change the colour in the panel while it runs (the panel is locked in the browser, so this one is sent through the API).
+Expect: the version moved, so the assistant's changes from that turn are not applied; the customer's colour change stays; the chat has the short note saying so.
+
 ## 5. How the flows are run
 
-- **Fake flows** are Playwright tests in `app/e2e/tests/flows.spec.ts` (F1 to F7, F9 scripted, F10 to F13), run by `npm run test:e2e`. They check the screen and the order's state.
+- **Fake flows** are Playwright tests in `app/e2e/tests/flows.spec.ts` (F1 to F7, F9 scripted, F10 to F14), run by `npm run test:e2e`. They check the screen and the order's state.
 - **Live flows** are one script, `app/e2e/live/flows.live.ts`, run by hand as `npm run test:live -w e2e`. It needs `ANTHROPIC_API_KEY` in `app/.env`. It runs F1, F3, F4, F5, F6, F7, F8, F9 and F11 with the real model through the browser. It checks state (status, design fields, version, chat kinds, no `$` in assistant text) and prints the assistant's replies, with screenshots for each flow, for reading afterwards. It uses a small budget: one run is about 40 model calls.
 - A live flow that fails twice with the same state-based check is a bug to fix. A flow that fails once because the wording differed is not.
 
 ## 6. Implementation order
 
-1. [ ] Tool definitions, `applyBrief`, and the tool-use loop in `TurnAssistant`, with tests
+1. [ ] Tool definitions, `applyBrief`, and the tool-use loop in `TurnAssistant` (with the version check from §1), with tests
 2. [ ] Fake provider as scripted tool sequences; migrate the old assistant tests
 3. [ ] Anthropic provider with tool use; prompt update; live check
 4. [ ] Undo (route, note changes, UI)
 5. [ ] Browser: assistant notes, Undo, panel follows the order
-6. [ ] Fake flows F1 to F13 in Playwright
+6. [ ] Fake flows F1 to F14 in Playwright
 7. [ ] Live flow script, run it, fix what it finds
 8. [ ] Update devlog 04 where it says the assistant never writes to the order; fill in Outcome
 
