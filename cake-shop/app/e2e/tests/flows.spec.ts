@@ -344,3 +344,41 @@ test('F15. two agents on screen: the handoff, the designer at work, then its rep
   await expect(page.getByRole('button', { name: 'Purple' })).toBeEnabled();
   await expect(page.getByTestId('designer-status')).not.toContainText('working');
 });
+
+test('F16. the x-ray window: show only, follows the studio live, survives a studio reload', async ({ page }) => {
+  await startUnicorn(page);
+  const open = page.getByRole('button', { name: 'X-ray' });
+  await expect(open).toBeVisible();
+  // One press opens the window; a second press opens no second one.
+  const popupPromise = page.context().waitForEvent('page');
+  await open.click();
+  const xray = await popupPromise;
+  await expect(xray.getByTestId('xray-console')).toBeAttached();
+  await expect(xray.locator('#linktext')).toHaveText('Connected to the studio');
+  await open.click();
+  expect(page.context().pages()).toHaveLength(2);
+
+  // Use the studio as normal; the window shows what happens, at the same time.
+  await say(page, "actually it's only 10 people");
+  const text = xray.getByTestId('xray-console');
+  await expect(text).toContainText('sends "actually it\'s only 10 people"', { timeout: 10000 });
+  await expect(text).toContainText('message(', { timeout: 10000 });
+  await expect(text).toContainText('queued', { timeout: 10000 });
+  await expect(text).toContainText('set_brief', { timeout: 10000 });
+  await expect(text).toContainText('✓');
+  await expect(text).toContainText('saved brief.guests 20→10');
+  // The data of an event is shown on its own line, without clicking.
+  await expect(xray.locator('.data', { hasText: '"field":"guests"' })).not.toHaveCount(0);
+  // The designer's box was marked working while the job ran, and is calm again afterwards.
+  await expect(xray.locator('.node[data-part="designer"]')).not.toHaveClass(/busy/, { timeout: 10000 });
+
+  // Show only: nothing to click, type into or follow.
+  await expect(xray.locator('button, a, input, textarea, select, [tabindex]')).toHaveCount(0);
+
+  // Reload the studio: the window says it is connecting again, then carries on.
+  await page.reload();
+  await expect(xray.locator('#linktext')).toHaveText('Connected to the studio', { timeout: 8000 });
+  await say(page, 'make it pink');
+  await expect(text).toContainText('studio reloaded');
+  await expect(text).toContainText('pink', { timeout: 10000 });
+});

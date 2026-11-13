@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>X-ray</title>
+<style>
+  :root {
+    --bg:#f5f6f8; --card:#fff; --text:#1d2330; --muted:#5d6677; --line:#d5dae2;
+    --web:#0f766e; --api:#64748b; --ai:#b8860b; --data:#2b5fb8; --rules:#475569; --ok:#15803d; --bad:#b42318;
+    --glow:#f59e0b; --human:#7e22ce;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg:#12151c; --card:#1a1f2a; --text:#e6e9ef; --muted:#9aa3b5; --line:#2f3747;
+      --web:#4fd1c5; --api:#94a3b8; --ai:#e0b341; --data:#7aa7f0; --rules:#94a3b8; --ok:#4ade80; --bad:#f08a80;
+      --glow:#fbbf24; --human:#c084fc;
+    }
+  }
+  * { box-sizing:border-box; }
+  /* The x-ray window: show only. Nothing in it can be clicked, typed into or scrolled by hand. */
+  html, body { height:100%; }
+  body { margin:0; background:var(--bg); color:var(--text); font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;
+         display:grid; grid-template-rows:auto auto minmax(0,1fr); grid-template-columns:minmax(0,1fr); gap:10px; padding:10px 14px 14px; overflow:hidden;
+         user-select:none; -webkit-user-select:none; cursor:default; }
+  header { display:flex; align-items:center; gap:14px; }
+  header b { font-size:1.05rem; }
+  .status { margin-left:auto; display:flex; align-items:center; gap:8px; color:var(--muted); font-size:.9rem; }
+  .status i { width:9px; height:9px; border-radius:50%; background:var(--ok); }
+  .status.off i { background:var(--glow); }
+  .stage { color:var(--muted); font-size:.9rem; }
+  .pane { background:var(--card); border:1px solid var(--line); border-radius:10px; min-height:0; display:flex; flex-direction:column; }
+  .pane h2 { margin:0; padding:8px 14px; font-size:.75rem; letter-spacing:.08em; color:var(--muted); border-bottom:1px solid var(--line); }
+
+  svg { display:block; width:100%; height:auto; max-height:52vh; }
+  .edge { stroke:var(--line); stroke-width:2; fill:none; transition:stroke .3s; }
+  .edge.on { stroke:var(--glow); }
+  .node .shape { fill:var(--card); stroke-width:2; transition:filter .3s, stroke-width .3s; }
+  .frame { fill:none; stroke:var(--line); stroke-width:1.5; stroke-dasharray:4 4; }
+  .fl { fill:var(--muted); font-size:11px; font-weight:700; letter-spacing:.07em; }
+  .node text { fill:var(--text); font-size:14px; font-weight:600; text-anchor:middle; dominant-baseline:middle; }
+  .node .st { fill:var(--muted); font-size:11.5px; font-weight:400; }
+  .node.busy .shape { stroke-width:3.5; filter:drop-shadow(0 0 6px var(--glow)); animation:pulse 1s ease-in-out infinite; }
+  .node.ok .shape { stroke:var(--ok) !important; stroke-width:3.5; }
+  .node.bad .shape { stroke:var(--bad) !important; stroke-width:3.5; }
+  @keyframes pulse { 50% { filter:drop-shadow(0 0 1px var(--glow)); } }
+  .c-human .shape { stroke:var(--human); }
+  .c-web .shape { stroke:var(--web); } .c-api .shape { stroke:var(--api); } .c-ai .shape { stroke:var(--ai); stroke-dasharray:6 4; }
+  .c-data .shape { stroke:var(--data); } .c-rules .shape { stroke:var(--rules); }
+  .dot { fill:var(--glow); }
+
+  .console { flex:1; min-height:0; overflow:hidden; font:12.5px/1.6 ui-monospace,Consolas,monospace; padding:6px 0;
+             display:flex; flex-direction:column; justify-content:flex-end; }
+  .ln { padding:0 14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:none; }
+  .ln .t { color:var(--muted); margin-right:10px; }
+  .ln .p { display:inline-block; width:78px; font-weight:700; }
+  .ln .ms { color:var(--muted); float:right; }
+  .ln.new { animation:flash 1.2s; }
+  @keyframes flash { from { background:color-mix(in srgb, var(--glow) 25%, transparent); } }
+  .p-human { color:var(--human); } .p-web { color:var(--web); } .p-api { color:var(--api); } .p-ai { color:var(--ai); } .p-data { color:var(--data); } .p-rules { color:var(--rules); }
+  .data { padding:0 14px 0 calc(14px + 26ch); color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:none; }
+  .sep { padding:4px 14px; color:var(--muted); flex:none; }
+  .ok { color:var(--ok); } .bad { color:var(--bad); }
+</style>
+</head>
+<body>
+<header>
+  <b id="title">X-ray</b><span class="stage" id="state"></span>
+  <span class="status off" id="link"><i></i><span id="linktext">Connecting to the studio…</span></span>
+</header>
+<div class="pane">
+  <h2>MAP</h2>
+  <svg id="map" viewBox="0 0 1150 470"></svg>
+</div>
+<div class="pane">
+  <h2>CONSOLE</h2>
+  <div class="console" id="console" data-testid="xray-console"></div>
+</div>
+
+<script>
+(function () {
+  var MARK = 1;
+  var NODES = {
+    user:     { name: 'User',         c: 'human', x: 70,   y: 180 },
+    studio:   { name: 'Studio',       c: 'web',   x: 230,  y: 180 },
+    api:      { name: 'API',          c: 'api',   x: 400,  y: 180 },
+    host:     { name: 'Host',         c: 'ai',    x: 570,  y: 70 },
+    board:    { name: 'Job board',    c: 'data',  x: 570,  y: 180 },
+    designer: { name: 'Designer',     c: 'ai',    x: 570,  y: 290 },
+    tools:    { name: 'Tools',        c: 'rules', x: 730,  y: 290 },
+    checker:  { name: 'Checker',      c: 'rules', x: 880,  y: 290 },
+    llm:      { name: 'LLM (Claude)', c: 'ai',    x: 1060, y: 180 },
+    db:       { name: 'DB (SQLite)',  c: 'data',  x: 400,  y: 420, db: true }
+  };
+  var FRAMES = [
+    { label: 'BROWSER', x: 160, y: 120, w: 140, h: 120 },
+    { label: 'BACKEND (Node server)', x: 330, y: 18, w: 625, h: 330 },
+    { label: 'ANTHROPIC API', x: 985, y: 120, w: 150, h: 120 }
+  ];
+  var EDGES = [['user','studio'],['studio','api'],['api','host'],['api','db'],['host','board'],['host','llm'],['board','designer'],
+               ['designer','llm'],['designer','tools'],['tools','checker'],['designer','db']];
+  var W = 112, H = 44, MAX_LINES = 200;
+  var PART = { user: 'human', studio: 'web', api: 'api', host: 'ai', designer: 'ai', llm: 'ai', board: 'data', db: 'data', tools: 'rules', checker: 'rules' };
+
+  var NS = 'http://www.w3.org/2000/svg';
+  var svg = document.getElementById('map');
+  function el(tag, attrs, parent) {
+    var e = document.createElementNS(NS, tag);
+    for (var k in attrs) e.setAttribute(k, attrs[k]);
+    (parent || svg).appendChild(e);
+    return e;
+  }
+  function key(a, b) { return [a, b].sort().join('-'); }
+
+  FRAMES.forEach(function (f) {
+    el('rect', { 'class': 'frame', x: f.x, y: f.y, width: f.w, height: f.h, rx: 12 });
+    el('text', { 'class': 'fl', x: f.x + 10, y: f.y + 16 }).textContent = f.label;
+  });
+  var edgeEl = {};
+  EDGES.forEach(function (e) {
+    edgeEl[key(e[0], e[1])] = el('line', { 'class': 'edge', x1: NODES[e[0]].x, y1: NODES[e[0]].y, x2: NODES[e[1]].x, y2: NODES[e[1]].y });
+  });
+  var dotLayer = el('g', {});
+  var nodeEl = {}, statusEl = {};
+  Object.keys(NODES).forEach(function (id) {
+    var n = NODES[id];
+    var g = el('g', { 'class': 'node c-' + n.c, 'data-part': id });
+    if (n.db) {
+      var x = n.x - W / 2, y = n.y - H / 2, ry = 7;
+      el('path', { 'class': 'shape', d: 'M' + x + ',' + (y + ry) + ' v' + (H - ry * 2) + ' a' + (W / 2) + ',' + ry + ' 0 0 0 ' + W + ',0 v' + (-(H - ry * 2)) + ' a' + (W / 2) + ',' + ry + ' 0 0 0 ' + (-W) + ',0 a' + (W / 2) + ',' + ry + ' 0 0 0 ' + W + ',0' }, g);
+    } else el('rect', { 'class': 'shape', x: n.x - W / 2, y: n.y - H / 2, width: W, height: H, rx: 10 }, g);
+    el('text', { x: n.x, y: n.y }, g).textContent = n.name;
+    statusEl[id] = el('text', { 'class': 'st', x: n.x, y: n.y + H / 2 + 14 }, g);
+    nodeEl[id] = g;
+  });
+  svg.appendChild(dotLayer);
+
+  // ---- effects (the animations from the mockup) --------------------------------------------------------------------
+  var reduced = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function send(from, to, ms) {
+    ms = ms || 450;
+    var a = NODES[from], b = NODES[to], line = edgeEl[key(from, to)];
+    if (!a || !b) return;
+    if (line) { line.classList.add('on'); setTimeout(function () { line.classList.remove('on'); }, ms + 250); }
+    if (reduced) return;
+    var dot = el('circle', { 'class': 'dot', r: 6, cx: a.x, cy: a.y }, dotLayer);
+    var t0 = performance.now();
+    (function tick(now) {
+      var k = Math.min(1, (now - t0) / ms);
+      dot.setAttribute('cx', a.x + (b.x - a.x) * k);
+      dot.setAttribute('cy', a.y + (b.y - a.y) * k);
+      if (k < 1) requestAnimationFrame(tick); else dot.remove();
+    })(t0);
+  }
+  var timers = {};
+  function busy(id, label) {
+    if (!nodeEl[id]) return;
+    nodeEl[id].classList.add('busy');
+    var t0 = performance.now();
+    clearInterval(timers[id]);
+    var show = function () { statusEl[id].textContent = label + ' ' + ((performance.now() - t0) / 1000).toFixed(1) + 's'; };
+    show();
+    timers[id] = setInterval(show, 100);
+    stage();
+  }
+  function idle(id) {
+    if (!nodeEl[id]) return;
+    nodeEl[id].classList.remove('busy');
+    clearInterval(timers[id]);
+    statusEl[id].textContent = '';
+    stage();
+  }
+  function flash(id, cls) {
+    nodeEl[id].classList.add(cls);
+    setTimeout(function () { nodeEl[id].classList.remove(cls); }, 700);
+  }
+  function stage() {
+    var b = function (id) { return nodeEl[id].classList.contains('busy'); };
+    document.getElementById('state').textContent =
+      b('designer') ? 'The designer works…' : b('host') ? 'The host answers…' : b('api') ? 'The server answers…' : 'Waiting for the next message…';
+  }
+
+  // ---- console: every line is built with textContent, because the lines carry what the customer typed ----------------
+  var box = document.getElementById('console');
+  function span(cls, text) { var s = document.createElement('span'); s.className = cls; s.textContent = text; return s; }
+  function trim() { while (box.children.length > MAX_LINES) box.firstElementChild.remove(); }
+  function log(ev) {
+    var ln = document.createElement('div');
+    ln.className = 'ln new';
+    ln.setAttribute('data-seq', ev.seq);
+    ln.appendChild(span('t', new Date(ev.at).toISOString().slice(11, 23)));
+    ln.appendChild(span('p p-' + PART[ev.from], ev.from));
+    ln.appendChild(span(ev.verdict || '', ev.label));
+    if (typeof ev.ms === 'number') ln.appendChild(span('ms', ev.ms + ' ms'));
+    box.appendChild(ln);
+    if (ev.data !== undefined && ev.data !== null) {
+      var d = document.createElement('div');
+      d.className = 'data';
+      d.textContent = typeof ev.data === 'string' ? ev.data : JSON.stringify(ev.data);
+      box.appendChild(d);
+    }
+    trim();
+  }
+  function separator(text) {
+    var s = document.createElement('div');
+    s.className = 'sep';
+    s.textContent = text;
+    box.appendChild(s);
+    trim();
+  }
+
+  // ---- one event ---------------------------------------------------------------------------------------------------
+  function apply(ev) {
+    // An event whose ends are the same part only changes that part's state: no dot and no console line.
+    if (ev.from !== ev.to) {
+      send(ev.from, ev.to);
+      log(ev);
+      if (ev.to === 'checker' && (ev.verdict === 'ok' || ev.verdict === 'bad')) flash('checker', ev.verdict);
+    }
+    if (ev.busy) busy(ev.busy.part, ev.busy.label);
+    if (ev.idle) idle(ev.idle);
+  }
+  function reset() {
+    Object.keys(NODES).forEach(function (id) { idle(id); });
+    box.textContent = '';
+    lastSeq = 0;
+  }
+
+  // ---- the link to the studio -------------------------------------------------------------------------------------
+  var order = null, session = null, lastSeq = 0, lastAnswer = 0, connected = false;
+  var link = document.getElementById('link'), linkText = document.getElementById('linktext');
+  function setLink(ok, text) {
+    link.classList.toggle('off', !ok);
+    linkText.textContent = text;
+    connected = ok;
+  }
+  function title() { document.getElementById('title').textContent = 'X-ray' + (order ? ' · ' + order : ''); document.title = 'X-ray' + (order ? ' · ' + order : ''); }
+
+  window.addEventListener('message', function (e) {
+    if (e.source !== window.opener || e.origin !== location.origin) return;
+    var m = e.data;
+    if (!m || m.cakeXray !== MARK) return;
+    if (m.type === 'ok') {
+      lastAnswer = Date.now();
+      if (m.order !== order) { order = m.order; reset(); title(); }
+      if (m.session !== session) {
+        if (session !== null) separator('── studio reloaded ──');
+        session = m.session;
+      }
+      if (!connected) setLink(true, 'Connected to the studio');
+    } else if (m.type === 'events') {
+      lastAnswer = Date.now();
+      if (m.order !== order) return;
+      m.events.forEach(function (ev) { if (ev.seq > lastSeq) { lastSeq = ev.seq; apply(ev); } });
+    } else if (m.type === 'order') {
+      order = m.order; reset(); title(); lastAnswer = Date.now();
+    } else if (m.type === 'gone') {
+      lastAnswer = 0;
+      setLink(false, 'Studio reloading, connecting again…');
+    }
+  });
+
+  // The window says hello until the studio answers, then once a second. After the studio reloads it answers again.
+  function hello() {
+    if (!window.opener || window.opener.closed) { setLink(false, 'The studio window is closed'); return; }
+    try { window.opener.postMessage({ cakeXray: MARK, type: 'hello' }, location.origin); } catch (err) { /* the studio is not there */ }
+    if (connected && Date.now() - lastAnswer > 3500) setLink(false, 'Studio reloading, connecting again…');
+  }
+  (function loop() { hello(); setTimeout(loop, connected ? 1000 : 500); })();
+  stage();
+  window.__xray = true;
+})();
+</script>
+</body>
+</html>

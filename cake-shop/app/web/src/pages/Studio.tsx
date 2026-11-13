@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { DIETARY_PRICE, allowedValues, line, occasion, optionValues, template, type DesignField, type Dietary, type OrderView } from '@cakeshop/shared';
 import { ApiError, api } from '../api';
 import { Badge, Bill, Cake, Chip, Seg, Swatches, Switch, TopBar, fmtDate, fmtTime, money, withPrices } from '../ui';
+import { useXray } from '../xray/useXray';
 import { ConfirmSheet } from './ConfirmSheet';
 
 type Props = { id: string; token: string; view: OrderView; setView: (v: OrderView) => void };
@@ -28,6 +29,7 @@ export function Studio({ id, token, view, setView }: Props) {
   const [confirming, setConfirming] = useState(false);
   const ackTimer = useRef<number | undefined>(undefined);
   const thread = useRef<HTMLDivElement>(null);
+  const xray = useXray(id, token);
 
   useEffect(() => () => window.clearTimeout(ackTimer.current), []);
   const openJob = view.jobs.find((j) => j.status === 'queued' || j.status === 'working' || j.status === 'reporting');
@@ -201,7 +203,20 @@ export function Studio({ id, token, view, setView }: Props) {
 
   return (
     <div className="page">
-      <TopBar id={view.id} at={0} right={<span className="link">Bookmark this page to come back</span>} />
+      <TopBar
+        id={view.id}
+        at={0}
+        right={
+          <>
+            {xray.available && (
+              <button type="button" className="btn sm" onClick={xray.open} title="Open a window that shows what the system is doing, while you use the studio">
+                X-ray
+              </button>
+            )}
+            <span className="link">Bookmark this page to come back</span>
+          </>
+        }
+      />
       <div className="studio">
         <section className="chatcol" aria-label="Chat with the design assistant">
           <div className="chathead">
