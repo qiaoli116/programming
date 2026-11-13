@@ -81,6 +81,15 @@ export function Studio({ id, token, view, setView }: Props) {
     }
   }
 
+  async function undo(group: string) {
+    setError(null);
+    try {
+      setView(await api.undo(id, token, group));
+    } catch (e) {
+      fail(e);
+    }
+  }
+
   async function choose(candidate: number) {
     setError(null);
     try {
@@ -185,6 +194,18 @@ export function Studio({ id, token, view, setView }: Props) {
           </div>
           <div className="thread" ref={thread} aria-live="polite">
             {view.chat.map((c, i) => {
+              if (c.kind === 'ui' && c.by === 'assistant')
+                return (
+                  <div className={`evt ai ${c.undone ? 'undone' : ''}`} key={c.id} data-group={c.group}>
+                    ✦ <span>Assistant changed <b>{c.change ?? c.text}</b></span> · {fmtTime(c.at)}
+                    {c.undone && <span> · undone</span>}
+                    {c.undo && !c.undone && (
+                      <button type="button" className="linkbtn" disabled={pending} onClick={() => undo(c.group!)} aria-label={`Undo the assistant's change: ${c.change ?? c.text}`}>
+                        Undo
+                      </button>
+                    )}
+                  </div>
+                );
               if (c.kind === 'ui')
                 return (
                   <div className="evt" key={c.id}>
@@ -251,7 +272,7 @@ export function Studio({ id, token, view, setView }: Props) {
               <input aria-label="Message" placeholder={pending ? 'The assistant is answering…' : 'Ask for a change, or ask a question…'} value={text} disabled={pending} onChange={(e) => setText(e.target.value)} />
               <button className="btn primary sm" type="submit" disabled={pending || !text.trim()}>Send</button>
             </div>
-            <div className="hint">Tip: small changes like colour or flavour are quicker in the panel on the right. The assistant will see them.</div>
+            <div className="hint">Tip: the assistant can change the order for you ("only 10 people", "make it purple"), or use the panel on the right. You both see every change.</div>
           </form>
         </section>
 
@@ -262,6 +283,8 @@ export function Studio({ id, token, view, setView }: Props) {
               <small>{tpl ? `${tpl.name} · version ${design?.version ?? 1}` : 'No design yet. Pick one in the chat.'}</small>
             </div>
           </div>
+          {pending && <div className="working" role="status">✦ The assistant is working… the panel is paused until it answers.</div>}
+          <fieldset className="lock" disabled={pending}>
           <div className="brief" role="group" aria-label="Order details">
             <span className="lbl" style={{ marginRight: 2 }}>Order</span>
             <span className="chip">{occasion(brief.occasion).label}</span>
@@ -276,7 +299,9 @@ export function Studio({ id, token, view, setView }: Props) {
             </label>
             <Chip on={brief.dietary.includes('gluten-free')} onClick={() => toggleDiet('gluten-free')}>Gluten-free</Chip>
             <Chip on={brief.dietary.includes('vegan')} onClick={() => toggleDiet('vegan')}>Vegan</Chip>
+            <Chip on={brief.fulfilment === 'delivery'} onClick={() => changeBrief('fulfilment', brief.fulfilment === 'delivery' ? 'pickup' : 'delivery')}>Delivery</Chip>
           </div>
+          </fieldset>
           {design ? (
             <>
               <div className="stage">
@@ -287,7 +312,7 @@ export function Studio({ id, token, view, setView }: Props) {
               </div>
               {check && !check.ok && <div className="err" role="alert">✕ <span>{check.reasons.map((r) => r.text).join(' ')}</span></div>}
               {view.warning && <div className="err" style={{ background: 'var(--warn-soft)', color: 'var(--warn)' }}>⚠ <span>{view.warning}</span></div>}
-              <div className="qc">
+              <fieldset className="lock qc" disabled={pending}>
                 <div className="hd">
                   <span className="lbl">✎ Quick changes</span>
                   <span style={{ fontSize: '.75rem', color: 'var(--faint)' }}>No need to ask the assistant</span>
@@ -310,7 +335,7 @@ export function Studio({ id, token, view, setView }: Props) {
                   Each change is checked, priced and drawn at once, and noted in the chat so the assistant knows.
                   {ln && ` Up to ${ln.maxDecorations} decoration${ln.maxDecorations === 1 ? '' : 's'} on this cake.`}
                 </div>
-              </div>
+              </fieldset>
               {view.quote && <Bill lines={view.quote.lines} total={view.quote.total} />}
             </>
           ) : (

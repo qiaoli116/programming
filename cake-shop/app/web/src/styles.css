@@ -268,3 +268,13 @@ a.item { color:inherit; text-decoration:none; }
 .spec { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:4px; font-size:.88rem; }
 .spec li span { color:var(--muted); display:inline-block; min-width:78px; }
 .notices { list-style:none; padding:0; margin:12px 0; font-size:.85rem; color:var(--muted); }
+
+/* devlog 05: the shared workspace. Assistant notes sit on the assistant's side with Undo; the panel pauses during a turn. */
+.evt.ai { align-self:flex-start; border-color:var(--line); background:var(--card); }
+.evt.undone b { text-decoration:line-through; color:var(--muted); }
+.linkbtn { border:0; background:none; padding:0 2px; font:inherit; color:var(--brand); font-weight:600; cursor:pointer; text-decoration:underline; }
+.linkbtn:disabled { color:var(--faint); cursor:default; }
+fieldset.lock { min-width:0; margin:0; }
+fieldset.lock:not(.qc) { border:0; padding:0; }
+fieldset.lock:disabled { opacity:.55; }
+.working { font-size:.8rem; color:var(--muted); background:var(--card); border:1.5px dashed var(--line); border-radius:10px; padding:6px 12px; }

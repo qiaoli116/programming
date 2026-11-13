@@ -33,6 +33,7 @@ export const api = {
   design: (id: string, t: string, field: string, value: unknown) => call<OrderView>('PATCH', o(id, t, '/design'), { field, value }),
   brief: (id: string, t: string, field: string, value: unknown) => call<OrderView>('PATCH', o(id, t, '/brief'), { field, value }),
   ack: (id: string, t: string) => call<OrderView>('POST', o(id, t, '/ack')),
+  undo: (id: string, t: string, group: string) => call<OrderView>('POST', o(id, t, '/undo'), { group }),
   confirm: (id: string, t: string, body: { fulfilment: string; slot: string; contact: Contact; final: true }) =>
     call<OrderView>('POST', o(id, t, '/confirm'), body),
   baker: {
