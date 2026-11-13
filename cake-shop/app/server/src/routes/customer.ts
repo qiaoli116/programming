@@ -21,6 +21,8 @@ import {
 import { AssistantFailure, HttpError } from '../errors';
 import { addChat, applyBriefChange, applyChange, isBriefField, nowOf, todayOf, type Clock } from '../orders/applyChange';
 import { assertDesigning, moveStatus } from '../orders/status';
+import { parseBrief } from '../orders/brief';
+import { undoGroup } from '../orders/undo';
 import type { Assistant } from '../assistant/service';
 import { plainAck } from '../assistant/service';
 import type { OrderStore } from '../store';
@@ -39,35 +41,6 @@ export const wrap =
   };
 
 const DESIGN_FIELDS: DesignField[] = ['size', 'sponge', 'filling', 'finish', 'colour', 'decorations', 'topper', 'message', 'picture', 'digits', 'glutenFree', 'vegan', 'extras'];
-const DIETARY: Dietary[] = ['gluten-free', 'vegan'];
-const isDate = (s: unknown): s is string => typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s) && !Number.isNaN(Date.parse(s));
-
-function parseBrief(raw: unknown, today: string): Brief {
-  const b = (raw ?? {}) as Record<string, unknown>;
-  if (!OCCASIONS.some((o) => o.id === b.occasion)) throw new HttpError(400, 'Choose an occasion.');
-  const guests = Number(b.guests);
-  if (!Number.isInteger(guests) || guests < 1 || guests > 500) throw new HttpError(400, 'Guests must be a whole number from 1 to 500.');
-  if (!isDate(b.date)) throw new HttpError(400, 'Choose a pickup or delivery date.');
-  const dietary = Array.isArray(b.dietary) ? b.dietary : [];
-  if (!dietary.every((d) => DIETARY.includes(d as Dietary))) throw new HttpError(400, 'Unknown dietary need.');
-  const fulfilment = b.fulfilment ?? 'pickup';
-  if (fulfilment !== 'pickup' && fulfilment !== 'delivery') throw new HttpError(400, 'Fulfilment is pickup or delivery.');
-  const slot = b.slot === undefined || b.slot === '' ? undefined : String(b.slot);
-  if (slot && !SLOTS.some((s) => s.id === slot)) throw new HttpError(400, 'Unknown time slot.');
-  const brief: Brief = { occasion: b.occasion as Brief['occasion'], guests, date: b.date, dietary: [...new Set(dietary as Dietary[])], fulfilment, slot };
-  assertNotice(brief.date, today);
-  return brief;
-}
-
-function assertNotice(date: string, today: string) {
-  const days = daysBetween(today, date);
-  if (days < SHOP.minNoticeDays) {
-    throw new HttpError(422, `We need at least ${SHOP.minNoticeDays} days' notice.`, [
-      { code: 'notice', field: 'date', level: 'shop', text: `We need at least ${SHOP.minNoticeDays} days' notice. The date you chose is ${Math.max(days, 0)} day${days === 1 ? '' : 's'} away.` },
-    ]);
-  }
-}
-
 function newToken(): string {
   return crypto.randomBytes(32).toString('base64url');
 }
@@ -237,6 +210,17 @@ export function customerRouter({ store, assistant, clock }: Deps): Router {
       const result = applyBriefChange(store, order, merged, clock);
       if (!result.ok) throw new HttpError(422, result.reasons[0].text, result.reasons);
       res.json(toView(result.order, clock));
+    }),
+  );
+
+  /** Reverts one assistant turn (a change group) to the order as it was before that turn. */
+  r.post(
+    '/orders/:id/undo',
+    wrap((req, res) => {
+      const order = load(req);
+      const group = typeof req.body?.group === 'string' ? req.body.group : '';
+      if (!group) throw new HttpError(400, 'Which change?');
+      res.json(toView(undoGroup(store, order, group, clock), clock));
     }),
   );
 

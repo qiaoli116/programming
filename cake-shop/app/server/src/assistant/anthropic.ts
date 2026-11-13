@@ -1,8 +1,8 @@
-// The real provider: the plain Anthropic SDK with an API key, the same approach as job-board.
+// The real provider: the plain Anthropic SDK with an API key, the same approach as job-board. One call is one step of
+// the agent loop in turn.ts: the model sees the order, the chat and the tools, and answers with text and tool calls.
 import Anthropic from '@anthropic-ai/sdk';
-import type { AssistantProvider } from './provider';
 import type { ProviderInput } from './prompt';
-import { REPLY_SCHEMA } from './reply';
+import type { AssistantProvider, Step } from './provider';
 
 export const MODEL = 'claude-sonnet-5-5';
 
@@ -14,17 +14,28 @@ export class AnthropicProvider implements AssistantProvider {
     this.client = new Anthropic({ apiKey });
   }
 
-  async turn(input: ProviderInput): Promise<unknown> {
+  async step(input: ProviderInput): Promise<Step> {
     const res = await this.client.messages.create({
       model: MODEL,
       max_tokens: 4096,
       system: input.system,
-      messages: input.messages,
-      output_config: { format: { type: 'json_schema', schema: REPLY_SCHEMA as unknown as Record<string, unknown> } },
+      messages: input.messages as Anthropic.MessageParam[],
+      ...(input.tools.length
+        ? {
+            tools: input.tools as Anthropic.Tool[],
+            tool_choice: input.force ? { type: 'tool' as const, name: input.force } : { type: 'auto' as const },
+          }
+        : {}),
     });
-    if (res.stop_reason !== 'end_turn') throw new Error(`The AI stopped early (${res.stop_reason}).`);
-    const block = res.content.find((b) => b.type === 'text');
-    if (!block || block.type !== 'text') throw new Error('The AI sent no text.');
-    return JSON.parse(block.text);
+    if (res.stop_reason !== 'end_turn' && res.stop_reason !== 'tool_use') throw new Error(`The AI stopped early (${res.stop_reason}).`);
+    const text = res.content
+      .filter((b): b is Anthropic.TextBlock => b.type === 'text')
+      .map((b) => b.text)
+      .join('\n')
+      .trim();
+    const calls = res.content
+      .filter((b): b is Anthropic.ToolUseBlock => b.type === 'tool_use')
+      .map((b) => ({ id: b.id, name: b.name, input: (b.input ?? {}) as Record<string, unknown> }));
+    return { text, calls };
   }
 }

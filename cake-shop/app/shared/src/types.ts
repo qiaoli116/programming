@@ -91,6 +91,20 @@ export interface ChatMessage {
   suggestions?: string[];
   /** True when this assistant message presented the order's current options. */
   optionsTurn?: boolean;
+  /** For `ui` notes: who made the change. Older notes have no `by` and were made in the panel. */
+  by?: 'customer' | 'assistant';
+  /** For the assistant's `ui` notes: the turn they belong to. Undo reverts a whole group. */
+  group?: string;
+  /** On the first note of an assistant group: the brief and design before and after the turn. */
+  undo?: { before: Snapshot; after: Snapshot };
+  /** Set on every note of a group that the customer undid. */
+  undone?: boolean;
+}
+
+/** The parts of an order that the customer and the assistant both change. */
+export interface Snapshot {
+  brief: Brief;
+  design: Design | null;
 }
 
 /** A design the assistant proposed, with its quote from Pricing and a note from the designer. */
@@ -111,7 +125,7 @@ export interface Contact {
 export interface OrderEvent {
   at: string;
   by: 'customer' | 'assistant' | 'choose' | 'panel' | 'baker' | 'server';
-  type: 'change' | 'status' | 'notice' | 'warning';
+  type: 'change' | 'status' | 'notice' | 'warning' | 'tool';
   text: string;
 }
 
@@ -156,12 +170,3 @@ export type OrderView = Omit<Order, 'token' | 'events'> & {
   today: string;
 };
 
-/** What the AI sends back. Prices are never part of it. */
-export type ReplyKind = 'options' | 'refine' | 'answer' | 'ack';
-export interface AssistantReply {
-  kind: ReplyKind;
-  text: string;
-  candidates: { design: Design; title: string; note: string }[];
-  cantDo: string[];
-  suggestions: string[];
-}

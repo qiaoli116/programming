@@ -40,7 +40,7 @@ export function plainAck(store: OrderStore, orderId: string, clock: Clock): void
   order.chat.forEach((c, i) => {
     if (c.kind === 'assistant') lastAssistant = i;
   });
-  const notes = order.chat.slice(lastAssistant + 1).filter((c) => c.kind === 'ui');
+  const notes = order.chat.slice(lastAssistant + 1).filter((c) => c.kind === 'ui' && c.by !== 'assistant');
   if (notes.length === 0) return;
   const total = order.quote ? ` Total $${order.quote.total}.` : '';
   addChat(order, { kind: 'assistant', text: `Changed: ${notes.map((n) => n.change ?? n.text).join('; ')}.${total}` }, nowOf(clock));

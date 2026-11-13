@@ -2,7 +2,7 @@
 
 **Date:** 2026-11-13
 
-**Status:** Design
+**Status:** Building
 
 **Iteration:** Iteration 1, Stage 3 Implementation (see [process.html](../../docs/process.html#iteration-1))
 
@@ -126,9 +126,9 @@ Expect: the version moved, so the assistant's changes from that turn are not app
 
 ## 6. Implementation order
 
-1. [ ] Tool definitions, `applyBrief`, and the tool-use loop in `TurnAssistant` (with the version check from §1), with tests
-2. [ ] Fake provider as scripted tool sequences; migrate the old assistant tests
-3. [ ] Anthropic provider with tool use; prompt update; live check
+1. [x] Tool definitions, `applyBrief`, and the tool-use loop in `TurnAssistant` (with the version check from §1), with tests
+2. [x] Fake provider as scripted tool sequences; migrate the old assistant tests
+3. [x] Anthropic provider with tool use; prompt update; live check
 4. [ ] Undo (route, note changes, UI)
 5. [ ] Browser: assistant notes, Undo, panel follows the order
 6. [ ] Fake flows F1 to F14 in Playwright
