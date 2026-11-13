@@ -436,9 +436,9 @@ Devlog 01 and `data-model.html` still show the first set of columns. §4 here is
 3. [x] Design checker with its tests
 4. [x] Pricing and servings with their tests
 5. [x] Preview: port `cake-preview.js`, add cupcakes and mini, tests
-6. [ ] SQLite store, migrations, status moves, abandon sweep
-7. [ ] `applyChange` and the customer routes, with tests
-8. [ ] Baker routes, session, seed data, with tests
+6. [x] SQLite store, migrations, status moves, abandon sweep
+7. [x] `applyChange` and the customer routes, with tests
+8. [x] Baker routes, session, seed data, with tests
 9. [ ] Assistant seam, fake provider, `turn.ts`, with tests
 10. [ ] Anthropic provider, prompt, live check
 11. [ ] Web: components from the app design

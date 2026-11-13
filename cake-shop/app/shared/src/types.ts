@@ -147,7 +147,14 @@ export interface Order {
 }
 
 /** The order as the customer may see it (no token, only notices from the event log). */
-export type OrderView = Omit<Order, 'token' | 'events'> & { notices: OrderEvent[] };
+export type OrderView = Omit<Order, 'token' | 'events'> & {
+  notices: OrderEvent[];
+  /** The checker's verdict on the current design with the order's brief, as of `today` on the server. */
+  check: CheckResult | null;
+  /** A "serves fewer than your guests" warning, when it applies. */
+  warning: string | null;
+  today: string;
+};
 
 /** What the AI sends back. Prices are never part of it. */
 export type ReplyKind = 'options' | 'refine' | 'answer' | 'ack';
