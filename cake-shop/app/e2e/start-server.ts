@@ -7,6 +7,7 @@ import { createApp } from '../server/src/app';
 import { FakeProvider } from '../server/src/assistant/provider';
 import { TeamAssistant } from '../server/src/assistant/team';
 import { OrderStore, createDb } from '../server/src/store';
+import { Trace } from '../server/src/trace';
 import { seedOrders } from '../server/seed/orders';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -15,13 +16,15 @@ export const PASSWORD = 'e2e-password';
 
 let store: OrderStore;
 function fresh() {
-  store = new OrderStore(createDb(':memory:'));
+  const trace = new Trace(true);
+  store = new OrderStore(createDb(':memory:'), trace);
   seedOrders(store);
   return createApp({
     store,
-    assistant: new TeamAssistant(store, clock, new FakeProvider()),
+    assistant: new TeamAssistant(store, clock, new FakeProvider(), trace),
     clock,
     bakerPassword: PASSWORD,
+    trace,
     webDist: path.resolve(here, '../web/dist'),
   });
 }

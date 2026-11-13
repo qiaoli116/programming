@@ -8,7 +8,9 @@ import { sweepAbandoned } from './orders/status';
 import { nowOf, type Clock } from './orders/applyChange';
 import { bakerRouter } from './routes/baker';
 import { customerRouter } from './routes/customer';
+import { traceHttp } from './routes/xray';
 import type { OrderStore } from './store';
+import { Trace } from './trace';
 
 export interface AppOptions {
   store: OrderStore;
@@ -18,6 +20,8 @@ export interface AppOptions {
   sessionHours?: number;
   secureCookie?: boolean;
   webDist?: string;
+  /** The x-ray trace (devlog 07). Missing or disabled: nothing is recorded and the trace route answers 404. */
+  trace?: Trace;
 }
 
 export function createApp(opts: AppOptions) {
@@ -33,11 +37,14 @@ export function createApp(opts: AppOptions) {
     next();
   });
 
+  const trace = opts.trace ?? new Trace(false);
+  // `xray` tells the studio whether to show the X-ray button.
   app.get('/api/health', (_req, res) => {
-    res.json({ ok: true });
+    res.json({ ok: true, xray: trace.enabled });
   });
   app.use('/api/baker', bakerRouter({ store: opts.store, clock, password: opts.bakerPassword, sessionHours: opts.sessionHours ?? 12, secureCookie: opts.secureCookie ?? false }));
-  app.use('/api', customerRouter({ store: opts.store, assistant: opts.assistant, clock }));
+  app.use('/api', traceHttp(trace, opts.store));
+  app.use('/api', customerRouter({ store: opts.store, assistant: opts.assistant, clock, trace }));
   app.use('/api', (_req, res) => {
     res.status(404).json({ error: 'Not found.' });
   });

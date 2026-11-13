@@ -1,7 +1,7 @@
 // The seam between the app and "the AI". A provider takes one step of a turn: given the conversation so far (with the
 // tool calls and results of this turn), it returns text and/or tool calls. The real provider (anthropic.ts) calls the
 // API; the fake is a deterministic script and is what every automated test and demo uses (ASSISTANT_PROVIDER=fake).
-import { COLOURS, DECORATIONS, fittingSize, suggestTemplates, template, type Brief } from '@cakeshop/shared';
+import { COLOURS, DECORATIONS, fittingSize, suggestTemplates, template, type Agent, type Brief } from '@cakeshop/shared';
 import type { ProviderInput, ToolResult } from './prompt';
 import { ASK_TOOL, REPLY_TOOL, REPORT_TOOL } from './tools';
 
@@ -15,10 +15,14 @@ export interface ToolCall {
 export interface Step {
   text: string;
   calls: ToolCall[];
+  /** Tokens used, when the provider knows (shown in the x-ray window only). */
+  usage?: { in: number; out: number };
 }
 
 export interface AssistantProvider {
   readonly name: string;
+  /** The model an agent uses, for the x-ray window. */
+  model?(agent: Agent): string;
   /** Throws when the provider can't answer. */
   step(input: ProviderInput): Promise<Step>;
 }
@@ -155,6 +159,10 @@ const withPrice = (said: string, w: Words): Words => (said.includes('[PRICE]') ?
 /** The fake plays both agents. The host answers fixed questions itself and hands everything else to the designer. */
 export class FakeProvider implements AssistantProvider {
   readonly name = 'fake';
+
+  model(agent: Agent): string {
+    return `fake-${agent}`;
+  }
 
   async step(input: ProviderInput): Promise<Step> {
     return input.agent === 'designer' ? this.designer(input) : this.host(input);

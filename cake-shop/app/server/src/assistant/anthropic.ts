@@ -16,6 +16,10 @@ export class AnthropicProvider implements AssistantProvider {
     this.client = new Anthropic({ apiKey });
   }
 
+  model(agent: Agent): string {
+    return MODELS[agent];
+  }
+
   async step(input: ProviderInput): Promise<Step> {
     const res = await this.client.messages.create({
       model: MODELS[input.agent],
@@ -38,6 +42,6 @@ export class AnthropicProvider implements AssistantProvider {
     const calls = res.content
       .filter((b): b is Anthropic.ToolUseBlock => b.type === 'tool_use')
       .map((b) => ({ id: b.id, name: b.name, input: (b.input ?? {}) as Record<string, unknown> }));
-    return { text, calls };
+    return { text, calls, usage: { in: res.usage.input_tokens, out: res.usage.output_tokens } };
   }
 }

@@ -7,7 +7,7 @@ import { MAX_TOOL_CALLS, TeamAssistant } from '../src/assistant/team';
 import { kidsBrief, setup, type Ctx } from './helpers';
 
 const withFake = (provider: AssistantProvider = new FakeProvider()) =>
-  setup({ assistant: (store, clock) => new TeamAssistant(store, clock, provider) });
+  setup({ assistant: (store, clock, trace) => new TeamAssistant(store, clock, provider, trace) });
 
 /** A provider that records every step it is asked for and passes it on to the fake. */
 function spy() {

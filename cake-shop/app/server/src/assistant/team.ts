@@ -12,6 +12,7 @@ import { check, price, type Candidate, type ChatMessage, type Order, type OrderE
 import { AssistantFailure } from '../errors';
 import { addChat, nowOf, sameSnapshot, snapshot, todayOf, type Clock } from '../orders/applyChange';
 import type { OrderStore } from '../store';
+import { Trace } from '../trace';
 import { designerInput, hostInput, panelNotesSinceAssistant, type Block, type Msg, type ProviderInput, type ToolResult } from './prompt';
 import type { AssistantProvider } from './provider';
 import { stripPrices } from './reply';
@@ -71,13 +72,32 @@ export class TeamAssistant implements Assistant {
     private store: OrderStore,
     private clock: Clock,
     private provider: AssistantProvider,
+    /** For the x-ray window (devlog 07). Off by default: nothing is recorded. */
+    private trace: Trace = new Trace(false),
   ) {}
 
-  private async step(input: ProviderInput) {
+  /** One model call. The trace shows it going to the LLM and coming back, with the time it took and the tool calls. */
+  private async step(orderId: string, input: ProviderInput) {
+    const agent = input.agent;
+    const model = this.provider.model?.(agent) ?? this.provider.name;
+    const t0 = Date.now();
+    this.trace.emit(orderId, agent, 'llm', `step → ${model}`, {
+      busy: { part: 'llm', label: 'thinking' },
+      data: { model, expect: input.expect, tools: input.tools.map((t) => t.name), messages: input.messages.length, ...(input.force ? { force: input.force } : {}) },
+    });
     try {
-      return await this.provider.step(input);
+      const res = await this.provider.step(input);
+      const names = res.calls.map((c) => c.name);
+      this.trace.emit(orderId, 'llm', agent, `← ${names.join(', ') || 'text'}`, {
+        ms: Date.now() - t0,
+        idle: 'llm',
+        data: { ...(res.usage ? { in_tokens: res.usage.in, out_tokens: res.usage.out } : {}), ...(res.text ? { text: res.text.slice(0, 200) } : {}), calls: res.calls.map((c) => ({ name: c.name, input: c.input })) },
+      });
+      return res;
     } catch (err) {
-      throw new AssistantFailure(err instanceof Error ? err.message : 'The assistant failed.');
+      const why = err instanceof Error ? err.message : 'The assistant failed.';
+      this.trace.emit(orderId, 'llm', agent, `✗ ${why.slice(0, 120)}`, { ms: Date.now() - t0, idle: 'llm', verdict: 'bad' });
+      throw new AssistantFailure(why);
     }
   }
 
@@ -101,13 +121,22 @@ export class TeamAssistant implements Assistant {
   async message(orderId: string): Promise<void> {
     const order = this.store.get(orderId);
     if (!order || order.status !== 'DESIGNING') return;
+    this.trace.emit(orderId, 'api', 'host', `message(${orderId})`, { busy: { part: 'host', label: 'turn' } });
+    try {
+      await this.hostTurn(orderId, order);
+    } finally {
+      this.trace.emit(orderId, 'host', 'host', 'turn over', { idle: 'host' });
+    }
+  }
+
+  private async hostTurn(orderId: string, order: Order): Promise<void> {
     const input = hostInput(order, 'reply', this.clock);
     const messages: Msg[] = [...input.messages];
     const tasks: string[] = [];
     let words: Words | null = null;
 
     for (let step = 0; step < MAX_HOST_STEPS && !words; step++) {
-      const res = await this.step({
+      const res = await this.step(orderId, {
         ...input,
         messages,
         tools: HOST_TOOLS,
@@ -155,8 +184,9 @@ export class TeamAssistant implements Assistant {
   async ack(orderId: string): Promise<void> {
     const order = this.store.get(orderId);
     if (!order || panelNotesSinceAssistant(order).length === 0) return;
+    this.trace.emit(orderId, 'api', 'host', 'ack (panel changes)', { busy: { part: 'host', label: 'ack' } });
     try {
-      const res = await this.step({ ...hostInput(order, 'ack', this.clock), tools: [] });
+      const res = await this.step(orderId, { ...hostInput(order, 'ack', this.clock), tools: [] });
       const fresh = this.store.get(orderId)!;
       const now = nowOf(this.clock);
       const { clean, flush } = this.cleaner(fresh, now);
@@ -166,6 +196,8 @@ export class TeamAssistant implements Assistant {
       this.store.save(fresh);
     } catch {
       plainAck(this.store, orderId, this.clock);
+    } finally {
+      this.trace.emit(orderId, 'host', 'host', 'ack over', { idle: 'host' });
     }
   }
 
@@ -174,10 +206,11 @@ export class TeamAssistant implements Assistant {
     const order = this.store.get(orderId);
     const job = order?.jobs.find((j) => j.id === jobId);
     if (!order || !job) return;
+    this.trace.emit(orderId, 'board', 'host', `job ${jobId} report`, { busy: { part: 'host', label: 'report' } });
     let words: Words | null = null;
     if (order.status === 'DESIGNING') {
       try {
-        const res = await this.step({ ...hostInput(order, 'report', this.clock, job), tools: HOST_REPORT_TOOLS, force: REPLY_TOOL });
+        const res = await this.step(orderId, { ...hostInput(order, 'report', this.clock, job), tools: HOST_REPORT_TOOLS, force: REPLY_TOOL });
         const call = res.calls.find((c) => c.name === REPLY_TOOL);
         words = call ? readReply(call.input) : { text: res.text, cantDo: [], suggestions: [] };
       } catch {
@@ -211,6 +244,7 @@ export class TeamAssistant implements Assistant {
     if (fj.status !== 'failed') fj.status = 'done';
     fj.finishedAt = now;
     this.store.save(fresh);
+    this.trace.emit(orderId, 'host', 'board', `job ${jobId} ${fj.status}`, { idle: 'host', verdict: fj.status === 'failed' ? 'bad' : undefined });
   }
 
   // ---- The job board -------------------------------------------------------------------------------------------
@@ -219,7 +253,14 @@ export class TeamAssistant implements Assistant {
     const id = (order.jobs ?? []).reduce((m, j) => Math.max(m, j.id), 0) + 1;
     order.jobs = [...(order.jobs ?? []), { id, task, status: 'queued', progress: [], createdAt: now }];
     addChat(order, { kind: 'handoff', from: 'host', job: id, text: task }, now);
+    this.trace.emit(order.id, 'host', 'board', `job ${id} queued`, { data: { task } });
     return id;
+  }
+
+  /** A line of progress on the job, saved at once so the customer sees it (and shown on the trace). */
+  private progress(orderId: string, jobId: number, line: string) {
+    this.updateJob(orderId, jobId, (j) => j.progress.push(line));
+    this.trace.emit(orderId, 'designer', 'board', `job ${jobId} progress: ${line}`);
   }
 
   private enqueue(orderId: string, jobId: number) {
@@ -255,6 +296,7 @@ export class TeamAssistant implements Assistant {
       o.events.push({ at: now, by: 'server', type: 'warning', text: `Designer job ${jobId} failed: ${why}` });
       addChat(o, { kind: 'handoff', from: 'designer', job: jobId, text: "I couldn't finish this job, so nothing changed." }, now);
     });
+    this.trace.emit(orderId, 'designer', 'board', `job ${jobId} failed: ${why}`, { idle: 'designer', verdict: 'bad' });
   }
 
   // ---- The designer --------------------------------------------------------------------------------------------
@@ -273,9 +315,11 @@ export class TeamAssistant implements Assistant {
     this.updateJob(orderId, jobId, (j) => {
       j.status = 'working';
     });
+    this.trace.emit(orderId, 'board', 'designer', `job ${jobId} working`, { busy: { part: 'designer', label: `job ${jobId}` } });
     let optionsTurn = false;
     try {
-      optionsTurn = await this.work(orderId, jobId);
+      // Saves made while the designer works are shown as coming from it.
+      optionsTurn = await this.trace.as('designer', () => this.work(orderId, jobId));
     } catch (err) {
       this.fail(orderId, jobId, err instanceof Error ? err.message.slice(0, 200) : 'the designer failed');
     }
@@ -294,7 +338,7 @@ export class TeamAssistant implements Assistant {
     if (a.changes.length && !sameSnapshot(snapshot(stored), a.start)) {
       const since = a.lastChatId;
       const theirs = stored.chat.filter((c) => c.id > since && c.kind === 'ui').map((c) => c.change ?? c.text);
-      this.updateJob(orderId, jobId, (j) => j.progress.push('the customer changed the order meanwhile: looking again'));
+      this.progress(orderId, jobId, 'the customer changed the order meanwhile: looking again');
       const b = await this.attempt(
         orderId,
         jobId,
@@ -329,7 +373,7 @@ export class TeamAssistant implements Assistant {
     let report: Report | null = null;
 
     for (let step = 0; step < MAX_STEPS && !report; step++) {
-      const res = await this.step({
+      const res = await this.step(orderId, {
         ...base,
         messages,
         tools: DESIGNER_TOOLS,
@@ -354,13 +398,17 @@ export class TeamAssistant implements Assistant {
           continue;
         }
         calls++;
+        this.trace.emit(orderId, 'designer', 'tools', `${call.name} ${JSON.stringify(call.input)}`, { data: { input: call.input } });
         const r = runTool(w, call.name, call.input, this.clock, { addCards: optionsShown });
+        this.trace.emit(orderId, 'tools', 'checker', r.ok ? `✓ ${r.change ?? r.text.split('\n')[0].slice(0, 100)}` : `✗ ${r.text.split('\n')[0].slice(0, 140)}`, {
+          verdict: r.ok ? 'ok' : 'bad',
+          data: { ok: r.ok, text: r.text.slice(0, 400) },
+        });
         results.push({ name: call.name, input: call.input, ok: r.ok, text: r.text });
         w.events.push({ at: nowOf(this.clock), by: 'assistant', type: 'tool', text: `job ${jobId}: ${call.name} ${JSON.stringify(call.input)} → ${r.ok ? '' : 'refused: '}${r.text.slice(0, 300)}` });
         if (r.change) changes.push(r.change);
         if (r.options) optionsShown = true;
-        const line = progressLine(call.name, call.input, r, w);
-        this.updateJob(orderId, jobId, (j) => j.progress.push(line));
+        this.progress(orderId, jobId, progressLine(call.name, call.input, r, w));
         out.push({ type: 'tool_result', tool_use_id: call.id, content: r.text, ...(r.ok ? {} : { is_error: true }) });
       }
       messages.push({ role: 'user', content: out });
@@ -422,6 +470,7 @@ export class TeamAssistant implements Assistant {
     addChat(stored, { kind: 'handoff', from: 'designer', job: jobId, text: questions.length ? `${summary} Questions: ${questions.join(' ')}` : summary }, now);
     flush();
     this.store.save(stored);
+    this.trace.emit(stored.id, 'designer', 'board', `job ${jobId} reporting`, { idle: 'designer', data: { summary, changes: a.changes, dropped } });
     return optionsTurn;
   }
 }

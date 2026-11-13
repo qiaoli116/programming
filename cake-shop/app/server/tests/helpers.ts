@@ -3,19 +3,21 @@ import type { Brief } from '@cakeshop/shared';
 import { createApp } from '../src/app';
 import { PlainAssistant, type Assistant } from '../src/assistant/service';
 import { OrderStore, createDb } from '../src/store';
+import { Trace } from '../src/trace';
 
 export const PASSWORD = 'test-password';
 
 export const kidsBrief: Brief = { occasion: 'kids', guests: 20, date: '2026-11-21', dietary: ['gluten-free'], fulfilment: 'pickup' };
 
-export function setup(opts: { assistant?: (store: OrderStore, clock: () => Date) => Assistant } = {}) {
+export function setup(opts: { assistant?: (store: OrderStore, clock: () => Date, trace: Trace) => Assistant; xray?: boolean } = {}) {
   const db = createDb(':memory:');
-  const store = new OrderStore(db);
+  const trace = new Trace(opts.xray ?? true);
+  const store = new OrderStore(db, trace);
   const time = { now: new Date('2026-11-13T09:00:00.000Z') };
   const clock = () => time.now;
-  const assistant = opts.assistant ? opts.assistant(store, clock) : new PlainAssistant(store, clock);
-  const app = createApp({ store, assistant, clock, bakerPassword: PASSWORD });
-  return { app, store, time, assistant, api: request(app) };
+  const assistant = opts.assistant ? opts.assistant(store, clock, trace) : new PlainAssistant(store, clock);
+  const app = createApp({ store, assistant, clock, bakerPassword: PASSWORD, trace });
+  return { app, store, time, assistant, trace, api: request(app) };
 }
 
 export type Ctx = ReturnType<typeof setup>;

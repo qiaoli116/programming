@@ -26,12 +26,15 @@ import { undoGroup } from '../orders/undo';
 import type { Assistant } from '../assistant/service';
 import { plainAck } from '../assistant/service';
 import type { OrderStore } from '../store';
+import { Trace } from '../trace';
 import { toView } from './view';
 
 export interface Deps {
   store: OrderStore;
   assistant: Assistant;
   clock: Clock;
+  /** The x-ray trace (devlog 07). Off when missing. */
+  trace?: Trace;
 }
 
 export const wrap =
@@ -45,7 +48,7 @@ function newToken(): string {
   return crypto.randomBytes(32).toString('base64url');
 }
 
-function tokenMatches(a: string, b: string): boolean {
+export function tokenMatches(a: string, b: string): boolean {
   const x = Buffer.from(a);
   const y = Buffer.from(b);
   return x.length === y.length && crypto.timingSafeEqual(x, y);
@@ -62,7 +65,7 @@ function contactFrom(raw: unknown): Contact {
   return { name, phone, email };
 }
 
-export function customerRouter({ store, assistant, clock }: Deps): Router {
+export function customerRouter({ store, assistant, clock, trace = new Trace(false) }: Deps): Router {
   const r = Router();
 
   /** Loads the order. A wrong or missing token answers 404, the same as an unknown id. */
@@ -98,6 +101,9 @@ export function customerRouter({ store, assistant, clock }: Deps): Router {
         lastCustomerAt: now,
       };
       store.insert(order);
+      // The middleware can't name this order yet, so the start of the request is recorded here.
+      trace.emit(order.id, 'user', 'studio', 'starts an order');
+      trace.emit(order.id, 'studio', 'api', 'POST /orders', { busy: { part: 'api', label: 'request' } });
       const tplId = req.body?.template;
       if (typeof tplId === 'string' && template(tplId)) {
         const design = { ...defaultDesign(tplId, brief), size: fittingSize(tplId, brief.guests) };
@@ -125,6 +131,18 @@ export function customerRouter({ store, assistant, clock }: Deps): Router {
     '/orders/:id',
     wrap((req, res) => {
       res.json(toView(load(req), clock));
+    }),
+  );
+
+  /** The x-ray trace of this order, for the studio to pass on to the x-ray window. `after`: the last `seq` it already has. */
+  r.get(
+    '/orders/:id/trace',
+    wrap((req, res) => {
+      if (!trace.enabled) throw new HttpError(404, 'Not found.');
+      const order = load(req);
+      const after = Number(req.query.after) || 0;
+      const events = trace.since(order.id, after);
+      res.json({ events, last: events.length ? events[events.length - 1].seq : after });
     }),
   );
 

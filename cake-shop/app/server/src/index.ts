@@ -3,9 +3,11 @@ import { createApp } from './app';
 import { createAssistant } from './assistant/factory';
 import { config } from './config';
 import { OrderStore, createDb } from './store';
+import { Trace } from './trace';
 
 const db = createDb(config.dbFile);
-const store = new OrderStore(db);
+const trace = new Trace(config.xray);
+const store = new OrderStore(db, trace);
 const clock = () => new Date();
 
 if (config.seedOnStart && store.count() === 0) {
@@ -13,7 +15,7 @@ if (config.seedOnStart && store.count() === 0) {
   console.log(`Empty database: loaded ${seedOrders(store)} demo orders`);
 }
 
-const assistant = createAssistant(store, clock, config);
+const assistant = createAssistant(store, clock, config, trace);
 console.log(`Design assistant: ${config.assistantProvider === 'fake' ? 'fake (offline)' : config.anthropicApiKey ? 'Anthropic API' : 'not configured (plain replies)'}`);
 const app = createApp({
   store,
@@ -22,6 +24,7 @@ const app = createApp({
   bakerPassword: config.bakerPassword,
   sessionHours: config.sessionHours,
   secureCookie: config.secureCookie,
+  trace,
   webDist: path.resolve(process.cwd(), process.env.WEB_DIST ?? '../web/dist'),
 });
 app.listen(config.port, () => {

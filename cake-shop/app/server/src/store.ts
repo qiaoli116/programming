@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import Database from 'better-sqlite3';
 import type { Order } from '@cakeshop/shared';
+import { Trace, describeSave } from './trace';
 
 export type Db = Database.Database;
 
@@ -68,7 +69,11 @@ function fromRow(r: Row): Order {
 }
 
 export class OrderStore {
-  constructor(private db: Db) {}
+  /** The trace (devlog 07) is only for showing what a save changed. The store works the same without it. */
+  constructor(
+    private db: Db,
+    private trace: Trace = new Trace(false),
+  ) {}
 
   /** Sequential ids: the seed uses C-1041 to C-1045, so new orders start at C-1046. */
   nextId(): string {
@@ -86,6 +91,13 @@ export class OrderStore {
   }
 
   save(o: Order): void {
+    const before = this.trace.enabled ? this.get(o.id) : undefined;
+    this.write(o);
+    const saved = before && describeSave(before, o);
+    if (saved) this.trace.emit(o.id, this.trace.actor, 'db', saved.label, { data: saved.data });
+  }
+
+  private write(o: Order): void {
     this.db
       .prepare(
         `UPDATE orders SET status=@status, brief=@brief, chat=@chat, options=@options, design=@design, quote=@quote, contact=@contact,

@@ -24,6 +24,9 @@ export const config = {
   // SEED_ON_START=true loads the demo orders when the database is empty.
   seedOnStart: process.env.SEED_ON_START === 'true',
   secureCookie: process.env.COOKIE_SECURE === 'true',
+  // XRAY=off hides the studio's X-ray button, records nothing and answers 404 on the trace route (devlog 07).
+  // The trace holds what the AI was asked and answered, so a real shop would turn it off.
+  xray: (process.env.XRAY ?? 'on').toLowerCase() !== 'off',
   // ASSISTANT_PROVIDER=fake uses the offline fake (demos and tests).
   // A real key is used only when it looks filled in (the .env.example placeholder is ignored).
   assistantProvider: process.env.ASSISTANT_PROVIDER,
