@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cake Order Desk – how the parts work together</title>
+<style>
+  :root {
+    --bg:#f5f6f8; --card:#fff; --text:#1d2330; --muted:#5d6677; --line:#d5dae2; --accent:#0f766e; --soft:#e0f2f0;
+    --ai:#fdf3dc; --ai-line:#b8860b; --rules:#eef2f6; --rules-line:#64748b; --human:#f3e8ff; --human-line:#7e22ce;
+    --data:#e8f0fe; --data-line:#2b5fb8; --edge:#7a8496;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg:#12151c; --card:#1a1f2a; --text:#e6e9ef; --muted:#9aa3b5; --line:#2f3747; --accent:#4fd1c5; --soft:#173a37;
+      --ai:#3a3114; --ai-line:#e0b341; --rules:#232a37; --rules-line:#94a3b8; --human:#2e1d45; --human-line:#c084fc;
+      --data:#1b2a45; --data-line:#7aa7f0; --edge:#8a94a8;
+    }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:16px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif; }
+  main { max-width:1240px; margin:0 auto; padding:24px 20px 60px; }
+  h1 { font-size:1.7rem; margin:0 0 6px; }
+  h2 { font-size:1.3rem; margin:44px 0 8px; padding-bottom:6px; border-bottom:2px solid var(--line); }
+  h3 { font-size:1.05rem; margin:22px 0 6px; }
+  p { margin:0 0 10px; max-width:85ch; }
+  .sub { color:var(--muted); }
+  code { font:.85em ui-monospace,Consolas,monospace; background:var(--rules); padding:1px 5px; border-radius:4px; }
+  .note { border-left:4px solid var(--accent); background:var(--soft); padding:10px 16px; border-radius:0 8px 8px 0; margin:14px 0; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px 18px; }
+  .k { display:inline-block; padding:0 8px; border-radius:99px; font-size:.72rem; font-weight:700; border:1.5px solid; white-space:nowrap; }
+  .k.ai { background:var(--ai); border-color:var(--ai-line); border-style:dashed; }
+  .k.rules { background:var(--rules); border-color:var(--rules-line); }
+  .k.human { background:var(--human); border-color:var(--human-line); }
+  .k.cust { background:var(--soft); border-color:var(--accent); }
+  .k.data { background:var(--data); border-color:var(--data-line); }
+  .legend { display:flex; flex-wrap:wrap; gap:6px 18px; font-size:.85rem; color:var(--muted); margin:8px 0; }
+  table { width:100%; border-collapse:collapse; background:var(--card); border:1px solid var(--line); font-size:.88rem; }
+  th, td { text-align:left; padding:7px 10px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { background:var(--bg); font-size:.75rem; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); }
+  td.n { font-weight:800; text-align:center; width:34px; }
+  td.mono, .mono { font:.8rem ui-monospace,Consolas,monospace; }
+  tr.lane td { background:var(--bg); font-size:.75rem; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); padding:4px 10px; }
+
+  /* the map */
+  .map { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:10px; overflow-x:auto; }
+  svg { display:block; width:100%; min-width:900px; height:auto; font-family:system-ui,-apple-system,"Segoe UI",sans-serif; }
+  svg text { fill:var(--text); font-size:13px; }
+  svg .t { font-weight:700; font-size:14px; }
+  svg .s { fill:var(--muted); font-size:11.5px; }
+  svg .m { font-family:ui-monospace,Consolas,monospace; font-size:11px; fill:var(--muted); }
+  svg .box { stroke-width:1.6; rx:9; }
+  svg .cust { fill:var(--soft); stroke:var(--accent); }
+  svg .human { fill:var(--human); stroke:var(--human-line); }
+  svg .ai { fill:var(--ai); stroke:var(--ai-line); stroke-dasharray:6 4; }
+  svg .rules { fill:var(--rules); stroke:var(--rules-line); }
+  svg .data { fill:var(--data); stroke:var(--data-line); }
+  svg .plain { fill:var(--card); stroke:var(--line); }
+  svg .group { fill:none; stroke:var(--line); stroke-dasharray:3 4; }
+  svg .gl { fill:var(--muted); font-size:11px; font-weight:700; letter-spacing:.06em; }
+  svg .e { stroke:var(--edge); stroke-width:1.6; fill:none; marker-end:url(#arr); }
+  svg .e.poll { stroke-dasharray:5 4; }
+  svg .el { fill:var(--muted); font-size:11px; }
+  svg .dot { fill:var(--text); }
+  svg .dn { fill:var(--card); font-size:11px; font-weight:800; text-anchor:middle; }
+  svg #arr path { fill:var(--edge); }
+</style>
+</head>
+<body>
+<main>
+
+<h1>Cake Order Desk: how the parts work together</h1>
+<p class="sub">Companion to <a href="../20261113-07-xray-view.md">devlog 07</a>. The app as built after <a href="../20261113-06-two-agents.md">devlog 06</a>: the parts, the two agents, and what happens between "send" and the cake changing on screen. The x-ray view in the app draws this same map, live.</p>
+
+<div class="legend">
+  <span><span class="k cust">customer</span> a person ordering</span>
+  <span><span class="k human">baker</span> a person approving</span>
+  <span><span class="k ai">AI agent</span> proposes, never decides</span>
+  <span><span class="k rules">rules</span> exact code that decides</span>
+  <span><span class="k data">data</span> where things are kept</span>
+</div>
+
+<!-- ======================================================= -->
+<h2>1. The map</h2>
+<p>Four layers from left to right: the people, their browser pages, the server's front door (the API), and the server's back room (agents, rules and the store). The numbers follow one message, <i>"actually it's only 10 people"</i>, and match the step list in section 3.</p>
+
+<div class="map">
+<svg viewBox="0 0 1120 700" role="img" aria-label="Component map: customer and baker browsers, the API, the host and designer agents, the job board, tools, checker and pricing, the store and the model provider">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z"/></marker>
+  </defs>
+
+  <!-- layer frames -->
+  <rect class="group" x="10" y="10" width="170" height="600" rx="10"/>
+  <text class="gl" x="22" y="30">PEOPLE</text>
+  <rect class="group" x="195" y="10" width="215" height="600" rx="10"/>
+  <text class="gl" x="207" y="30">BROWSER (web/)</text>
+  <rect class="group" x="425" y="10" width="200" height="600" rx="10"/>
+  <text class="gl" x="437" y="30">API (server/routes)</text>
+  <rect class="group" x="640" y="10" width="470" height="680" rx="10"/>
+  <text class="gl" x="652" y="30">BACK ROOM (server/assistant, shared/, store)</text>
+
+  <!-- people -->
+  <rect class="box cust" x="25" y="60" width="140" height="70"/>
+  <text class="t" x="40" y="88">Customer</text>
+  <text class="s" x="40" y="108">writes, clicks, undoes</text>
+  <rect class="box human" x="25" y="470" width="140" height="70"/>
+  <text class="t" x="40" y="498">Baker</text>
+  <text class="s" x="40" y="518">approves or declines</text>
+
+  <!-- browser pages -->
+  <rect class="box plain" x="210" y="45" width="185" height="150"/>
+  <text class="t" x="224" y="70">Studio page</text>
+  <text class="s" x="224" y="92">panel · picture · chat</text>
+  <text class="s" x="224" y="110">header: Host, Designer</text>
+  <text class="s" x="224" y="128">job lines + live progress</text>
+  <text class="s" x="224" y="146">panel paused while busy</text>
+  <text class="m" x="224" y="172">polls GET /orders/:id</text>
+  <text class="m" x="224" y="186">every 700 ms while busy</text>
+  <rect class="box plain" x="210" y="455" width="185" height="100"/>
+  <text class="t" x="224" y="480">Baker inbox</text>
+  <text class="s" x="224" y="502">orders to check, full chat,</text>
+  <text class="s" x="224" y="518">handoffs, event log</text>
+  <text class="m" x="224" y="540">/api/baker/* (signed in)</text>
+
+  <!-- API -->
+  <rect class="box plain" x="440" y="45" width="170" height="330"/>
+  <text class="t" x="454" y="70">Customer routes</text>
+  <text class="m" x="454" y="94">POST  /orders</text>
+  <text class="m" x="454" y="110">GET   /orders/:id</text>
+  <text class="m" x="454" y="126">POST  …/messages</text>
+  <text class="m" x="454" y="142">PATCH …/design, …/brief</text>
+  <text class="m" x="454" y="158">POST  …/choose, …/ack</text>
+  <text class="m" x="454" y="174">POST  …/undo, …/confirm</text>
+  <text class="s" x="454" y="202">every call: id + secret</text>
+  <text class="s" x="454" y="218">token in the link</text>
+  <line x1="452" y1="236" x2="598" y2="236" stroke="var(--line)"/>
+  <text class="t" x="454" y="260">toView()</text>
+  <text class="s" x="454" y="280">what the browser may see:</text>
+  <text class="s" x="454" y="296">no token, no event log,</text>
+  <text class="s" x="454" y="312">jobs + busy flag added</text>
+  <text class="t" x="454" y="344">applyChange()</text>
+  <text class="s" x="454" y="362">panel edits: check → price → save</text>
+  <rect class="box plain" x="440" y="455" width="170" height="100"/>
+  <text class="t" x="454" y="480">Baker routes</text>
+  <text class="m" x="454" y="502">login · inbox</text>
+  <text class="m" x="454" y="518">approve · decline</text>
+  <text class="s" x="454" y="540">moves status, never the design</text>
+
+  <!-- agents -->
+  <rect class="box ai" x="655" y="45" width="215" height="120"/>
+  <text class="t" x="670" y="70">Host  ·  Haiku 5.5</text>
+  <text class="s" x="670" y="92">talks with the customer</text>
+  <text class="s" x="670" y="110">never writes to the order</text>
+  <text class="m" x="670" y="132">tools: ask_designer, reply</text>
+  <text class="m" x="670" y="150">≤ 3 steps per turn</text>
+
+  <rect class="box data" x="655" y="200" width="215" height="80"/>
+  <text class="t" x="670" y="224">Job board  (order.jobs)</text>
+  <text class="m" x="670" y="246">queued → working →</text>
+  <text class="m" x="670" y="262">reporting → done | failed</text>
+
+  <rect class="box ai" x="655" y="315" width="215" height="125"/>
+  <text class="t" x="670" y="340">Designer  ·  Sonnet 5.5</text>
+  <text class="s" x="670" y="362">works on a copy of the order</text>
+  <text class="s" x="670" y="380">never talks to the customer</text>
+  <text class="m" x="670" y="402">≤ 6 tool calls, then report</text>
+  <text class="m" x="670" y="418">one job at a time per order</text>
+
+  <rect class="box rules" x="655" y="470" width="215" height="125"/>
+  <text class="t" x="670" y="494">Tools  (tools.ts)</text>
+  <text class="m" x="670" y="516">set_brief · set_design</text>
+  <text class="m" x="670" y="532">start_design · propose_options</text>
+  <text class="m" x="670" y="548">get_allowed_values · check_design</text>
+  <text class="m" x="670" y="564">report</text>
+  <text class="s" x="670" y="584">each one goes through the checker</text>
+
+  <!-- model -->
+  <rect class="box ai" x="905" y="45" width="190" height="395"/>
+  <text class="t" x="920" y="70">Model provider</text>
+  <text class="s" x="920" y="92">one seam: step(input) →</text>
+  <text class="s" x="920" y="108">text + tool calls</text>
+  <text class="m" x="920" y="136">anthropic: Messages API</text>
+  <text class="m" x="920" y="152">  host → claude-haiku-5-5</text>
+  <text class="m" x="920" y="168">  designer → claude-sonnet-5-5</text>
+  <text class="m" x="920" y="196">fake: a fixed script,</text>
+  <text class="m" x="920" y="212">  used by every test</text>
+  <text class="s" x="920" y="250">The model only sees what the</text>
+  <text class="s" x="920" y="266">prompt gives it: the order,</text>
+  <text class="s" x="920" y="282">the chat, the board, the catalog.</text>
+  <text class="s" x="920" y="310">It never sees prices or</text>
+  <text class="s" x="920" y="326">the token. Money in its words</text>
+  <text class="s" x="920" y="342">is stripped and logged.</text>
+
+  <!-- rules -->
+  <rect class="box rules" x="905" y="470" width="190" height="125"/>
+  <text class="t" x="920" y="494">Rules  (shared/)</text>
+  <text class="m" x="920" y="516">check(design, brief)</text>
+  <text class="m" x="920" y="532">price(design, brief)</text>
+  <text class="m" x="920" y="548">catalog · servings</text>
+  <text class="s" x="920" y="572">same code in the browser</text>
+  <text class="s" x="920" y="586">and on the server</text>
+
+  <!-- store -->
+  <rect class="box data" x="440" y="625" width="655" height="55"/>
+  <text class="t" x="454" y="648">Store  ·  SQLite, table orders, one row per order</text>
+  <text class="m" x="454" y="668">status · brief · design · quote · chat · options · jobs · events · contact · approval</text>
+
+  <!-- edges: people to pages -->
+  <path class="e" d="M165,95 L208,95"/>
+  <path class="e" d="M165,505 L208,505"/>
+  <!-- pages to API -->
+  <path class="e" d="M395,85 L438,85"/>
+  <path class="e poll" d="M438,160 L397,160"/>
+  <path class="e" d="M395,505 L438,505"/>
+  <!-- API to host -->
+  <path class="e" d="M610,95 L653,95"/>
+  <!-- host to model, designer to model -->
+  <path class="e" d="M870,80 L903,80"/>
+  <path class="e" d="M870,360 L903,360"/>
+  <!-- host to board, board to designer, designer to board (report) -->
+  <path class="e" d="M720,165 L720,198"/>
+  <path class="e" d="M760,280 L760,313"/>
+  <path class="e" d="M820,313 L820,282"/>
+  <path class="e" d="M840,198 L840,167"/>
+  <!-- designer to tools, tools to rules -->
+  <path class="e" d="M760,440 L760,468"/>
+  <path class="e" d="M870,530 L903,530"/>
+  <!-- API: applyChange to rules, and saves to store -->
+  <path class="e" d="M610,355 L618,355 L618,610 L1000,610 L1000,597"/>
+  <path class="e" d="M618,600 L618,623"/>
+  <path class="e" d="M525,555 L525,623"/>
+  <path class="e" d="M760,595 L760,623"/>
+
+  <!-- edge labels -->
+  <text class="el" x="400" y="78">HTTP</text>
+  <text class="el" x="400" y="176">poll</text>
+  <text class="el" x="612" y="118">message()</text>
+  <text class="el" x="874" y="73">step</text>
+  <text class="el" x="874" y="353">step</text>
+  <text class="el" x="732" y="186">ask_designer</text>
+  <text class="el" x="690" y="300">picks up</text>
+  <text class="el" x="834" y="300">progress, report</text>
+  <text class="el" x="854" y="186">triggers</text>
+  <text class="el" x="772" y="458">calls</text>
+  <text class="el" x="872" y="522">check</text>
+  <text class="el" x="845" y="604">check, price (panel edits)</text>
+  <text class="el" x="532" y="618">save</text>
+  <text class="el" x="580" y="618">save</text>
+  <text class="el" x="768" y="618">commit</text>
+
+  <!-- numbered stops for "it's only 10 people" -->
+  <g>
+    <circle class="dot" cx="187" cy="95" r="9"/><text class="dn" x="187" y="99">1</text>
+    <circle class="dot" cx="417" cy="85" r="9"/><text class="dn" x="417" y="89">2</text>
+    <circle class="dot" cx="631" cy="95" r="9"/><text class="dn" x="631" y="99">3</text>
+    <circle class="dot" cx="887" cy="80" r="9"/><text class="dn" x="887" y="84">4</text>
+    <circle class="dot" cx="720" cy="181" r="9"/><text class="dn" x="720" y="185">5</text>
+    <circle class="dot" cx="417" cy="160" r="9"/><text class="dn" x="417" y="164">6</text>
+    <circle class="dot" cx="760" cy="297" r="9"/><text class="dn" x="760" y="301">7</text>
+    <circle class="dot" cx="887" cy="360" r="9"/><text class="dn" x="887" y="364">8</text>
+    <circle class="dot" cx="760" cy="455" r="9"/><text class="dn" x="760" y="459">9</text>
+    <circle class="dot" cx="887" cy="530" r="9"/><text class="dn" x="887" y="534">10</text>
+    <circle class="dot" cx="820" cy="297" r="9"/><text class="dn" x="820" y="301">11</text>
+    <circle class="dot" cx="760" cy="609" r="9"/><text class="dn" x="760" y="613">12</text>
+    <circle class="dot" cx="840" cy="181" r="9"/><text class="dn" x="840" y="185">13</text>
+  </g>
+</svg>
+</div>
+
+<div class="note"><b>The one idea.</b> The AI agents propose; the rules decide. Every change to an order, whether it comes from the panel or from the designer, passes the same <code>check()</code> and <code>price()</code> before it is saved. The agents never call each other directly either: the host writes a job on the board, and the board is read by the designer. The board is part of the order row, so the customer, the baker and the browser all see it.</div>
+
+<!-- ======================================================= -->
+<h2>2. Who may do what</h2>
+<table>
+  <thead><tr><th>Part</th><th>Reads</th><th>Writes</th><th>May not</th></tr></thead>
+  <tbody>
+    <tr><td><span class="k cust">Customer</span> (Studio page)</td><td>The order through <code>toView</code></td><td>Brief and design through the panel; chat; choose; undo; confirm</td><td>See the event log or another order. Edit while a job runs (panel paused)</td></tr>
+    <tr><td><span class="k ai">Host</span></td><td>Chat, order, job board, catalog</td><td>Its own chat replies; new jobs</td><td>Change the order. Say a change is done before the designer reports it</td></tr>
+    <tr><td><span class="k ai">Designer</span></td><td>Its task, order, recent chat, catalog</td><td>Brief, design and option cards, only through tools; progress lines; its report</td><td>Talk to the customer. Confirm, approve or price anything</td></tr>
+    <tr><td><span class="k rules">Checker, Pricing</span></td><td>Design, brief, catalog, today</td><td>Nothing: they return a verdict or a quote</td><td>—</td></tr>
+    <tr><td><span class="k human">Baker</span></td><td>Everything on the order, events included</td><td>Approve or decline (status, approval)</td><td>Change the design</td></tr>
+    <tr><td><span class="k data">Store</span></td><td colspan="3">Holds the row. Every write is a whole-row save after the code that changed it has finished; nothing waits on a model while holding a row.</td></tr>
+  </tbody>
+</table>
+
+<!-- ======================================================= -->
+<h2>3. One message, step by step</h2>
+<p>The order has the Unicorn round at 10" for 20 guests. The customer writes <i>"actually it's only 10 people"</i>. Each row is one thing that moves. In the x-ray view, each row is one line of the live trace, and the numbered stop on the map lights up as it happens.</p>
+
+<table>
+  <thead><tr><th>#</th><th>From → to</th><th>What moves</th><th>Saved</th><th>The customer sees</th></tr></thead>
+  <tbody>
+    <tr class="lane"><td colspan="5">The host's turn: the request is open while it runs (2 to 4 s with the real model)</td></tr>
+    <tr><td class="n">1</td><td>Customer → Studio</td><td>Types and sends</td><td>—</td><td>Their line in the chat, "The host is typing…"</td></tr>
+    <tr><td class="n">2</td><td>Studio → API</td><td class="mono">POST /orders/C-1046/messages {text}</td><td>Chat line (customer)</td><td>—</td></tr>
+    <tr><td class="n">3</td><td>API → Host</td><td class="mono">message("C-1046")</td><td>—</td><td>—</td></tr>
+    <tr><td class="n">4</td><td>Host ↔ Model</td><td class="mono">step: prompt + chat + board → ask_designer{task}, reply{text}</td><td>—</td><td>—</td></tr>
+    <tr><td class="n">5</td><td>Host → Job board</td><td class="mono">job 3 queued: "The customer now has 10 guests. Update the guests and re-fit the size."</td><td>Host reply, handoff line, job 3</td><td>—</td></tr>
+    <tr><td class="n">6</td><td>API → Studio</td><td class="mono">200 view {busy: true}</td><td>—</td><td>Host's reply; "Host → Designer" line; panel paused; polling starts</td></tr>
+    <tr class="lane"><td colspan="5">The designer's job: in the background, after the request has answered (5 to 12 s)</td></tr>
+    <tr><td class="n">7</td><td>Job board → Designer</td><td class="mono">job 3 working; copy of the order</td><td>Job status</td><td>Header: "Designer · working"</td></tr>
+    <tr><td class="n">8</td><td>Designer ↔ Model</td><td class="mono">step → set_brief{guests: 10}</td><td>—</td><td>—</td></tr>
+    <tr><td class="n">9</td><td>Designer → Tools</td><td class="mono">set_brief guests 20 → 10</td><td>Progress line</td><td>"set guests 20 → 10" under the job</td></tr>
+    <tr><td class="n">10</td><td>Tools → Rules</td><td class="mono">check() ok, warning "serves 24, more than 10"; price()</td><td>—</td><td>—</td></tr>
+    <tr><td class="n">8–10</td><td>…again</td><td class="mono">set_design{size: 8in} → check ok → price</td><td>Progress line</td><td>"set size 10in → 8in"</td></tr>
+    <tr><td class="n">11</td><td>Designer → Job board</td><td class="mono">report{summary}; conflict check: has the order moved since the copy?</td><td>—</td><td>—</td></tr>
+    <tr><td class="n">12</td><td>Designer → Store</td><td class="mono">commit: brief, design, quote; 2 notes, one Undo group; job 3 reporting</td><td>Whole row</td><td>Next poll: panel, picture and total change; "Designer changed … · Undo"</td></tr>
+    <tr class="lane"><td colspan="5">The host's report turn (2 to 4 s)</td></tr>
+    <tr><td class="n">13</td><td>Job board → Host ↔ Model</td><td class="mono">step: the report → reply{text}</td><td>Host reply; job 3 done</td><td>"Done, it's now an 8-inch cake for 10." Busy ends, panel unpaused, polling stops</td></tr>
+  </tbody>
+</table>
+
+<h3>Three loops, nested</h3>
+<div class="card">
+<ul style="margin:0">
+  <li><b>The customer's loop</b> (browser): send, show the answer, poll while <code>busy</code>. It never waits on the designer.</li>
+  <li><b>The host's turn</b> (server, inside one request): up to 3 model steps. It ends with <code>reply</code>; a task becomes a queued job.</li>
+  <li><b>The designer's job</b> (server, background, one at a time per order): up to 6 tool calls, then <code>report</code>. It works on a copy; only progress lines are saved until the commit at the end.</li>
+</ul>
+</div>
+
+<h3>Where it can go wrong, and what catches it</h3>
+<table>
+  <thead><tr><th>What happens</th><th>Caught by</th><th>Result</th></tr></thead>
+  <tbody>
+    <tr><td>The designer asks for something the shop can't make</td><td>check() in the tool</td><td>Tool result "Refused: …", the designer adapts or reports it</td></tr>
+    <tr><td>The customer changes the order while the job runs (through the API)</td><td>Conflict check at commit</td><td>The designer's changes are dropped, it tries once more on the new order</td></tr>
+    <tr><td>The model writes a price</td><td>stripPrices()</td><td>Removed from the words, a warning in the event log</td></tr>
+    <tr><td>The designer keeps calling tools</td><td>Tool limit (6)</td><td>It is made to report</td></tr>
+    <tr><td>The model is down</td><td>AssistantFailure</td><td>"The assistant didn't answer. Try again."; a failed job commits nothing</td></tr>
+  </tbody>
+</table>
+
+</main>
+</body>
+</html>
