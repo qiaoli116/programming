@@ -46,8 +46,11 @@ const OPTIONAL_FIELDS: Record<string, unknown> = {
 };
 
 export const REPLY_TOOL = 'reply';
+export const REPORT_TOOL = 'report';
+export const ASK_TOOL = 'ask_designer';
 
-export const TOOLS: ToolDef[] = [
+/** The designer's tools: they work on the order. The designer ends each job with `report`. */
+export const WORK_TOOLS: ToolDef[] = [
   {
     name: 'set_brief',
     description:
@@ -108,18 +111,50 @@ export const TOOLS: ToolDef[] = [
     description: "The checker's verdict on the current design with the current order details.",
     input_schema: { type: 'object', properties: {} },
   },
-  {
-    name: REPLY_TOOL,
-    description:
-      'End your turn with what the customer reads. Call it exactly once, last. text: short and friendly, no prices. ' +
-      "cant_do: things the customer asked for that the shop can't do ([] if none). suggestions: up to 3 short ideas the customer can click, like \"Add a rainbow drip\" ([] if none).",
-    input_schema: {
-      type: 'object',
-      properties: { text: { type: 'string' }, cant_do: { type: 'array', items: { type: 'string' } }, suggestions: { type: 'array', items: { type: 'string' } } },
-      required: ['text'],
-    },
-  },
 ];
+
+const REPORT_DEF: ToolDef = {
+  name: REPORT_TOOL,
+  description:
+    'End the job with your report to the host, who tells the customer. Call it exactly once, last. ' +
+    'summary: what you did and what was refused and why, in plain words, no prices (the host reads it, not the customer). ' +
+    'questions: what the host should ask the customer before you can go on ([] if none). ' +
+    'suggestions: up to 3 short replies the customer could click to answer, like "Yes, deliver it" ([] if none).',
+  input_schema: {
+    type: 'object',
+    properties: {
+      summary: { type: 'string' },
+      questions: { type: 'array', items: { type: 'string' } },
+      suggestions: { type: 'array', items: { type: 'string' } },
+    },
+    required: ['summary'],
+  },
+};
+
+const REPLY_DEF: ToolDef = {
+  name: REPLY_TOOL,
+  description:
+    'What the customer reads. Call it exactly once, last. text: short and friendly, no prices. ' +
+    "cant_do: things the customer asked for that the shop can't do ([] if none). suggestions: up to 3 short ideas the customer can click, like \"Add a rainbow drip\" ([] if none).",
+  input_schema: {
+    type: 'object',
+    properties: { text: { type: 'string' }, cant_do: { type: 'array', items: { type: 'string' } }, suggestions: { type: 'array', items: { type: 'string' } } },
+    required: ['text'],
+  },
+};
+
+const ASK_DEF: ToolDef = {
+  name: ASK_TOOL,
+  description:
+    'Give the designer a task on the order. The designer changes the order (details, design, option cards) through the rule checker, then reports back to you. ' +
+    'task: one precise instruction with the exact values the customer gave, e.g. "Set guests to 10 and re-fit the size", "Show 3 options for a unicorn cake, one with a rainbow drip". ' +
+    "The work happens after your reply, so in your reply say it's in hand; never say it is done.",
+  input_schema: { type: 'object', properties: { task: { type: 'string' } }, required: ['task'] },
+};
+
+export const DESIGNER_TOOLS: ToolDef[] = [...WORK_TOOLS, REPORT_DEF];
+export const HOST_TOOLS: ToolDef[] = [ASK_DEF, REPLY_DEF];
+export const HOST_REPORT_TOOLS: ToolDef[] = [REPLY_DEF];
 
 /** What a tool did. `text` goes back to the model; `change` becomes a note the customer sees. */
 export interface ToolRun {

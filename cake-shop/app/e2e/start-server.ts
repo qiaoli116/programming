@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import express from 'express';
 import { createApp } from '../server/src/app';
 import { FakeProvider } from '../server/src/assistant/provider';
-import { TurnAssistant } from '../server/src/assistant/turn';
+import { TeamAssistant } from '../server/src/assistant/team';
 import { OrderStore, createDb } from '../server/src/store';
 import { seedOrders } from '../server/seed/orders';
 
@@ -19,7 +19,7 @@ function fresh() {
   seedOrders(store);
   return createApp({
     store,
-    assistant: new TurnAssistant(store, clock, new FakeProvider()),
+    assistant: new TeamAssistant(store, clock, new FakeProvider()),
     clock,
     bakerPassword: PASSWORD,
     webDist: path.resolve(here, '../web/dist'),

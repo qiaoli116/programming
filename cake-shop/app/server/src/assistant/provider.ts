@@ -3,7 +3,7 @@
 // API; the fake is a deterministic script and is what every automated test and demo uses (ASSISTANT_PROVIDER=fake).
 import { COLOURS, DECORATIONS, fittingSize, suggestTemplates, template, type Brief } from '@cakeshop/shared';
 import type { ProviderInput, ToolResult } from './prompt';
-import { REPLY_TOOL } from './tools';
+import { ASK_TOOL, REPLY_TOOL, REPORT_TOOL } from './tools';
 
 export interface ToolCall {
   id: string;
@@ -27,9 +27,11 @@ export interface AssistantProvider {
 //   [REJECT]  options include one candidate the checker refuses (on a gluten-free order)
 //   [NOPASS]  every candidate, or the change asked for, is refused
 //   [PRICE]   the reply text contains prices
-//   [FAIL]    the provider throws
-//   [LOOP]    keeps calling check_design until it is made to reply
-//   [SLOW]    waits a moment before the first step (for "both at once")
+//   [FAIL]        the host throws on the message (no job is made)
+//   [JOBFAIL]     the designer throws (the job fails, nothing is committed)
+//   [REPORTFAIL]  the host throws when relaying the report (a plain note is used)
+//   [LOOP]        the designer keeps calling check_design until it is made to report
+//   [SLOW]        the designer waits a moment before its first step (for "both at once")
 const colourIds = COLOURS.map((c) => c.id as string);
 const decoIds = DECORATIONS.map((d) => d.id);
 export const FAKE_SLOW_MS = 1500;
@@ -144,29 +146,67 @@ const reply = (w: Words, step: number): Step => ({
   text: '',
   calls: [{ id: `fake-${step}`, name: REPLY_TOOL, input: { text: w.text, cant_do: w.cantDo ?? [], suggestions: w.suggestions ?? [] } }],
 });
+const report = (w: Words, step: number): Step => ({
+  text: '',
+  calls: [{ id: `fake-${step}`, name: REPORT_TOOL, input: { summary: w.text, questions: [], suggestions: w.suggestions ?? [] } }],
+});
+const withPrice = (said: string, w: Words): Words => (said.includes('[PRICE]') ? { ...w, text: `That one is $45 and the total is $120. ${w.text}` } : w);
 
+/** The fake plays both agents. The host answers fixed questions itself and hands everything else to the designer. */
 export class FakeProvider implements AssistantProvider {
   readonly name = 'fake';
 
   async step(input: ProviderInput): Promise<Step> {
-    const { context: ctx } = input;
+    return input.agent === 'designer' ? this.designer(input) : this.host(input);
+  }
+
+  private async host(input: ProviderInput): Promise<Step> {
+    const ctx = input.context;
     const said = ctx.lastText;
     if (said.includes('[FAIL]')) throw new Error('fake provider failure');
-
     if (input.expect === 'ack') return { text: `Got it: ${ctx.notes.join('; ') || 'no changes'}.`, calls: [] };
 
-    if (ctx.step === 0 && !ctx.retry && said.includes('[SLOW]')) await new Promise((r) => setTimeout(r, FAKE_SLOW_MS));
-    if (input.force) return reply({ text: 'I stopped there. Tell me what you would like next.' }, ctx.step);
-    if (ctx.retry) return reply({ text: 'You changed the design while I was working, so I left it as you set it.' }, ctx.step);
-    if (said.includes('[LOOP]')) return { text: '', calls: [{ id: `fake-${ctx.step}`, name: 'check_design', input: {} }] };
+    if (input.expect === 'report') {
+      if (said.includes('[REPORTFAIL]')) throw new Error('fake host failure while reporting');
+      const job = ctx.job!;
+      const r = job.report;
+      const words: Words =
+        job.status === 'failed' || !r
+          ? { text: "Sorry, our designer couldn't finish that, so nothing changed. Shall I try again?" }
+          : { text: [r.summary, ...r.questions].join(' '), suggestions: r.suggestions };
+      return reply(withPrice(said, words), ctx.step);
+    }
+
+    if (input.force) return reply({ text: 'Sorry, could you say that another way?' }, ctx.step);
+    const open = ctx.jobs.find((j) => ['queued', 'working', 'reporting'].includes(j.status));
+    if (open && /how is it going|done yet|still working|ready yet/i.test(said)) {
+      const at = open.progress.at(-1);
+      return reply({ text: `Still on it: our designer is ${at ? `at "${at}"` : 'just starting'}.` }, ctx.step);
+    }
+    const plan = planFor(input);
+    if (!Array.isArray(plan) && !said.includes('[LOOP]')) return reply(withPrice(said, plan), ctx.step);
+    const task = said.trim() || 'Suggest 2 to 4 cake options for this order.';
+    return {
+      text: '',
+      calls: [
+        { id: `fake-ask-${ctx.step}`, name: ASK_TOOL, input: { task } },
+        { id: `fake-${ctx.step}`, name: REPLY_TOOL, input: { text: "On it, I've asked our designer.", cant_do: [], suggestions: [] } },
+      ],
+    };
+  }
+
+  private async designer(input: ProviderInput): Promise<Step> {
+    const ctx = input.context;
+    const task = ctx.lastText;
+    if (task.includes('[JOBFAIL]')) throw new Error('fake designer failure');
+    if (ctx.step === 0 && !ctx.retry && task.includes('[SLOW]')) await new Promise((r) => setTimeout(r, FAKE_SLOW_MS));
+    if (input.force) return report({ text: 'I stopped there.' }, ctx.step);
+    if (ctx.retry) return report({ text: 'You changed the design while I was working, so I left it as you set it.' }, ctx.step);
+    if (task.includes('[LOOP]')) return { text: '', calls: [{ id: `fake-${ctx.step}`, name: 'check_design', input: {} }] };
 
     const plan = planFor(input);
-    let words: Words;
-    if (Array.isArray(plan)) {
-      if (ctx.step < plan.length) return { text: '', calls: [{ id: `fake-${ctx.step}`, ...plan[ctx.step] }] };
-      words = wordsFromResults(ctx.results);
-    } else words = plan;
-    if (said.includes('[PRICE]')) words = { ...words, text: `That one is $45 and the total is $120. ${words.text}` };
-    return reply(words, ctx.step);
+    if (!Array.isArray(plan)) return report(plan, ctx.step);
+    if (ctx.step < plan.length) return { text: '', calls: [{ id: `fake-${ctx.step}`, ...plan[ctx.step] }] };
+    return report(wordsFromResults(ctx.results), ctx.step);
   }
 }

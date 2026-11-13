@@ -10,7 +10,7 @@ import type { Brief, OrderView } from '@cakeshop/shared';
 import { config } from '../../server/src/config';
 import { createApp } from '../../server/src/app';
 import { AnthropicProvider } from '../../server/src/assistant/anthropic';
-import { TurnAssistant } from '../../server/src/assistant/turn';
+import { TeamAssistant } from '../../server/src/assistant/team';
 import { OrderStore, createDb } from '../../server/src/store';
 import { seedOrders } from '../../server/seed/orders';
 
@@ -34,7 +34,7 @@ const store = new OrderStore(createDb(':memory:'));
 seedOrders(store);
 const app = createApp({
   store,
-  assistant: new TurnAssistant(store, clock, new AnthropicProvider(config.anthropicApiKey)),
+  assistant: new TeamAssistant(store, clock, new AnthropicProvider(config.anthropicApiKey)),
   clock,
   bakerPassword: PASSWORD,
   webDist: path.resolve(here, '../../web/dist'),

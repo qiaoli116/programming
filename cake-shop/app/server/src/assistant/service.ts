@@ -1,4 +1,4 @@
-// What the routes need from the Design assistant. Phase C builds the real one (turn.ts) behind the provider seam.
+// What the routes need from the Design assistant. The real one is the host and designer team (team.ts).
 import { addChat, nowOf, type Clock } from '../orders/applyChange';
 import type { OrderStore } from '../store';
 
@@ -7,6 +7,8 @@ export interface Assistant {
   message(orderId: string): Promise<void>;
   /** A short acknowledgement of the quick changes since the assistant last spoke. Never throws: it falls back to a plain note. */
   ack(orderId: string): Promise<void>;
+  /** Resolves when no designer job is running or queued for the order (for tests and scripts). */
+  idle(orderId: string): Promise<void>;
 }
 
 /** Used when no provider is configured: the app runs, and each turn gets a plain reply. */
@@ -30,6 +32,8 @@ export class PlainAssistant implements Assistant {
   async ack(orderId: string): Promise<void> {
     plainAck(this.store, orderId, this.clock);
   }
+
+  async idle(): Promise<void> {}
 }
 
 /** The plain acknowledgement: what changed and the new total. Used when the AI can't answer. */

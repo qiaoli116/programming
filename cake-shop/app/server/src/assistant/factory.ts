@@ -4,7 +4,7 @@ import type { Clock } from '../orders/applyChange';
 import { AnthropicProvider } from './anthropic';
 import { FakeProvider, type AssistantProvider } from './provider';
 import { PlainAssistant, type Assistant } from './service';
-import { TurnAssistant } from './turn';
+import { TeamAssistant } from './team';
 
 export function chooseProvider(cfg: { assistantProvider?: string; anthropicApiKey?: string }): AssistantProvider | null {
   if (cfg.assistantProvider === 'fake') return new FakeProvider();
@@ -14,5 +14,5 @@ export function chooseProvider(cfg: { assistantProvider?: string; anthropicApiKe
 
 export function createAssistant(store: OrderStore, clock: Clock, cfg: { assistantProvider?: string; anthropicApiKey?: string }): Assistant {
   const provider = chooseProvider(cfg);
-  return provider ? new TurnAssistant(store, clock, provider) : new PlainAssistant(store, clock);
+  return provider ? new TeamAssistant(store, clock, provider) : new PlainAssistant(store, clock);
 }

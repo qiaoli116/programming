@@ -77,7 +77,24 @@ export interface Quote {
 
 export type Status = 'DESIGNING' | 'AWAITING_BAKER' | 'CONFIRMED' | 'DECLINED' | 'ABANDONED';
 
-export type ChatKind = 'customer' | 'assistant' | 'ui' | 'system';
+/** `handoff`: a message between the two agents (host → designer, designer → host), shown in the chat. */
+export type ChatKind = 'customer' | 'assistant' | 'ui' | 'system' | 'handoff';
+
+/** The two agents (devlog 06). The host talks with the customer; the designer works on the order. */
+export type Agent = 'host' | 'designer';
+
+/** One task the host gave the designer. Jobs for an order run one at a time, in order. */
+export interface Job {
+  id: number;
+  task: string;
+  status: 'queued' | 'working' | 'reporting' | 'done' | 'failed';
+  /** One line per tool call, as the designer works ("set guests 20 → 10", "refused: …"). */
+  progress: string[];
+  /** The designer's report. `suggestions`: short replies the host may offer the customer as chips. */
+  report?: { summary: string; questions: string[]; suggestions: string[]; changes: string[]; dropped: boolean };
+  createdAt: string;
+  finishedAt?: string;
+}
 
 export interface ChatMessage {
   id: number;
@@ -99,6 +116,9 @@ export interface ChatMessage {
   undo?: { before: Snapshot; after: Snapshot };
   /** Set on every note of a group that the customer undid. */
   undone?: boolean;
+  /** For `handoff` lines: who sent it, and the job it belongs to. */
+  from?: Agent;
+  job?: number;
 }
 
 /** The parts of an order that the customer and the assistant both change. */
@@ -155,6 +175,8 @@ export interface Order {
   approval: Approval | null;
   confirmation: Confirmation | null;
   events: OrderEvent[];
+  /** The job board: tasks from the host to the designer (devlog 06). */
+  jobs: Job[];
   createdAt: string;
   updatedAt: string;
   lastCustomerAt: string;
@@ -168,5 +190,7 @@ export type OrderView = Omit<Order, 'token' | 'events'> & {
   /** A "serves fewer than your guests" warning, when it applies. */
   warning: string | null;
   today: string;
+  /** True while a designer job is open: the browser polls and pauses the panel. */
+  busy: boolean;
 };
 

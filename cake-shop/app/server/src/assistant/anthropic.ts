@@ -1,10 +1,12 @@
 // The real provider: the plain Anthropic SDK with an API key, the same approach as job-board. One call is one step of
-// the agent loop in turn.ts: the model sees the order, the chat and the tools, and answers with text and tool calls.
+// an agent loop in team.ts: the model sees the order, the chat and the tools, and answers with text and tool calls.
+// Each agent has its own model: the host must answer fast; the designer must get the rules right.
 import Anthropic from '@anthropic-ai/sdk';
+import type { Agent } from '@cakeshop/shared';
 import type { ProviderInput } from './prompt';
 import type { AssistantProvider, Step } from './provider';
 
-export const MODEL = 'claude-sonnet-5-5';
+export const MODELS: Record<Agent, string> = { host: 'claude-haiku-5-5', designer: 'claude-sonnet-5-5' };
 
 export class AnthropicProvider implements AssistantProvider {
   readonly name = 'anthropic';
@@ -16,7 +18,7 @@ export class AnthropicProvider implements AssistantProvider {
 
   async step(input: ProviderInput): Promise<Step> {
     const res = await this.client.messages.create({
-      model: MODEL,
+      model: MODELS[input.agent],
       max_tokens: 4096,
       system: input.system,
       messages: input.messages as Anthropic.MessageParam[],

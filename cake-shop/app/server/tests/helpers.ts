@@ -15,7 +15,7 @@ export function setup(opts: { assistant?: (store: OrderStore, clock: () => Date)
   const clock = () => time.now;
   const assistant = opts.assistant ? opts.assistant(store, clock) : new PlainAssistant(store, clock);
   const app = createApp({ store, assistant, clock, bakerPassword: PASSWORD });
-  return { app, store, time, api: request(app) };
+  return { app, store, time, assistant, api: request(app) };
 }
 
 export type Ctx = ReturnType<typeof setup>;

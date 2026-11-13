@@ -35,6 +35,9 @@ export function migrate(db: Db): void {
     );
     CREATE INDEX IF NOT EXISTS orders_status ON orders(status);
   `);
+  // Devlog 06: the job board. Added to databases made before it.
+  const cols = db.prepare(`PRAGMA table_info(orders)`).all() as { name: string }[];
+  if (!cols.some((c) => c.name === 'jobs')) db.exec(`ALTER TABLE orders ADD COLUMN jobs TEXT NOT NULL DEFAULT '[]'`);
 }
 
 const FIRST_NEW_ID = 1046;
@@ -57,6 +60,7 @@ function fromRow(r: Row): Order {
     approval: parse(r.approval),
     confirmation: parse(r.confirmation),
     events: parse(r.events) ?? [],
+    jobs: parse(r.jobs) ?? [],
     createdAt: r.created_at as string,
     updatedAt: r.updated_at as string,
     lastCustomerAt: r.last_customer_at as string,
@@ -75,8 +79,8 @@ export class OrderStore {
   insert(o: Order): void {
     this.db
       .prepare(
-        `INSERT INTO orders (id, token, status, brief, chat, options, design, quote, contact, approval, confirmation, events, created_at, updated_at, last_customer_at)
-         VALUES (@id, @token, @status, @brief, @chat, @options, @design, @quote, @contact, @approval, @confirmation, @events, @created_at, @updated_at, @last_customer_at)`,
+        `INSERT INTO orders (id, token, status, brief, chat, options, design, quote, contact, approval, confirmation, events, jobs, created_at, updated_at, last_customer_at)
+         VALUES (@id, @token, @status, @brief, @chat, @options, @design, @quote, @contact, @approval, @confirmation, @events, @jobs, @created_at, @updated_at, @last_customer_at)`,
       )
       .run(this.toParams(o));
   }
@@ -85,7 +89,7 @@ export class OrderStore {
     this.db
       .prepare(
         `UPDATE orders SET status=@status, brief=@brief, chat=@chat, options=@options, design=@design, quote=@quote, contact=@contact,
-           approval=@approval, confirmation=@confirmation, events=@events, updated_at=@updated_at, last_customer_at=@last_customer_at WHERE id=@id`,
+           approval=@approval, confirmation=@confirmation, events=@events, jobs=@jobs, updated_at=@updated_at, last_customer_at=@last_customer_at WHERE id=@id`,
       )
       .run(this.toParams(o));
   }
@@ -119,6 +123,7 @@ export class OrderStore {
       approval: json(o.approval),
       confirmation: json(o.confirmation),
       events: json(o.events),
+      jobs: json(o.jobs ?? []),
       created_at: o.createdAt,
       updated_at: o.updatedAt,
       last_customer_at: o.lastCustomerAt,

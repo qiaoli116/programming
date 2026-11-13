@@ -94,6 +94,7 @@ export function customerRouter({ store, assistant, clock }: Deps): Router {
         events: [{ at: now, by: 'customer', type: 'status', text: 'Order started.' }],
         createdAt: now,
         updatedAt: now,
+        jobs: [],
         lastCustomerAt: now,
       };
       store.insert(order);

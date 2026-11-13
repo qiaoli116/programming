@@ -1,7 +1,7 @@
 // Runs the real provider on a few messages and prints what the rules made of it. Needs ANTHROPIC_API_KEY in app/.env.
 // Usage: npm run live-check -w server
 import { config } from '../src/config';
-import { TurnAssistant } from '../src/assistant/turn';
+import { TeamAssistant } from '../src/assistant/team';
 import { AnthropicProvider } from '../src/assistant/anthropic';
 import { addChat, nowOf } from '../src/orders/applyChange';
 import { OrderStore, createDb } from '../src/store';
@@ -14,7 +14,7 @@ if (!config.anthropicApiKey) {
 const store = new OrderStore(createDb(':memory:'));
 const clock = () => new Date();
 const date = new Date(Date.now() + 10 * 86400000).toISOString().slice(0, 10);
-const assistant = new TurnAssistant(store, clock, new AnthropicProvider(config.anthropicApiKey));
+const assistant = new TeamAssistant(store, clock, new AnthropicProvider(config.anthropicApiKey));
 
 const id = store.nextId();
 store.insert({
@@ -32,6 +32,7 @@ store.insert({
   events: [],
   createdAt: nowOf(clock),
   updatedAt: nowOf(clock),
+  jobs: [],
   lastCustomerAt: nowOf(clock),
 });
 

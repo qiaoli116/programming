@@ -138,6 +138,7 @@ export function seedOrders(store: OrderStore): number {
           : events,
       createdAt: s.at,
       updatedAt: s.at,
+      jobs: [],
       lastCustomerAt: s.at,
     };
     store.insert(order);
