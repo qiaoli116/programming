@@ -2,7 +2,7 @@
 
 **Date:** 2026-11-13
 
-**Status:** Building
+**Status:** Done
 
 **Iteration:** Iteration 1, Stage 3 Implementation (see [process.html](../../docs/process.html#iteration-1))
 
@@ -132,11 +132,17 @@ Expect: the version moved, so the assistant's changes from that turn are not app
 4. [x] Undo (route, note changes, UI)
 5. [x] Browser: assistant notes, Undo, panel follows the order
 6. [x] Fake flows F1 to F14 in Playwright
-7. [ ] Live flow script, run it, fix what it finds
-8. [ ] Update devlog 04 where it says the assistant never writes to the order; fill in Outcome
+7. [x] Live flow script, run it, fix what it finds (the script was written here; it was first run after devlog 06, against the two agents)
+8. [x] Update devlog 04 where it says the assistant never writes to the order; fill in Outcome
 
 ---
 
 ## Outcome
 
-<!-- Fill in when Done. -->
+Built as designed. The assistant is a tool-use loop: six tools, at most 6 calls per turn, each change going through the checker. Every change appears as an attributed note with Undo, and changes from a turn are dropped if the customer changed the order meanwhile. The fake flows F1 to F14 pass in Playwright.
+
+**What changed after.** Before the live script was run, [devlog 06](20261113-06-two-agents.md) split the assistant into a host and a designer. This loop became the designer's loop. Its tools gained `report`, and `TurnAssistant` became `TeamAssistant`. The live run happened there: 37 of 41 checks passed at first, and 50 of 50 after the fixes. Its findings are in devlog 06's Outcome. Two ideas from here carried over unchanged: the shared workspace (attributed notes, Undo, no overwriting) and *AI for the conversation, rules for the promises*.
+
+**Different from the plan.**
+- The panel lock now holds while the designer's job runs, not only during a turn. The chat box stays open, so the customer can talk to the host meanwhile.
+- The Undo label says "the designer's change".

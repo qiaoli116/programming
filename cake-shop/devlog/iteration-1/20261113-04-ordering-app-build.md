@@ -202,6 +202,8 @@ The picture is not stored. It is drawn from the design in the browser, with the 
 
 ## §6 The Design assistant
 
+> **Changed later.** This section describes the assistant as first built: it returned one JSON reply and only the server or the customer changed the order. [Devlog 05](20261113-05-assistant-tools-and-test-flows.md) replaced that with tools, so the assistant now changes the order itself, through the same checker as the panel, with Undo on every change. [Devlog 06](20261113-06-two-agents.md) then split it into two agents: a host that talks (Haiku 5.5) and a designer that works (Sonnet 5.5). What stays from here: the provider seam, the provider choice, the key handling, and "prices are never in the AI's words".
+
 **Provider seam**, as in the job-board app: `AssistantProvider.turn(input) → unknown`. `AnthropicProvider` calls the Messages API with `@anthropic-ai/sdk` from the server only (the key never reaches the browser), model `claude-sonnet-5-5`, with a JSON schema for the reply (`output_config.format`). A reply counts only when `stop_reason` is `end_turn`, and anything else is treated as a failure. `FakeProvider` is deterministic and offline, and every automated test uses it. Local runs and the deployed app use the same API call. There is no Claude Code or Agent SDK path.
 
 **Choosing the provider** (`config.ts` and `index.ts`, the same order as job-board):
