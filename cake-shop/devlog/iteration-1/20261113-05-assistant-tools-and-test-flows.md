@@ -131,7 +131,7 @@ Expect: the version moved, so the assistant's changes from that turn are not app
 3. [x] Anthropic provider with tool use; prompt update; live check
 4. [x] Undo (route, note changes, UI)
 5. [x] Browser: assistant notes, Undo, panel follows the order
-6. [ ] Fake flows F1 to F14 in Playwright
+6. [x] Fake flows F1 to F14 in Playwright
 7. [ ] Live flow script, run it, fix what it finds
 8. [ ] Update devlog 04 where it says the assistant never writes to the order; fill in Outcome
 

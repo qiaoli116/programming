@@ -209,7 +209,12 @@ export function Studio({ id, token, view, setView }: Props) {
               if (c.kind === 'ui')
                 return (
                   <div className="evt" key={c.id}>
-                    ✎ <span>You changed <b>{c.change ?? c.text}</b></span> · {fmtTime(c.at)}
+                    {c.text.startsWith("Undid the assistant's change: ") ? (
+                      <>↶ <span>You undid the assistant's change <b>{c.text.slice(30)}</b></span></>
+                    ) : (
+                      <>✎ <span>You changed <b>{c.change ?? c.text}</b></span></>
+                    )}{' '}
+                    · {fmtTime(c.at)}
                   </div>
                 );
               if (c.kind === 'system') return <div className="day" key={c.id}>{c.text}</div>;
@@ -269,7 +274,7 @@ export function Studio({ id, token, view, setView }: Props) {
           </div>
           <form className="composer" onSubmit={(e) => { e.preventDefault(); send(text); }}>
             <div className="inp">
-              <input aria-label="Message" placeholder={pending ? 'The assistant is answering…' : 'Ask for a change, or ask a question…'} value={text} disabled={pending} onChange={(e) => setText(e.target.value)} />
+              <input aria-label="Message to the assistant" placeholder={pending ? 'The assistant is answering…' : 'Ask for a change, or ask a question…'} value={text} disabled={pending} onChange={(e) => setText(e.target.value)} />
               <button className="btn primary sm" type="submit" disabled={pending || !text.trim()}>Send</button>
             </div>
             <div className="hint">Tip: the assistant can change the order for you ("only 10 people", "make it purple"), or use the panel on the right. You both see every change.</div>

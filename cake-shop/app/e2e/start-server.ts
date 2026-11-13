@@ -13,8 +13,9 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const clock = () => new Date();
 export const PASSWORD = 'e2e-password';
 
+let store: OrderStore;
 function fresh() {
-  const store = new OrderStore(createDb(':memory:'));
+  store = new OrderStore(createDb(':memory:'));
   seedOrders(store);
   return createApp({
     store,
@@ -29,6 +30,15 @@ let current = fresh();
 const outer = express();
 outer.post('/__test/reseed', (_req, res) => {
   current = fresh();
+  res.json({ ok: true });
+});
+// Moves an order's last customer activity back by ?days=N, so the abandon sweep can be tested on the real clock.
+outer.post('/__test/age/:id', (req, res) => {
+  const o = store.get(req.params.id);
+  if (!o) return void res.status(404).json({ error: 'no order' });
+  const days = Number(req.query.days ?? 8);
+  o.lastCustomerAt = new Date(Date.now() - days * 86400000).toISOString();
+  store.save(o);
   res.json({ ok: true });
 });
 outer.use((req, res, next) => current(req, res, next));

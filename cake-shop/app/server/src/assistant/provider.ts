@@ -62,6 +62,13 @@ function isoPlusDays(day: string, n: number) {
   return new Date(Date.parse(`${day}T00:00:00Z`) + n * 86400000).toISOString().slice(0, 10);
 }
 
+/** "The 15th": this month if it hasn't passed, otherwise next month. */
+function nextDayOfMonth(today: string, n: number) {
+  const [y, m, d] = today.split('-').map(Number);
+  const pick = n >= d ? new Date(Date.UTC(y, m - 1, n)) : new Date(Date.UTC(y, m, n));
+  return pick.toISOString().slice(0, 10);
+}
+
 /** What the fake does for a message: a list of tool calls, or fixed words with no tools. */
 function planFor(input: ProviderInput): Plan | Words {
   // Planned from the order as it was when the turn began, so the plan is the same on every step.
@@ -87,7 +94,7 @@ function planFor(input: ProviderInput): Plan | Words {
   }
   if (/tomorrow/.test(t)) plan.push({ name: 'set_brief', input: { field: 'date', value: isoPlusDays(today, 1) } });
   const day = /for the (\d{1,2})(st|nd|rd|th)/.exec(t);
-  if (day) plan.push({ name: 'set_brief', input: { field: 'date', value: `${today.slice(0, 8)}${day[1].padStart(2, '0')}` } });
+  if (day) plan.push({ name: 'set_brief', input: { field: 'date', value: nextDayOfMonth(today, Number(day[1])) } });
   if (/deliver/.test(t)) plan.push({ name: 'set_brief', input: { field: 'fulfilment', value: 'delivery' } });
   if (/\bvegan\b/.test(t)) plan.push({ name: 'set_brief', input: { field: 'dietary', value: [...new Set([...brief.dietary, 'vegan'])] } });
   if (design) {
@@ -103,6 +110,8 @@ function planFor(input: ProviderInput): Plan | Words {
       if (found.length) plan.push({ name: 'set_design', input: { field: 'decorations', value: [...design.decorations, ...found] } });
     }
   }
+  // With no design yet, a brief change ("yes, deliver it") is followed by fresh options for the new brief.
+  if (plan.length && !design) return [...plan, ...optionsPlan(brief, said)];
   if (plan.length) return plan;
   if (design && /^(what|how|can|do|does|is|are)\b/.test(t.trim())) return { text: 'Yes, I can help with that. What would you like to change?' };
   if (!design) return optionsPlan(brief, said);
@@ -115,6 +124,15 @@ function wordsFromResults(results: ToolResult[]): Words {
   const done = results.filter((r) => r.ok && r.name !== 'propose_options' && r.text.startsWith('Done'));
   const shown = results.some((r) => r.ok && r.name === 'propose_options');
   const refused = results.filter((r) => !r.ok);
+  // No option passed. The one case the fake knows how to fix is a cake that is big enough only as 3 tiers.
+  if (!shown && refused.some((r) => r.name === 'propose_options')) {
+    if (refused.some((r) => /deliver/i.test(r.text)))
+      return {
+        text: 'A cake for this many guests is 3 tiers, and 3-tier cakes are delivered and set up at the venue. Shall I switch your order to delivery?',
+        suggestions: ['Yes, deliver it'],
+      };
+    return { text: "I couldn't find a cake that fits all of that yet. Could you tell me more about what you'd like?" };
+  }
   const parts: string[] = [];
   if (shown) parts.push('Here are some ideas.');
   if (done.length) parts.push(`Done: ${done.map((r) => r.text.replace(/^Done: /, '').replace(/\.( Note:.*)?$/, '')).join('; ')}.`);
