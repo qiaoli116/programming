@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>A Neural Network Learns to Add</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <div class="logo">+</div>
+      <div>
+        <h1>A neural network learns to add</h1>
+        <p>Supervised learning, live: show it worked examples of A + B = C, let it adjust its weights, then quiz it on sums it has never seen.</p>
+      </div>
+    </div>
+    <ol class="steps" id="steps">
+      <li data-step="1">Prepare data</li>
+      <li data-step="2">Train</li>
+      <li data-step="3">Test unseen sums</li>
+    </ol>
+  </header>
+
+  <main class="layout">
+    <!-- ================= left: data + training ================= -->
+    <aside class="side left">
+      <section class="card" id="cardData">
+        <h2><span class="num">1</span> Training data</h2>
+        <p class="hint">There are 101 × 101 = 10,201 possible sums (A and B from 0 to 100). The network only gets to <b>study</b> some of them; the rest are kept back to <b>test</b> it.</p>
+        <label class="field" for="trainCount">Training equations <output id="trainCountOut">3,000</output></label>
+        <input type="range" id="trainCount" min="700" max="8000" step="100" value="3000">
+        <div class="split"><div class="bar"><i id="splitBar"></i></div></div>
+        <div class="split-text" id="splitText"></div>
+        <ul class="checklist" id="coverageList"></ul>
+        <div class="strip-row"><span>A</span><canvas class="strip" id="stripA"></canvas></div>
+        <div class="strip-row"><span>B</span><canvas class="strip" id="stripB"></canvas></div>
+        <div class="strip-axis"><span>0</span><span>50</span><span>100</span></div>
+        <div class="strip-row"><span>C</span><canvas class="strip" id="stripC"></canvas></div>
+        <div class="strip-axis"><span>0</span><span>100</span><span>200</span></div>
+        <div class="strip-scale"><span>fewer</span><span class="ramp"></span><span>more training examples per value</span></div>
+        <div class="row"><button class="btn ghost" id="btnNewData">New random training set</button></div>
+        <details id="eqDetails">
+          <summary id="eqSummary">Browse the training equations</summary>
+          <div class="eqlist" id="eqList"></div>
+        </details>
+      </section>
+
+      <section class="card" id="cardTrain">
+        <h2><span class="num">2</span> Train</h2>
+        <label class="field" for="arch">Network shape</label>
+        <select id="arch">
+          <option value="rec">Recommended: 3 hidden layers · 48 → 32 → 24</option>
+          <option value="small">Smaller: 32 → 24 → 16</option>
+          <option value="even">Even: 32 → 32 → 32</option>
+          <option value="shallow">One hidden layer: 64 (struggles with carries)</option>
+        </select>
+        <div class="arch-desc" id="archDesc"></div>
+        <div class="row">
+          <button class="btn primary" id="btnTrain">▶ Train</button>
+          <button class="btn ghost" id="btnReset">↺ Reset weights</button>
+        </div>
+        <div class="seg" id="speed">
+          <button data-speed="slow">Slow-mo</button>
+          <button data-speed="normal" class="on">Normal</button>
+          <button data-speed="fast">Fast</button>
+        </div>
+        <label class="check"><input type="checkbox" id="watch" checked> Show training examples flowing through</label>
+        <div class="progress"><div id="progBar"></div></div>
+        <div class="progress-text" id="progText"></div>
+        <div class="stats">
+          <div class="stat"><span class="k"><i style="background:#9b6bf2"></i>Training set</span><b id="accTrain">–</b><span class="sub">exactly right</span></div>
+          <div class="stat"><span class="k"><i style="background:#1aa595"></i>Unseen test</span><b id="accTest">–</b><span class="sub" id="accTestSub">exactly right</span></div>
+        </div>
+        <div class="heads" id="headAcc"></div>
+        <h3>Loss <small>how wrong the guesses are — lower is better</small></h3>
+        <canvas class="chart" id="chartLoss"></canvas>
+        <h3>Accuracy</h3>
+        <div class="legend">
+          <span><i style="background:#9b6bf2"></i>Training set</span>
+          <span><i style="background:#1aa595"></i>Unseen test equations</span>
+        </div>
+        <canvas class="chart" id="chartAcc"></canvas>
+        <details class="why">
+          <summary>Why this network shape?</summary>
+          <p><b>Input: 44 nodes.</b> Each digit of A and B gets its own little group of switches (one-hot): A hundreds (0–1), A tens (0–9), A ones (0–9), and the same for B. Exactly 6 switches are on for any question. Digits, not raw numbers, because addition works column by column.</p>
+          <p><b>Output: 23 nodes in 3 heads.</b> C is 0–200, so we classify each digit separately: hundreds (0–2), tens (0–9), ones (0–9). Each head is a softmax, so it gives a probability for every digit.</p>
+          <p><b>Hidden: 48 → 32 → 24 (ReLU).</b> The ones digit only needs the two ones digits. The tens digit is harder: it needs the tens digits <i>and</i> whether the ones column carried. Stacking layers lets the network first work out the carry, then use it. With a single hidden layer of 64 it gets stuck at roughly 1 in 5 unseen sums wrong, almost all of them in the tens digit (try it). The tapering 3-layer shape gets about 99% of unseen sums right.</p>
+          <p><b>Training:</b> mini-batches of 32, Adam optimiser, learning rate easing from 0.005 down to 0.0003 over 60 epochs, light weight decay (0.001) so it learns rules instead of memorising. In total 5,095 weights and biases.</p>
+        </details>
+      </section>
+    </aside>
+
+    <!-- ================= centre: the network ================= -->
+    <section class="stage">
+      <canvas id="net"></canvas>
+    </section>
+
+    <!-- ================= right: testing ================= -->
+    <aside class="side right">
+      <section class="card" id="cardTest">
+        <h2><span class="num">3</span> Test</h2>
+        <p class="hint">Pick any sum. Ones it never studied are the real test.</p>
+        <div class="operands">
+          <div class="operand"><label for="inA">A</label><input type="number" id="inA" min="0" max="100" value="47"><input type="range" id="rngA" min="0" max="100" value="47"></div>
+          <div class="plus">+</div>
+          <div class="operand"><label for="inB">B</label><input type="number" id="inB" min="0" max="100" value="38"><input type="range" id="rngB" min="0" max="100" value="38"></div>
+        </div>
+        <div class="row">
+          <button class="btn primary" id="btnPredict">Predict</button>
+          <button class="btn" id="btnRandom">🎲 Random unseen</button>
+        </div>
+        <label class="check"><input type="checkbox" id="autoplay"> Keep testing random unseen sums</label>
+        <div class="result" id="result"><div class="empty">Press Predict to send a question through the network.</div></div>
+        <h3>The model's top 5 answers</h3>
+        <div class="cands" id="cands"><div class="empty">An AI answer is a probability, not a certainty. After a prediction you will see its five most likely answers here.</div></div>
+        <div class="explain" id="explain" hidden></div>
+      </section>
+
+      <section class="card">
+        <h2>All 10,201 sums</h2>
+        <div class="legend">
+          <span><i class="sq" style="background:#9b6bf2"></i>Studied (training)</span>
+          <span><i class="sq" style="background:#1aa595"></i>Unseen, answered right</span>
+          <span><i class="sq" style="background:#ff5c7a"></i>Unseen, answered wrong</span>
+        </div>
+        <canvas id="map"></canvas>
+        <div class="map-axes"><span>↓ A = 0 … 100</span><span>B = 0 … 100 →</span></div>
+        <p class="hint small" style="margin-top:6px">Updated after every epoch. Hover for details, click any cell to test it.</p>
+      </section>
+    </aside>
+  </main>
+
+  <script src="nn.js"></script>
+  <script src="charts.js"></script>
+  <script src="viz.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
